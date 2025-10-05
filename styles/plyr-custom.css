@@ -1,0 +1,115 @@
+/* Custom Plyr styling for Yomistream - Christian branding */
+
+/* Primary color customization - Purple theme matching the app */
+.plyr--video {
+  --plyr-color-main: #9333ea; /* Purple-600 */
+  --plyr-video-background: #000000;
+}
+
+/* Control bar styling */
+.plyr__controls {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 10px;
+}
+
+/* Progress bar - Purple theme */
+.plyr__progress__buffer {
+  background: rgba(147, 51, 234, 0.25);
+}
+
+.plyr--playing .plyr__controls {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.plyr:hover .plyr__controls {
+  opacity: 1;
+}
+
+/* Volume and progress sliders */
+.plyr__control--overlaid {
+  background: rgba(147, 51, 234, 0.9);
+}
+
+.plyr__control--overlaid:hover {
+  background: #9333ea;
+}
+
+/* Tooltip styling */
+.plyr__tooltip {
+  background: rgba(147, 51, 234, 0.95);
+  color: white;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+/* Settings menu */
+.plyr__menu__container {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  border: 1px solid rgba(147, 51, 234, 0.3);
+}
+
+.plyr__menu__container [role="menuitemradio"][aria-checked="true"]::before {
+  background: #9333ea;
+}
+
+/* Control buttons hover effect */
+.plyr__control:hover {
+  background: rgba(147, 51, 234, 0.2);
+}
+
+/* Time display */
+.plyr__time {
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+/* Fullscreen button */
+.plyr__control[data-plyr="fullscreen"] {
+  margin-right: 5px;
+}
+
+/* Hide YouTube branding elements if any slip through */
+.plyr__video-wrapper::after {
+  display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .plyr__controls {
+    padding: 8px;
+  }
+  
+  .plyr__time {
+    font-size: 12px;
+  }
+}
+
+/* Loading spinner - Purple theme */
+.plyr--loading .plyr__progress__buffer {
+  background-image: linear-gradient(
+    -45deg,
+    rgba(147, 51, 234, 0.6) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(147, 51, 234, 0.6) 50%,
+    rgba(147, 51, 234, 0.6) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 25px 25px;
+  animation: plyr-progress 1s linear infinite;
+}
+
+/* Ensure player fits container properly */
+.plyr {
+  width: 100%;
+  height: 100%;
+}
+
+.plyr__video-wrapper {
+  background: #000;
+}

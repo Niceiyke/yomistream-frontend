@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react"
 import { X, BookOpen, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SermonNotes } from "@/components/sermon-notes"
+import PlyrJS from "plyr"
+import "plyr/dist/plyr.css"
+import "@/styles/plyr-custom.css"
 
 interface ScriptureReference {
   book: string
@@ -35,132 +38,79 @@ export const VideoPlayer = ({
 }: VideoPlayerProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
-  const playerContainerRef = useRef<HTMLDivElement | null>(null)
-  const playerRef = useRef<any>(null)
-  const loadedVideoIdRef = useRef<string | null>(null)
+  const videoElementRef = useRef<HTMLDivElement | null>(null)
+  const playerRef = useRef<PlyrJS | null>(null)
   const frameHostRef = useRef<HTMLDivElement | null>(null)
 
-  // Load YouTube IFrame API once and create a single player instance
+  // Initialize Plyr player
   useEffect(() => {
-    // If API already loaded
-    const onYouTubeIframeAPIReady = () => {
-      if (!playerContainerRef.current) return
-      if (playerRef.current) return
-      // @ts-ignore
-      playerRef.current = new window.YT.Player(playerContainerRef.current, {
-        videoId,
-        playerVars: {
-          autoplay: 1,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          fs: 1,
-        },
-        events: {
-          onReady: () => {
-            try {
-              const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
-              const end = typeof endTimeSeconds === "number" && endTimeSeconds > start ? endTimeSeconds : undefined
-              if (end !== undefined) {
-                playerRef.current.loadVideoById({ videoId, startSeconds: start, endSeconds: end })
-              } else if (start > 0) {
-                playerRef.current.loadVideoById({ videoId, startSeconds: start })
-              }
-            } catch {}
-            loadedVideoIdRef.current = videoId
-          },
-          onStateChange: () => {
-            try {
-              const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
-              const end = typeof endTimeSeconds === "number" && endTimeSeconds > start ? endTimeSeconds : undefined
-              const t = playerRef.current?.getCurrentTime?.()
-              if (typeof t === "number") {
-                if (start > 0 && t < start - 0.25) {
-                  playerRef.current?.seekTo?.(start, true)
-                }
-                if (end !== undefined && t >= end) {
-                  playerRef.current?.pauseVideo?.()
-                }
-              }
-            } catch {}
-          },
-        },
+    if (!videoElementRef.current) return
+
+    // Create Plyr instance
+    const player = new PlyrJS(videoElementRef.current, {
+      autoplay: true,
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'mute',
+        'volume',
+        'settings',
+        'fullscreen',
+      ],
+      settings: ['quality', 'speed'],
+      youtube: {
+        noCookie: true, // Use youtube-nocookie.com for privacy
+        autoplay: 1,
+        rel: 0, // Don't show related videos
+        modestbranding: 1, // Minimal YouTube branding
+        playsinline: 1, // Play inline on mobile
+        fs: 1, // Show fullscreen button
+        controls: 1, // Show controls
+        disablekb: 0, // Enable keyboard controls
+        iv_load_policy: 3, // Hide annotations
+        cc_load_policy: 0, // Hide captions by default
+        showinfo: 0, // Hide video info
+        origin: typeof window !== 'undefined' ? window.location.origin : '', // Security
+      },
+      ratio: '16:9',
+    })
+
+    playerRef.current = player
+
+    // Handle ready event
+    player.on('ready', () => {
+      try {
+        const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
+        if (start > 0) {
+          setTimeout(() => {
+            player.currentTime = start
+          }, 500)
+        }
+      } catch (e) {
+        console.error("Error setting start time:", e)
+      }
+    })
+
+    // Handle time update for end time enforcement
+    if (typeof endTimeSeconds === "number") {
+      player.on('timeupdate', () => {
+        try {
+          if (player.currentTime >= endTimeSeconds) {
+            player.pause()
+          }
+        } catch (e) {
+          // Ignore
+        }
       })
     }
 
-    // If YT present use it, else inject script (singleton)
-    // @ts-ignore
-    if (typeof window !== "undefined" && window.YT && window.YT.Player) {
-      onYouTubeIframeAPIReady()
-    } else {
-      // @ts-ignore
-      if (typeof window !== "undefined") {
-        // Only attach handler if not already
-        // @ts-ignore
-        if (!window.onYouTubeIframeAPIReady) {
-          // @ts-ignore
-          window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady
-        }
-      }
-      // Ensure we only add the script once
-      const existing = document.querySelector('script[src="https://www.youtube.com/iframe_api"]')
-      if (!existing) {
-        const script = document.createElement("script")
-        script.src = "https://www.youtube.com/iframe_api"
-        script.async = true
-        document.body.appendChild(script)
-      }
-    }
-
+    // Cleanup
     return () => {
-      // Do not destroy player on unmount of this component's toggle states; only when component unmounts
-      // Keep it to persist between mini/fullscreen within same mount
-      // If we wanted cleanup on full unmount, uncomment below:
-      // try { playerRef.current?.destroy?.() } catch {}
-    }
-  }, [])
-
-  // If videoId/start/end change, (re)load or seek with the configured clip times
-  useEffect(() => {
-    if (!playerRef.current) return
-    try {
-      const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
-      const end = typeof endTimeSeconds === "number" && endTimeSeconds > start ? endTimeSeconds : undefined
-      playerRef.current.loadVideoById(
-        end !== undefined
-          ? { videoId, startSeconds: start, endSeconds: end }
-          : { videoId, startSeconds: start }
-      )
-      loadedVideoIdRef.current = videoId
-    } catch (e) {
-      // Fallback
-      try {
-        const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
-        const end = typeof endTimeSeconds === "number" && endTimeSeconds > start ? endTimeSeconds : undefined
-        playerRef.current.cueVideoById(
-          end !== undefined
-            ? { videoId, startSeconds: start, endSeconds: end }
-            : { videoId, startSeconds: start }
-        )
-        playerRef.current.playVideo?.()
-        loadedVideoIdRef.current = videoId
-      } catch {}
+      player.destroy()
     }
   }, [videoId, startTimeSeconds, endTimeSeconds])
-
-  // Enforce end time if provided by pausing when reached
-  useEffect(() => {
-    if (typeof endTimeSeconds !== "number" || !playerRef.current) return
-    const id = window.setInterval(() => {
-      try {
-        const t = playerRef.current?.getCurrentTime?.()
-        if (typeof t === "number" && t >= endTimeSeconds) {
-          playerRef.current.pauseVideo?.()
-        }
-      } catch {}
-    }, 500)
-    return () => window.clearInterval(id)
-  }, [endTimeSeconds])
 
   // Handle entering/exiting native fullscreen and orientation for better mobile UX
   useEffect(() => {
@@ -276,7 +226,11 @@ export const VideoPlayer = ({
           }
           style={isExpanded ? { height: "100%" } : undefined}
         >
-          <div ref={playerContainerRef} className="w-full h-full" />
+          <div
+            ref={videoElementRef}
+            data-plyr-provider="youtube"
+            data-plyr-embed-id={videoId}
+          />
         </div>
         {isExpanded ? (
           showNotes && (
