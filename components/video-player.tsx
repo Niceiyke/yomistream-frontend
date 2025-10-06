@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react"
 import { X, BookOpen, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SermonNotes } from "@/components/sermon-notes"
-import PlyrJS from "plyr"
 import "plyr/dist/plyr.css"
 import "@/styles/plyr-custom.css"
 
@@ -39,76 +38,101 @@ export const VideoPlayer = ({
   const [isExpanded, setIsExpanded] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const videoElementRef = useRef<HTMLDivElement | null>(null)
-  const playerRef = useRef<PlyrJS | null>(null)
+  const playerRef = useRef<import("plyr").default | null>(null)
+  const plyrCtorRef = useRef<typeof import("plyr")["default"] | null>(null)
   const frameHostRef = useRef<HTMLDivElement | null>(null)
 
   // Initialize Plyr player
   useEffect(() => {
+    let isMounted = true
     if (!videoElementRef.current) return
 
-    // Create Plyr instance
-    const player = new PlyrJS(videoElementRef.current, {
-      autoplay: true,
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'mute',
-        'volume',
-        'settings',
-        'fullscreen',
-      ],
-      settings: ['quality', 'speed'],
-      youtube: {
-        noCookie: true, // Use youtube-nocookie.com for privacy
-        autoplay: 1,
-        rel: 0, // Don't show related videos
-        modestbranding: 1, // Minimal YouTube branding
-        playsinline: 1, // Play inline on mobile
-        fs: 1, // Show fullscreen button
-        controls: 1, // Show controls
-        disablekb: 0, // Enable keyboard controls
-        iv_load_policy: 3, // Hide annotations
-        cc_load_policy: 0, // Hide captions by default
-        showinfo: 0, // Hide video info
-        origin: typeof window !== 'undefined' ? window.location.origin : '', // Security
-      },
-      ratio: '16:9',
-    })
-
-    playerRef.current = player
-
-    // Handle ready event
-    player.on('ready', () => {
-      try {
-        const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
-        if (start > 0) {
-          setTimeout(() => {
-            player.currentTime = start
-          }, 500)
-        }
-      } catch (e) {
-        console.error("Error setting start time:", e)
+    const setupPlayer = async () => {
+      if (!videoElementRef.current || !isMounted) {
+        return
       }
-    })
 
-    // Handle time update for end time enforcement
-    if (typeof endTimeSeconds === "number") {
-      player.on('timeupdate', () => {
+      if (!plyrCtorRef.current) {
+        const mod = await import("plyr")
+        plyrCtorRef.current = mod.default
+      }
+
+      if (!plyrCtorRef.current || !videoElementRef.current || !isMounted) {
+        return
+      }
+
+      const PlyrCtor = plyrCtorRef.current
+
+      const player = new PlyrCtor(videoElementRef.current, {
+        autoplay: true,
+        controls: [
+          'play-large',
+          'play',
+          'progress',
+          'current-time',
+          'mute',
+          'volume',
+          'settings',
+          'fullscreen',
+        ],
+        settings: ['quality', 'speed'],
+        youtube: {
+          noCookie: true, // Use youtube-nocookie.com for privacy
+          autoplay: 1,
+          rel: 0, // Don't show related videos
+          modestbranding: 1, // Minimal YouTube branding
+          playsinline: 1, // Play inline on mobile
+          fs: 1, // Show fullscreen button
+          controls: 1, // Show controls
+          disablekb: 0, // Enable keyboard controls
+          iv_load_policy: 3, // Hide annotations
+          cc_load_policy: 0, // Hide captions by default
+          showinfo: 0, // Hide video info
+          origin: typeof window !== 'undefined' ? window.location.origin : '', // Security
+        },
+        ratio: '16:9',
+      })
+
+      playerRef.current = player
+
+      // Handle ready event
+      player.on('ready', () => {
         try {
-          if (player.currentTime >= endTimeSeconds) {
-            player.pause()
+          const start = typeof startTimeSeconds === "number" ? Math.max(0, startTimeSeconds) : 0
+          if (start > 0) {
+            setTimeout(() => {
+              if (playerRef.current) {
+                playerRef.current.currentTime = start
+              }
+            }, 500)
           }
         } catch (e) {
-          // Ignore
+          console.error("Error setting start time:", e)
         }
       })
+
+      // Handle time update for end time enforcement
+      if (typeof endTimeSeconds === "number") {
+        player.on('timeupdate', () => {
+          try {
+            if (playerRef.current && playerRef.current.currentTime >= endTimeSeconds) {
+              playerRef.current.pause()
+            }
+          } catch {
+            // Ignore
+          }
+        })
+      }
     }
 
-    // Cleanup
+    setupPlayer()
+
     return () => {
-      player.destroy()
+      isMounted = false
+      if (playerRef.current) {
+        playerRef.current.destroy()
+        playerRef.current = null
+      }
     }
   }, [videoId, startTimeSeconds, endTimeSeconds])
 
