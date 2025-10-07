@@ -191,66 +191,66 @@ export default function CollectionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading your collections...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground text-xl">Loading your collections...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Button asChild variant="ghost" className="text-white hover:bg-white/10">
+              <Button asChild variant="ghost" className="hover:bg-accent">
                 <Link href="/">← Back to Home</Link>
               </Button>
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
+                <BookOpen className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">My Collections</h1>
-                <p className="text-sm text-gray-300">Organize your favorite gospel content</p>
+                <h1 className="text-2xl font-bold text-foreground">My Collections</h1>
+                <p className="text-sm text-muted-foreground">Organize your favorite WordLyte content</p>
               </div>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-purple-600 hover:bg-purple-700">
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                   <Plus className="w-4 h-4 mr-2" />
                   New Collection
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-slate-800 border-slate-700">
+              <DialogContent className="bg-card border-border">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Create New Collection</DialogTitle>
-                  <DialogDescription className="text-slate-300">
+                  <DialogTitle className="text-foreground">Create New Collection</DialogTitle>
+                  <DialogDescription className="text-muted-foreground">
                     Create a new collection to organize your favorite videos.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="name" className="text-slate-200">
+                    <Label htmlFor="name" className="text-foreground">
                       Collection Name
                     </Label>
                     <Input
                       id="name"
                       value={newCollectionName}
                       onChange={(e) => setNewCollectionName(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-input border-border"
                       placeholder="e.g., Sunday Sermons"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="description" className="text-slate-200">
+                    <Label htmlFor="description" className="text-foreground">
                       Description (Optional)
                     </Label>
                     <Textarea
                       id="description"
                       value={newCollectionDescription}
                       onChange={(e) => setNewCollectionDescription(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-input border-border"
                       placeholder="Describe what this collection is about..."
                     />
                   </div>
@@ -258,7 +258,7 @@ export default function CollectionsPage() {
                 <DialogFooter>
                   <Button
                     onClick={createCollection}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={!newCollectionName.trim()}
                   >
                     Create Collection
@@ -274,13 +274,13 @@ export default function CollectionsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Collections List */}
           <div className="lg:col-span-1">
-            <h2 className="text-xl font-semibold text-white mb-4">Your Collections</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Your Collections</h2>
             <div className="space-y-3">
               {collections.map((collection) => (
                 <Card
                   key={collection.id}
-                  className={`bg-slate-800/50 border-slate-700 cursor-pointer transition-colors ${
-                    selectedCollection?.id === collection.id ? "ring-2 ring-purple-500" : "hover:bg-slate-800/70"
+                  className={`bg-card border-border cursor-pointer transition-colors shadow-sm ${
+                    selectedCollection?.id === collection.id ? "ring-2 ring-primary" : "hover:bg-accent/50"
                   }`}
                   onClick={() => {
                     setSelectedCollection(collection)
@@ -289,7 +289,7 @@ export default function CollectionsPage() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-white text-lg">{collection.name}</CardTitle>
+                      <CardTitle className="text-foreground text-lg">{collection.name}</CardTitle>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -297,15 +297,15 @@ export default function CollectionsPage() {
                           e.stopPropagation()
                           deleteCollection(collection.id)
                         }}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                        className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {collection.description && <p className="text-slate-300 text-sm mb-2">{collection.description}</p>}
-                    <p className="text-slate-400 text-xs">
+                    {collection.description && <p className="text-muted-foreground text-sm mb-2">{collection.description}</p>}
+                    <p className="text-muted-foreground text-xs">
                       {collection.video_count} video{collection.video_count !== 1 ? "s" : ""}
                     </p>
                   </CardContent>
@@ -313,11 +313,11 @@ export default function CollectionsPage() {
               ))}
 
               {collections.length === 0 && (
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-card border-border shadow-sm">
                   <CardContent className="text-center py-8">
-                    <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-300 mb-2">No collections yet</p>
-                    <p className="text-slate-400 text-sm">Create your first collection to get started</p>
+                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-foreground mb-2">No collections yet</p>
+                    <p className="text-muted-foreground text-sm">Create your first collection to get started</p>
                   </CardContent>
                 </Card>
               )}
@@ -329,21 +329,21 @@ export default function CollectionsPage() {
             {selectedCollection ? (
               <>
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-white mb-2">{selectedCollection.name}</h2>
-                  {selectedCollection.description && <p className="text-slate-300">{selectedCollection.description}</p>}
-                  <p className="text-slate-400 text-sm mt-2">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">{selectedCollection.name}</h2>
+                  {selectedCollection.description && <p className="text-muted-foreground">{selectedCollection.description}</p>}
+                  <p className="text-muted-foreground text-sm mt-2">
                     {collectionVideos.length} video{collectionVideos.length !== 1 ? "s" : ""}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {collectionVideos.map((item) => (
-                    <Card key={item.id} className="bg-slate-800/50 border-slate-700">
+                    <Card key={item.id} className="bg-card border-border shadow-sm">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h3 className="text-white font-medium mb-1">{item.video.title}</h3>
-                            <p className="text-slate-400 text-sm">
+                            <h3 className="text-foreground font-medium mb-1">{item.video.title}</h3>
+                            <p className="text-muted-foreground text-sm">
                               {item.video.preacher?.name} • {formatDuration(item.video.duration)}
                             </p>
                           </div>
@@ -351,14 +351,14 @@ export default function CollectionsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeVideoFromCollection(item.id)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 ml-2"
+                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 ml-2"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                         <Button
                           onClick={() => setSelectedVideo(item.video.youtube_id)}
-                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
                           <Play className="w-4 h-4 mr-2" />
                           Watch Video
@@ -369,12 +369,12 @@ export default function CollectionsPage() {
                 </div>
 
                 {collectionVideos.length === 0 && (
-                  <Card className="bg-slate-800/50 border-slate-700">
+                  <Card className="bg-card border-border shadow-sm">
                     <CardContent className="text-center py-12">
-                      <Play className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">No videos yet</h3>
-                      <p className="text-slate-400 mb-4">Add videos to this collection from the main page</p>
-                      <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                      <Play className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-foreground mb-2">No videos yet</h3>
+                      <p className="text-muted-foreground mb-4">Add videos to this collection from the main page</p>
+                      <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
                         <Link href="/">Browse Videos</Link>
                       </Button>
                     </CardContent>
@@ -382,11 +382,11 @@ export default function CollectionsPage() {
                 )}
               </>
             ) : (
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-card border-border shadow-sm">
                 <CardContent className="text-center py-16">
-                  <BookOpen className="w-20 h-20 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-2xl font-semibold text-white mb-2">Select a Collection</h3>
-                  <p className="text-slate-400">Choose a collection from the left to view its videos</p>
+                  <BookOpen className="w-20 h-20 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-2xl font-semibold text-foreground mb-2">Select a Collection</h3>
+                  <p className="text-muted-foreground">Choose a collection from the left to view its videos</p>
                 </CardContent>
               </Card>
             )}
@@ -395,7 +395,7 @@ export default function CollectionsPage() {
       </div>
 
       {/* Video Player Modal */}
-      {selectedVideo && <VideoPlayer videoId={selectedVideo} onClose={() => setSelectedVideo(null)} />}
+      {selectedVideo && <VideoPlayer videoId={selectedVideo} videoTitle="Collection Video" onClose={() => setSelectedVideo(null)} />}
     </div>
   )
 }

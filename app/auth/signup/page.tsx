@@ -41,7 +41,7 @@ export default function SignUpPage() {
         options: {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/`,
           data: {
-            display_name: displayName || "Gospel Viewer",
+            display_name: displayName || "WordLyte User",
           },
         },
       })
@@ -74,13 +74,13 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white">Join Our Community</CardTitle>
-            <CardDescription className="text-slate-300">
-              Create an account to save your favorite gospel videos
+            <CardTitle className="text-2xl text-foreground">Join Our Community</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Create an account to save your favorite WordLyte content
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -89,7 +89,7 @@ export default function SignUpPage() {
                 type="button"
                 onClick={handleGoogleSignUp}
                 disabled={isGoogleLoading}
-                className="w-full bg-white text-gray-900 hover:bg-gray-100 font-medium"
+                className="w-full bg-card text-foreground hover:bg-accent border border-border font-medium"
               >
                 {isGoogleLoading ? (
                   "Signing up with Google..."
@@ -120,10 +120,10 @@ export default function SignUpPage() {
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full bg-slate-600" />
+                  <Separator className="w-full bg-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-800 px-2 text-slate-400">Or continue with email</span>
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
                 </div>
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function SignUpPage() {
             <form onSubmit={handleSignUp} className="mt-4">
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="displayName" className="text-slate-200">
+                  <Label htmlFor="displayName" className="text-foreground">
                     Display Name
                   </Label>
                   <Input
@@ -140,11 +140,11 @@ export default function SignUpPage() {
                     placeholder="Your name"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    className="bg-input border-border placeholder:text-muted-foreground"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="email" className="text-slate-200">
+                  <Label htmlFor="email" className="text-foreground">
                     Email
                   </Label>
                   <Input
@@ -154,11 +154,11 @@ export default function SignUpPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    className="bg-input border-border placeholder:text-muted-foreground"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="password" className="text-slate-200">
+                  <Label htmlFor="password" className="text-foreground">
                     Password
                   </Label>
                   <Input
@@ -167,11 +167,11 @@ export default function SignUpPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-input border-border"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="repeat-password" className="text-slate-200">
+                  <Label htmlFor="repeat-password" className="text-foreground">
                     Repeat Password
                   </Label>
                   <Input
@@ -180,17 +180,17 @@ export default function SignUpPage() {
                     required
                     value={repeatPassword}
                     onChange={(e) => setRepeatPassword(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-input border-border"
                   />
                 </div>
-                {error && <p className="text-sm text-red-400">{error}</p>}
-                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Sign Up"}
                 </Button>
               </div>
-              <div className="mt-4 text-center text-sm text-slate-300">
+              <div className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link href="/auth/login" className="text-purple-400 hover:text-purple-300 underline underline-offset-4">
+                <Link href="/auth/login" className="text-secondary hover:text-secondary/80 underline underline-offset-4">
                   Sign in
                 </Link>
               </div>

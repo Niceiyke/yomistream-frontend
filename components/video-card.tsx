@@ -32,10 +32,10 @@ interface VideoCardProps {
 
 export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, onGenerateAI }: VideoCardProps) {
   return (
-    <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all duration-200 group">
+    <Card className="bg-card border-border hover:bg-accent/20 transition-all duration-200 group shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 border-purple-500/30">
+          <Badge variant="secondary" className="bg-secondary/20 text-secondary-foreground border-secondary/50">
             {video.topic}
           </Badge>
           <div className="flex items-center space-x-1">
@@ -43,7 +43,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 text-gray-400 hover:text-purple-400"
+                className="w-8 h-8 text-muted-foreground hover:text-secondary"
                 onClick={() => onGenerateAI(video.id)}
                 title="Generate AI content"
               >
@@ -52,7 +52,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
             )}
             {user && (
               <AddToCollectionDialog videoId={video.id}>
-                <Button variant="ghost" size="icon" className="w-8 h-8 text-gray-400 hover:text-white">
+                <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground">
                   <Plus className="w-4 h-4" />
                 </Button>
               </AddToCollectionDialog>
@@ -61,19 +61,19 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
               variant="ghost"
               size="icon"
               onClick={onToggleFavorite}
-              className={`w-8 h-8 ${isFavorite ? "text-red-400 hover:text-red-300" : "text-gray-400 hover:text-white"}`}
+              className={`w-8 h-8 ${isFavorite ? "text-destructive hover:text-destructive/80" : "text-muted-foreground hover:text-foreground"}`}
             >
               <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
             </Button>
           </div>
         </div>
-        <CardTitle className="text-white text-lg leading-tight group-hover:text-purple-200 transition-colors">
+        <CardTitle className="text-foreground text-lg leading-tight group-hover:text-primary transition-colors">
           {video.title}
         </CardTitle>
-        <CardDescription className="text-gray-300">by {video.preacher}</CardDescription>
+        <CardDescription className="text-muted-foreground">by {video.preacher}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-gray-400 line-clamp-2">{video.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>
 
         {video.tags && video.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -81,13 +81,13 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
               <Badge
                 key={index}
                 variant="outline"
-                className="text-xs bg-white/5 border-white/20 text-gray-300 hover:bg-white/10"
+                className="text-xs bg-muted border-border text-muted-foreground hover:bg-accent"
               >
                 {tag}
               </Badge>
             ))}
             {video.tags.length > 3 && (
-              <Badge variant="outline" className="text-xs bg-white/5 border-white/20 text-gray-400">
+              <Badge variant="outline" className="text-xs bg-muted border-border text-muted-foreground">
                 +{video.tags.length - 3}
               </Badge>
             )}
@@ -101,7 +101,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
           />
         )}
 
-        <div className="flex items-center justify-between text-sm text-gray-400">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
               <Clock className="w-3 h-3" />
@@ -116,7 +116,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
 
         <Button
           onClick={onPlay}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-shadow"
         >
           <Play className="w-4 h-4 mr-2" />
           Watch Now

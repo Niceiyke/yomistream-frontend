@@ -8,8 +8,8 @@ import { Suspense } from "react"
 import { ReactQueryProvider } from "@/lib/react-query-client"
 
 export const metadata: Metadata = {
-  title: "Gospel Stream - Christian Video Platform",
-  description: "Curated Christian gospel videos from trusted preachers and teachers",
+  title: "WordLyte - Faith-Based Streaming Platform",
+  description: "Experience divine illumination through curated Christian content from trusted preachers and teachers",
   generator: "v0.app",
 }
 
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense>
           <ReactQueryProvider>

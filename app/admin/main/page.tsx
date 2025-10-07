@@ -215,30 +215,30 @@ function EditVideoForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-3">
           <div>
-            <Label htmlFor="title" className="text-white">Title</Label>
-            <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
+            <Label htmlFor="title" className="text-foreground">Title</Label>
+            <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-input border-border" />
           </div>
           <div>
-            <Label htmlFor="description" className="text-white">Description</Label>
-            <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-slate-700 border-slate-600 text-white" rows={3} />
+            <Label htmlFor="description" className="text-foreground">Description</Label>
+            <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-input border-border" rows={3} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="youtube_id" className="text-white">YouTube ID</Label>
-              <Input id="youtube_id" value={formData.youtube_id} onChange={(e) => setFormData({ ...formData, youtube_id: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
+              <Label htmlFor="youtube_id" className="text-foreground">YouTube ID</Label>
+              <Input id="youtube_id" value={formData.youtube_id} onChange={(e) => setFormData({ ...formData, youtube_id: e.target.value })} className="bg-input border-border" />
             </div>
             <div>
-              <Label htmlFor="topic" className="text-white">Topic</Label>
-              <Input id="topic" value={formData.topic} onChange={(e) => setFormData({ ...formData, topic: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
+              <Label htmlFor="topic" className="text-foreground">Topic</Label>
+              <Input id="topic" value={formData.topic} onChange={(e) => setFormData({ ...formData, topic: e.target.value })} className="bg-input border-border" />
             </div>
           </div>
           <div>
-            <Label htmlFor="preacher_id" className="text-white">Preacher</Label>
+            <Label htmlFor="preacher_id" className="text-foreground">Preacher</Label>
             <select
               id="preacher_id"
               value={formData.preacher_id}
               onChange={(e) => setFormData({ ...formData, preacher_id: e.target.value })}
-              className="w-full p-2 bg-slate-700 border border-slate-600 text-white rounded-md"
+              className="w-full p-2 bg-input border border-border rounded-md"
             >
               {preachers.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
@@ -247,12 +247,12 @@ function EditVideoForm({
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-white">Start (s)</Label>
-              <Input type="number" min={0} value={formData.start_time_seconds} onChange={(e) => setFormData({ ...formData, start_time_seconds: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
+              <Label className="text-foreground">Start (s)</Label>
+              <Input type="number" min={0} value={formData.start_time_seconds} onChange={(e) => setFormData({ ...formData, start_time_seconds: e.target.value })} className="bg-input border-border" />
             </div>
             <div>
-              <Label className="text-white">End (s)</Label>
-              <Input type="number" min={0} value={formData.end_time_seconds} onChange={(e) => setFormData({ ...formData, end_time_seconds: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
+              <Label className="text-foreground">End (s)</Label>
+              <Input type="number" min={0} value={formData.end_time_seconds} onChange={(e) => setFormData({ ...formData, end_time_seconds: e.target.value })} className="bg-input border-border" />
             </div>
             <div className="flex items-end">
               <div className="flex gap-2 w-full">
@@ -261,10 +261,10 @@ function EditVideoForm({
               </div>
             </div>
           </div>
-          {errorMsg && <div className="text-red-400 text-sm">{errorMsg}</div>}
+          {errorMsg && <div className="text-destructive text-sm">{errorMsg}</div>}
           <div>
-            <Label htmlFor="video_url" className="text-white">Video URL (optional)</Label>
-            <Input id="video_url" value={formData.video_url as string} onChange={(e) => setFormData({ ...formData, video_url: e.target.value })} className="bg-slate-700 border-slate-600 text-white" />
+            <Label htmlFor="video_url" className="text-foreground">Video URL (optional)</Label>
+            <Input id="video_url" value={formData.video_url as string} onChange={(e) => setFormData({ ...formData, video_url: e.target.value })} className="bg-input border-border" />
           </div>
         </div>
         <div className="space-y-2">
@@ -279,14 +279,14 @@ function EditVideoForm({
             </label>
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" className="border-slate-600 text-white hover:bg-slate-700 bg-transparent" onClick={() => { try { playerRef.current?.seekTo?.(Number(formData.start_time_seconds) || 0, true); playerRef.current?.playVideo?.() } catch {} }}>Jump to Start</Button>
-            <Button type="button" variant="outline" className="border-slate-600 text-white hover:bg-slate-700 bg-transparent" onClick={() => { try { const end = Number(formData.end_time_seconds) || 0; if (end) { playerRef.current?.seekTo?.(end - 2, true); playerRef.current?.playVideo?.() } } catch {} }}>Near End</Button>
+            <Button type="button" variant="outline" className="border-border hover:bg-accent" onClick={() => { try { playerRef.current?.seekTo?.(Number(formData.start_time_seconds) || 0, true); playerRef.current?.playVideo?.() } catch {} }}>Jump to Start</Button>
+            <Button type="button" variant="outline" className="border-border hover:bg-accent" onClick={() => { try { const end = Number(formData.end_time_seconds) || 0; if (end) { playerRef.current?.seekTo?.(end - 2, true); playerRef.current?.playVideo?.() } } catch {} }}>Near End</Button>
           </div>
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onClose} className="border-slate-600 text-white hover:bg-slate-700 bg-transparent">Cancel</Button>
-        <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-700">{isSaving ? "Saving..." : "Save Changes"}</Button>
+        <Button type="button" variant="outline" onClick={onClose} className="border-border hover:bg-accent">Cancel</Button>
+        <Button type="submit" disabled={isSaving} className="bg-primary hover:bg-primary/90 text-primary-foreground">{isSaving ? "Saving..." : "Save Changes"}</Button>
       </div>
     </form>
   )
@@ -408,25 +408,25 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading admin dashboard...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">Loading admin dashboard...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6 overflow-x-hidden">
+    <div className="min-h-screen bg-background p-6 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Main Channel Dashboard</h1>
-            <p className="text-gray-300">Manage the videos and metadata promoted to the platform</p>
+            <h1 className="text-3xl font-bold text-foreground">Main Channel Dashboard</h1>
+            <p className="text-muted-foreground">Manage the videos and metadata promoted to the platform</p>
           </div>
           <div className="flex items-center gap-3">
             <Button
               onClick={() => router.push("/admin")}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-border hover:bg-accent"
             >
               <FolderOpen className="h-4 w-4 mr-2" />
               Source Selection
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
             <Button
               onClick={() => router.push("/")}
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-border hover:bg-accent"
             >
               Back to Platform
             </Button>
@@ -443,78 +443,78 @@ export default function AdminDashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/10 border-white/20">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Videos</CardTitle>
-              <BookOpen className="h-4 w-4 text-purple-400" />
+              <CardTitle className="text-sm font-medium text-foreground">Total Videos</CardTitle>
+              <BookOpen className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalVideos}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.totalVideos}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 border-white/20">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Preachers</CardTitle>
-              <Users className="h-4 w-4 text-amber-400" />
+              <CardTitle className="text-sm font-medium text-foreground">Total Preachers</CardTitle>
+              <Users className="h-4 w-4 text-accent-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalPreachers}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.totalPreachers}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 border-white/20">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-green-400" />
+              <CardTitle className="text-sm font-medium text-foreground">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.totalUsers}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 border-white/20">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Collections</CardTitle>
-              <BookOpen className="h-4 w-4 text-blue-400" />
+              <CardTitle className="text-sm font-medium text-foreground">Collections</CardTitle>
+              <BookOpen className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalCollections}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.totalCollections}</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="videos" className="space-y-6">
-          <TabsList className="bg-white/10 border-white/20">
-            <TabsTrigger value="videos" className="data-[state=active]:bg-white/20">
+          <TabsList className="bg-card border-border shadow-sm">
+            <TabsTrigger value="videos" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Videos
             </TabsTrigger>
-            <TabsTrigger value="preachers" className="data-[state=active]:bg-white/20">
+            <TabsTrigger value="preachers" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Preachers
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-white/20">
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Users
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-white/20">
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Analytics
             </TabsTrigger>
           </TabsList>
 
           {/* Videos Tab */}
           <TabsContent value="videos">
-            <Card className="bg-white/10 border-white/20">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white">Video Management</CardTitle>
-                    <CardDescription className="text-gray-300">
+                    <CardTitle className="text-foreground">Video Management</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Manage all videos, generate AI content, and organize your library
                     </CardDescription>
                   </div>
                   <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-purple-600 hover:bg-purple-700">
+                      <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Video
                       </Button>
@@ -522,7 +522,7 @@ export default function AdminDashboard() {
                     <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Add New Video</DialogTitle>
-                        <DialogDescription className="text-gray-300">
+                        <DialogDescription className="text-muted-foreground">
                           Add a new gospel video to your platform
                         </DialogDescription>
                       </DialogHeader>
@@ -539,34 +539,34 @@ export default function AdminDashboard() {
                   <Table className="w-full table-fixed">
                     <TableHeader>
                       <TableRow className="border-white/20">
-                        <TableHead className="px-4 py-2 text-left text-gray-300 truncate whitespace-nowrap">Title</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-gray-300 truncate whitespace-nowrap">Preacher</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-gray-300 truncate whitespace-nowrap">Topic</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-gray-300 truncate whitespace-nowrap">Tags</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-gray-300 truncate whitespace-nowrap">AI Content</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-gray-300 truncate whitespace-nowrap">Actions</TableHead>
+                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Title</TableHead>
+                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Preacher</TableHead>
+                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Topic</TableHead>
+                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Tags</TableHead>
+                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">AI Content</TableHead>
+                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {videos.map((video) => (
-                        <TableRow key={video.id} className="border-white/20">
-                          <TableCell className="text-white font-medium">{video.title}</TableCell>
-                          <TableCell className="text-gray-300">{(video as any).preachers?.name}</TableCell>
-                          <TableCell className="text-gray-300">{video.topic}</TableCell>
+                        <TableRow key={video.id} className="border-border hover:bg-accent/50">
+                          <TableCell className="text-foreground font-medium">{video.title}</TableCell>
+                          <TableCell className="text-muted-foreground">{(video as any).preachers?.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{video.topic}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {video.tags?.slice(0, 2).map((tag, index) => (
                                 <Badge
                                   key={index}
                                   variant="secondary"
-                                  className="bg-purple-500/20 text-purple-200 text-xs"
+                                  className="bg-secondary/20 text-secondary-foreground text-xs"
                                 >
                                   {tag}
                                 </Badge>
                               ))}
                               {video.tags?.length > 2 && (
-                                <Badge variant="secondary" className="bg-gray-500/20 text-gray-300 text-xs">
-                                  +{video.tags.length - 2}
+                                <Badge variant="secondary" className="bg-primary/20 text-primary-foreground text-xs">
+                                  +{video.tags.length - 2} more
                                 </Badge>
                               )}
                             </div>
@@ -605,8 +605,8 @@ export default function AdminDashboard() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="bg-slate-800 border-slate-700">
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-white">Delete Video</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-gray-300">
+                                    <AlertDialogTitle className="text-foreground">Delete Video</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
                                       Are you sure you want to delete "{video.title}"? This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
@@ -636,18 +636,18 @@ export default function AdminDashboard() {
 
           {/* Preachers Tab */}
           <TabsContent value="preachers">
-            <Card className="bg-white/10 border-white/20">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white">Preacher Management</CardTitle>
-                    <CardDescription className="text-gray-300">
+                    <CardTitle className="text-foreground">Preacher Management</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Manage preacher profiles and information
                     </CardDescription>
                   </div>
                   <Dialog open={isPreacherDialogOpen} onOpenChange={setIsPreacherDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-amber-600 hover:bg-amber-700">
+                      <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Preacher
                       </Button>
@@ -655,7 +655,7 @@ export default function AdminDashboard() {
                     <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Add New Preacher</DialogTitle>
-                        <DialogDescription className="text-gray-300">
+                        <DialogDescription className="text-muted-foreground">
                           Add a new preacher to your platform
                         </DialogDescription>
                       </DialogHeader>
@@ -670,7 +670,7 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {preachers.map((preacher) => (
-                    <Card key={preacher.id} className="bg-white/5 border-white/10">
+                    <Card key={preacher.id} className="bg-card border-border shadow-sm hover:bg-accent/20">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-4">
                           <img
@@ -679,10 +679,10 @@ export default function AdminDashboard() {
                             className="w-15 h-15 rounded-full object-cover"
                           />
                           <div className="flex-1">
-                            <h3 className="text-white font-semibold">{preacher.name}</h3>
-                            <p className="text-gray-300 text-sm mt-1 line-clamp-2">{preacher.bio}</p>
+                            <h3 className="text-foreground font-semibold">{preacher.name}</h3>
+                            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{preacher.bio}</p>
                             <div className="flex space-x-2 mt-3">
-                              <Button size="sm" variant="ghost" className="text-blue-400 hover:bg-blue-500/10">
+                              <Button size="sm" variant="ghost" className="text-secondary hover:bg-secondary/10">
                                 <Edit className="w-3 h-3" />
                               </Button>
                               <AlertDialog>
@@ -693,8 +693,8 @@ export default function AdminDashboard() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="bg-slate-800 border-slate-700">
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-white">Delete Preacher</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-gray-300">
+                                    <AlertDialogTitle className="text-foreground">Delete Preacher</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
                                       Are you sure you want to delete {preacher.name}? This will also affect all
                                       associated videos.
                                     </AlertDialogDescription>
@@ -725,20 +725,20 @@ export default function AdminDashboard() {
 
           {/* Users Tab */}
           <TabsContent value="users">
-            <Card className="bg-white/10 border-white/20">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white">User Management</CardTitle>
-                <CardDescription className="text-gray-300">View and manage platform users</CardDescription>
+                <CardTitle className="text-foreground">User Management</CardTitle>
+                <CardDescription className="text-muted-foreground">View and manage platform users</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <Table >
                     <TableHeader>
                       <TableRow className="border-white/20">
-                        <TableHead className="text-gray-300">Display Name</TableHead>
-                        <TableHead className="text-gray-300">User ID</TableHead>
-                        <TableHead className="text-gray-300">Joined</TableHead>
-                        <TableHead className="text-gray-300">Actions</TableHead>
+                        <TableHead className="text-muted-foreground">Display Name</TableHead>
+                        <TableHead className="text-muted-foreground">User ID</TableHead>
+                        <TableHead className="text-muted-foreground">Joined</TableHead>
+                        <TableHead className="text-muted-foreground">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -746,7 +746,7 @@ export default function AdminDashboard() {
                         <TableRow key={user.id} className="border-white/20">
                           <TableCell className="text-white font-medium">{user.display_name}</TableCell>
                           <TableCell className="text-gray-300 font-mono text-xs">{user.id}</TableCell>
-                          <TableCell className="text-gray-300">
+                          <TableCell className="text-muted-foreground">
                             {new Date(user.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
@@ -765,16 +765,16 @@ export default function AdminDashboard() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics">
-            <Card className="bg-white/10 border-white/20">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white">Platform Analytics</CardTitle>
-                <CardDescription className="text-gray-300">View platform usage and engagement metrics</CardDescription>
+                <CardTitle className="text-foreground">Platform Analytics</CardTitle>
+                <CardDescription className="text-muted-foreground">View platform usage and engagement metrics</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-12">
                   <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-white text-lg font-semibold mb-2">Analytics Coming Soon</h3>
-                  <p className="text-gray-300">
+                  <p className="text-muted-foreground">
                     Detailed analytics and reporting features will be available in a future update.
                   </p>
                 </div>
@@ -789,7 +789,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <DialogTitle>Edit Video</DialogTitle>
-                  <DialogDescription className="text-gray-300">Update video details and clip times</DialogDescription>
+                  <DialogDescription className="text-muted-foreground">Update video details and clip times</DialogDescription>
                 </div>
                 <Button
                   variant="ghost"
@@ -889,62 +889,62 @@ function VideoForm({ onClose, onSave }: { onClose: () => void; onSave: () => voi
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="title" className="text-white">
+        <Label htmlFor="title" className="text-foreground">
           Title
         </Label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
           required
         />
       </div>
       <div>
-        <Label htmlFor="description" className="text-white">
+        <Label htmlFor="description" className="text-foreground">
           Description
         </Label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
           rows={3}
         />
       </div>
       <div>
-        <Label htmlFor="youtube_id" className="text-white">
+        <Label htmlFor="youtube_id" className="text-foreground">
           YouTube ID
         </Label>
         <Input
           id="youtube_id"
           value={formData.youtube_id}
           onChange={(e) => setFormData({ ...formData, youtube_id: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
           placeholder="e.g., dQw4w9WgXcQ"
           required
         />
       </div>
       <div>
-        <Label htmlFor="topic" className="text-white">
+        <Label htmlFor="topic" className="text-foreground">
           Topic
         </Label>
         <Input
           id="topic"
           value={formData.topic}
           onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
         />
       </div>
       <div>
-        <Label htmlFor="preacher_id" className="text-white">
+        <Label htmlFor="preacher_id" className="text-foreground">
           Preacher
         </Label>
         <select
           id="preacher_id"
           value={formData.preacher_id}
           onChange={(e) => setFormData({ ...formData, preacher_id: e.target.value })}
-          className="w-full p-2 bg-slate-700 border border-slate-600 text-white rounded-md"
+          className="w-full p-2 bg-input border border-border rounded-md"
           required
         >
           <option value="">Select a preacher</option>
@@ -957,7 +957,7 @@ function VideoForm({ onClose, onSave }: { onClose: () => void; onSave: () => voi
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label htmlFor="start_time_seconds" className="text-white">
+          <Label htmlFor="start_time_seconds" className="text-foreground">
             Start Time (seconds)
           </Label>
           <Input
@@ -966,12 +966,12 @@ function VideoForm({ onClose, onSave }: { onClose: () => void; onSave: () => voi
             min={0}
             value={formData.start_time_seconds}
             onChange={(e) => setFormData({ ...formData, start_time_seconds: e.target.value })}
-            className="bg-slate-700 border-slate-600 text-white"
+            className="bg-input border-border"
             placeholder="e.g., 30"
           />
         </div>
         <div>
-          <Label htmlFor="end_time_seconds" className="text-white">
+          <Label htmlFor="end_time_seconds" className="text-foreground">
             End Time (seconds)
           </Label>
           <Input
@@ -980,19 +980,19 @@ function VideoForm({ onClose, onSave }: { onClose: () => void; onSave: () => voi
             min={0}
             value={formData.end_time_seconds}
             onChange={(e) => setFormData({ ...formData, end_time_seconds: e.target.value })}
-            className="bg-slate-700 border-slate-600 text-white"
+            className="bg-input border-border"
             placeholder="e.g., 120"
           />
         </div>
         <div>
-          <Label htmlFor="video_url" className="text-white">
+          <Label htmlFor="video_url" className="text-foreground">
             Video URL (optional)
           </Label>
           <Input
             id="video_url"
             value={formData.video_url}
             onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-            className="bg-slate-700 border-slate-600 text-white"
+            className="bg-input border-border"
             placeholder="Override full video URL"
           />
         </div>
@@ -1002,11 +1002,11 @@ function VideoForm({ onClose, onSave }: { onClose: () => void; onSave: () => voi
           type="button"
           variant="outline"
           onClick={onClose}
-          className="border-slate-600 text-white hover:bg-slate-700 bg-transparent"
+          className="border-border hover:bg-accent"
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading} className="bg-purple-600 hover:bg-purple-700">
+        <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
           {isLoading ? "Adding..." : "Add Video"}
         </Button>
       </div>
@@ -1049,38 +1049,38 @@ function PreacherForm({ onClose, onSave }: { onClose: () => void; onSave: () => 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="name" className="text-white">
+        <Label htmlFor="name" className="text-foreground">
           Name
         </Label>
         <Input
           id="name"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
           required
         />
       </div>
       <div>
-        <Label htmlFor="bio" className="text-white">
+        <Label htmlFor="bio" className="text-foreground">
           Biography
         </Label>
         <Textarea
           id="bio"
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
           rows={4}
         />
       </div>
       <div>
-        <Label htmlFor="image_url" className="text-white">
+        <Label htmlFor="image_url" className="text-foreground">
           Image URL
         </Label>
         <Input
           id="image_url"
           value={formData.image_url}
           onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-border"
           placeholder="https://example.com/image.jpg"
         />
       </div>
@@ -1089,7 +1089,7 @@ function PreacherForm({ onClose, onSave }: { onClose: () => void; onSave: () => 
           type="button"
           variant="outline"
           onClick={onClose}
-          className="border-slate-600 text-white hover:bg-slate-700 bg-transparent"
+          className="border-border hover:bg-accent"
         >
           Cancel
         </Button>

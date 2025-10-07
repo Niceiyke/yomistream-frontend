@@ -40,26 +40,26 @@ export function PreacherCard({
   }
 
   return (
-    <Card className="bg-white/10 border-white/20 hover:bg-white/15 transition-all duration-200 group">
+    <Card className="bg-card border-border hover:bg-accent/20 transition-all duration-200 group shadow-sm">
       <CardHeader className="text-center pb-3">
-        <Avatar className="w-20 h-20 mx-auto mb-4 ring-2 ring-purple-500/30">
+        <Avatar className="w-20 h-20 mx-auto mb-4 ring-2 ring-primary/30">
           <AvatarImage src={preacher.image || "/placeholder.svg"} alt={preacher.name} />
-          <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-lg">
+          <AvatarFallback className="bg-primary text-primary-foreground text-lg">
             {preacher.name
               .split(" ")
               .map((n) => n[0])
               .join("")}
           </AvatarFallback>
         </Avatar>
-        <CardTitle className="text-white text-xl group-hover:text-purple-200 transition-colors">
+        <CardTitle className="text-foreground text-xl group-hover:text-primary transition-colors">
           {preacher.name}
         </CardTitle>
-        <CardDescription className="text-gray-300">{preacher.church}</CardDescription>
+        <CardDescription className="text-muted-foreground">{preacher.church}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
-        <p className="text-sm text-gray-400">{preacher.description}</p>
+        <p className="text-sm text-muted-foreground">{preacher.description}</p>
 
-        <div className="flex items-center justify-center space-x-1 text-sm text-gray-400">
+        <div className="flex items-center justify-center space-x-1 text-sm text-muted-foreground">
           <Play className="w-3 h-3" />
           <span>{preacher.videoCount.toLocaleString()} videos</span>
         </div>
@@ -67,7 +67,7 @@ export function PreacherCard({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 border-white/20 text-white hover:bg-white/10 bg-transparent"
+            className="flex-1 border-border hover:bg-accent"
             onClick={handleViewSermons}
           >
             <Users className="w-4 h-4 mr-2" />
@@ -78,8 +78,8 @@ export function PreacherCard({
             <Button
               variant="outline"
               size="icon"
-              className={`border-white/20 hover:bg-white/10 bg-transparent ${
-                isFavorite ? "text-red-400 border-red-400/50" : "text-white"
+              className={`border-border hover:bg-accent ${
+                isFavorite ? "text-destructive border-destructive/50" : ""
               }`}
               onClick={handleToggleFavorite}
             >

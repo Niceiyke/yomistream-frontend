@@ -195,15 +195,15 @@ export const VideoPlayer = ({
     <div
       className={
         isExpanded
-          ? "fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex flex-col"
-          : "fixed bottom-6 right-6 w-80 bg-black rounded-lg overflow-hidden shadow-2xl z-50 flex flex-col"
+          ? "fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex flex-col"
+          : "fixed bottom-6 right-6 w-80 bg-card rounded-lg overflow-hidden shadow-2xl border border-border z-50 flex flex-col"
       }
       style={isExpanded ? { height: "100dvh", width: "100vw" } : undefined}
     >
       {/* Header (both modes, different styling) */}
-      <div className={isExpanded ? "flex items-center justify-between p-4 bg-black/50" : "flex items-center justify-between p-2 bg-black/80"}>
+      <div className={isExpanded ? "flex items-center justify-between p-4 bg-card/80 backdrop-blur-sm border-b border-border" : "flex items-center justify-between p-2 bg-card/90 border-b border-border"}>
         <div className="truncate pr-2">
-          <span className={isExpanded ? "text-white text-lg font-semibold" : "text-white text-sm font-medium"}>{videoTitle}</span>
+          <span className={isExpanded ? "text-foreground text-lg font-semibold" : "text-foreground text-sm font-medium"}>{videoTitle}</span>
         </div>
         <div className="flex items-center space-x-2">
           {(sermonNotes.length > 0 || scriptureReferences.length > 0) && (
@@ -211,7 +211,7 @@ export const VideoPlayer = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowNotes(!showNotes)}
-              className={isExpanded ? "text-white hover:bg-white/10" : "text-white hover:bg-white/10 h-6 w-6 p-0"}
+              className={isExpanded ? "text-foreground hover:bg-accent" : "text-foreground hover:bg-accent h-6 w-6 p-0"}
               title="Toggle Notes"
             >
               <BookOpen className={isExpanded ? "w-4 h-4 mr-2" : "w-3 h-3"} />
@@ -219,7 +219,7 @@ export const VideoPlayer = ({
             </Button>
           )}
           {isExpanded ? (
-            <Button variant="ghost" size="sm" onClick={() => setIsExpanded(false)} className="text-white hover:bg-white/10">
+            <Button variant="ghost" size="sm" onClick={() => setIsExpanded(false)} className="text-foreground hover:bg-accent">
               <Minimize2 className="w-4 h-4" />
             </Button>
           ) : (
@@ -227,13 +227,13 @@ export const VideoPlayer = ({
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(true)}
-              className="text-white hover:bg-white/10 h-6 w-6 p-0"
+              className="text-foreground hover:bg-accent h-6 w-6 p-0"
               title="Expand"
             >
               <Maximize2 className="w-3 h-3" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={onClose} className={isExpanded ? "text-white hover:bg-white/10" : "text-white hover:bg-white/10 h-6 w-6 p-0"}>
+          <Button variant="ghost" size="sm" onClick={onClose} className={isExpanded ? "text-foreground hover:bg-accent" : "text-foreground hover:bg-accent h-6 w-6 p-0"}>
             <X className={isExpanded ? "w-4 h-4" : "w-3 h-3"} />
           </Button>
         </div>
@@ -245,8 +245,8 @@ export const VideoPlayer = ({
           ref={frameHostRef}
           className={
             isExpanded
-              ? `${showNotes ? "w-2/3" : "w-full"} bg-black flex items-center justify-center`
-              : "aspect-video w-full"
+              ? `${showNotes ? "w-2/3" : "w-full"} bg-muted flex items-center justify-center`
+              : "aspect-video w-full bg-muted"
           }
           style={isExpanded ? { height: "100%" } : undefined}
         >
@@ -258,13 +258,13 @@ export const VideoPlayer = ({
         </div>
         {isExpanded ? (
           showNotes && (
-            <div className="w-1/3 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 overflow-y-auto">
+            <div className="w-1/3 bg-card border-l border-border p-4 overflow-y-auto">
               <SermonNotes notes={sermonNotes} scriptureReferences={scriptureReferences} />
             </div>
           )
         ) : (
           (showNotes && (sermonNotes.length > 0 || scriptureReferences.length > 0)) && (
-            <div className="max-h-64 overflow-y-auto bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-3">
+            <div className="max-h-64 overflow-y-auto bg-card border-t border-border p-3">
               <SermonNotes notes={sermonNotes} scriptureReferences={scriptureReferences} />
             </div>
           )

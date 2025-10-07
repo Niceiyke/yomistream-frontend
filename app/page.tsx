@@ -241,10 +241,10 @@ export default function GospelPlatform() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="text-white text-xl mb-4">Loading gospel content...</div>
-          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="text-foreground text-xl mb-4">Loading divine content...</div>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     )
@@ -252,10 +252,10 @@ export default function GospelPlatform() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-400 text-xl mb-4">Connection Error</div>
-          <p className="text-gray-300 mb-6">{error}</p>
+          <div className="text-destructive text-xl mb-4">Connection Error</div>
+          <p className="text-muted-foreground mb-6">{error}</p>
           <Button
             onClick={() => {
               setError(null)
@@ -263,7 +263,7 @@ export default function GospelPlatform() {
               queryClient.invalidateQueries({ queryKey: ["videos"] })
               queryClient.invalidateQueries({ queryKey: ["preachers"] })
             }}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Try Again
           </Button>
@@ -273,17 +273,17 @@ export default function GospelPlatform() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
+                <BookOpen className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Gospel Stream</h1>
-                <p className="text-sm text-gray-300">Curated Christian Content</p>
+                <h1 className="text-2xl font-bold text-foreground">WordLyte</h1>
+                <p className="text-sm text-muted-foreground">Divine Illumination</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -292,21 +292,21 @@ export default function GospelPlatform() {
                   <Button
                     asChild
                     variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                    className="border-border hover:bg-accent"
                   >
                     <Link href="/collections">
                       <FolderOpen className="w-4 h-4 mr-2" />
                       My Collections
                     </Link>
                   </Button>
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
+                  <Button variant="outline" className="border-border hover:bg-accent">
                     <Heart className="w-4 h-4 mr-2" />
                     Favorites ({favorites.length})
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleSignOut}
-                    className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                    className="border-border hover:bg-accent"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
@@ -316,7 +316,7 @@ export default function GospelPlatform() {
                 <Button
                   asChild
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                  className="border-border hover:bg-accent"
                 >
                   <Link href="/auth/login">
                     <LogIn className="w-4 h-4 mr-2" />
@@ -343,11 +343,11 @@ export default function GospelPlatform() {
                     setFilteredPreacherId(null)
                   }
                 }}
-                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                className="pl-10 bg-input border-border placeholder:text-muted-foreground"
               />
             </div>
             <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-              <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="w-full md:w-48 bg-input border-border">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filter by topic" />
               </SelectTrigger>
@@ -363,8 +363,8 @@ export default function GospelPlatform() {
             <Button
               variant="outline"
               onClick={() => setShowTagFilter(!showTagFilter)}
-              className={`border-white/20 hover:bg-white/10 bg-transparent ${
-                showTagFilter ? "text-purple-400 border-purple-400/50" : "text-white"
+              className={`border-border hover:bg-accent ${
+                showTagFilter ? "text-secondary border-secondary" : ""
               }`}
             >
               <Tag className="w-4 h-4 mr-2" />
@@ -378,7 +378,7 @@ export default function GospelPlatform() {
                   setSearchQuery("")
                   setSelectedTags([])
                 }}
-                className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                className="border-border hover:bg-accent"
               >
                 Clear Filters
               </Button>
@@ -386,16 +386,16 @@ export default function GospelPlatform() {
           </div>
 
           {showTagFilter && (
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div className="bg-card rounded-lg p-4 border border-border shadow-sm">
               <TagFilter availableTags={allTags} selectedTags={selectedTags} onTagsChange={setSelectedTags} />
             </div>
           )}
 
-          <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
+          <div className="flex space-x-1 bg-muted rounded-lg p-1">
             <Button
               variant={activeTab === "videos" ? "default" : "ghost"}
               onClick={() => setActiveTab("videos")}
-              className={`flex-1 ${activeTab === "videos" ? "bg-white text-black" : "text-white hover:bg-white/10"}`}
+              className={`flex-1 ${activeTab === "videos" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
             >
               <Play className="w-4 h-4 mr-2" />
               Videos
@@ -403,7 +403,7 @@ export default function GospelPlatform() {
             <Button
               variant={activeTab === "preachers" ? "default" : "ghost"}
               onClick={() => setActiveTab("preachers")}
-              className={`flex-1 ${activeTab === "preachers" ? "bg-white text-black" : "text-white hover:bg-white/10"}`}
+              className={`flex-1 ${activeTab === "preachers" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
             >
               <Users className="w-4 h-4 mr-2" />
               Preachers
@@ -427,8 +427,8 @@ export default function GospelPlatform() {
         {activeTab === "videos" ? (
           <div>
             {(filteredPreacherId || selectedTags.length > 0) && (
-              <div className="mb-6 p-4 bg-white/10 rounded-lg border border-white/20">
-                <p className="text-gray-200">
+              <div className="mb-6 p-4 bg-card rounded-lg border border-border shadow-sm">
+                <p className="text-foreground">
                   {filteredPreacherId && (
                     <>
                       Showing sermons by{" "}

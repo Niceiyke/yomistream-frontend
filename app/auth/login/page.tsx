@@ -60,13 +60,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white">Welcome Back</CardTitle>
-            <CardDescription className="text-slate-300">
-              Sign in to access your gospel video collections
+            <CardTitle className="text-2xl text-foreground">Welcome Back</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Sign in to access your WordLyte content
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -75,7 +75,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoading}
-                className="w-full bg-white text-gray-900 hover:bg-gray-100 font-medium"
+                className="w-full bg-card text-foreground hover:bg-accent border border-border font-medium"
               >
                 {isGoogleLoading ? (
                   "Signing in with Google..."
@@ -106,10 +106,10 @@ export default function LoginPage() {
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full bg-slate-600" />
+                  <Separator className="w-full bg-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-800 px-2 text-slate-400">Or continue with email</span>
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
                 </div>
               </div>
             </div>
@@ -117,7 +117,7 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="mt-4">
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="email" className="text-slate-200">
+                  <Label htmlFor="email" className="text-foreground">
                     Email
                   </Label>
                   <Input
@@ -127,11 +127,11 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                    className="bg-input border-border placeholder:text-muted-foreground"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="password" className="text-slate-200">
+                  <Label htmlFor="password" className="text-foreground">
                     Password
                   </Label>
                   <Input
@@ -140,19 +140,19 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-input border-border"
                   />
                 </div>
-                {error && <p className="text-sm text-red-400">{error}</p>}
-                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </div>
-              <div className="mt-4 text-center text-sm text-slate-300">
+              <div className="mt-4 text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/auth/signup"
-                  className="text-purple-400 hover:text-purple-300 underline underline-offset-4"
+                  className="text-secondary hover:text-secondary/80 underline underline-offset-4"
                 >
                   Sign up
                 </Link>

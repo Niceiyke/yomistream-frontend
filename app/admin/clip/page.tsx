@@ -409,11 +409,11 @@ export default function AdminClipPage() {
   const jobs: JobStatus[] = (jobsQuery.data?.jobs ?? []) as JobStatus[]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Clip Jobs</h1>
-          <div className="text-gray-300">Create and monitor clipping jobs</div>
+          <h1 className="text-2xl font-bold text-foreground">Clip Jobs</h1>
+          <div className="text-muted-foreground">Create and monitor clipping jobs</div>
         </div>
 
         {prefillError && (
@@ -425,7 +425,7 @@ export default function AdminClipPage() {
         {isPrefilling && (
           <Card className="bg-white/5 border-white/10 mb-6">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> Prefilling from source selection
               </CardTitle>
               <CardDescription className="text-gray-300">
@@ -453,7 +453,7 @@ export default function AdminClipPage() {
                   />
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-white font-semibold text-lg line-clamp-2">{video.title}</h3>
+                      <h3 className="text-foreground font-semibold text-lg line-clamp-2">{video.title}</h3>
                       {video.youtube_url && (
                         <a
                           href={video.youtube_url}
@@ -466,8 +466,8 @@ export default function AdminClipPage() {
                         </a>
                       )}
                     </div>
-                    <div className="text-sm text-gray-300 line-clamp-3">{video.description}</div>
-                    <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                    <div className="text-sm text-muted-foreground line-clamp-3">{video.description}</div>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       {video.channel_name && <span className="bg-white/10 px-2 py-1 rounded">{video.channel_name}</span>}
                       {typeof video.duration === "number" && (
                         <span className="bg-white/10 px-2 py-1 rounded">{formatDuration(video.duration)}</span>
@@ -481,7 +481,7 @@ export default function AdminClipPage() {
                     {video.tags && video.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {video.tags.slice(0, 5).map((tag) => (
-                          <Badge key={tag} className="bg-purple-600/40 text-purple-100 text-xs">
+                          <Badge key={tag} className="bg-secondary/20 text-secondary-foreground text-xs">
                             {tag}
                           </Badge>
                         ))}
@@ -497,8 +497,8 @@ export default function AdminClipPage() {
         {youtubeVideoId && (
           <Card className="bg-white/5 border-white/10 mb-6">
             <CardHeader>
-              <CardTitle className="text-white">Video Preview & Time Selection</CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardTitle className="text-foreground">Video Preview & Time Selection</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Watch the video and use the controls to set precise start/end times for your clip.
               </CardDescription>
             </CardHeader>
@@ -506,22 +506,22 @@ export default function AdminClipPage() {
               <div className="aspect-video bg-black rounded-md overflow-hidden">
                 <div ref={playerContainerRef} className="w-full h-full" />
               </div>
-              <div className="flex items-center justify-between text-sm text-gray-300">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div>Current time: {formatSecondsToTimestamp(Math.floor(currentTime))}</div>
                 <div className="flex gap-2">
-                  <Button type="button" size="sm" variant="outline" className="border-slate-600 text-white hover:bg-slate-700" onClick={setStartFromPlayer}>
+                  <Button type="button" size="sm" variant="outline" className="border-border hover:bg-accent" onClick={setStartFromPlayer}>
                     Set Start
                   </Button>
-                  <Button type="button" size="sm" variant="outline" className="border-slate-600 text-white hover:bg-slate-700" onClick={setEndFromPlayer}>
+                  <Button type="button" size="sm" variant="outline" className="border-border hover:bg-accent" onClick={setEndFromPlayer}>
                     Set End
                   </Button>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="button" size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={jumpToStart}>
+                <Button type="button" size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={jumpToStart}>
                   Jump to Start
                 </Button>
-                <Button type="button" size="sm" variant="ghost" className="text-gray-300 hover:text-white" onClick={jumpToEnd}>
+                <Button type="button" size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={jumpToEnd}>
                   Jump to End
                 </Button>
               </div>
@@ -531,69 +531,69 @@ export default function AdminClipPage() {
 
         <Card className="bg-white/5 border-white/10 mb-6">
           <CardHeader>
-            <CardTitle className="text-white">Create YouTube-Ready Clip</CardTitle>
-            <CardDescription className="text-gray-300">Configure all metadata for a professional YouTube upload</CardDescription>
+            <CardTitle className="text-foreground">Create YouTube-Ready Clip</CardTitle>
+            <CardDescription className="text-muted-foreground">Configure all metadata for a professional YouTube upload</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-4">
               {/* Video Source Section */}
-              <div className="space-y-3 pb-4 border-b border-white/10">
-                <h3 className="text-sm font-semibold text-white">Video Source</h3>
+              <div className="space-y-3 pb-4 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Video Source</h3>
                 <div>
-                  <Label className="text-white">Video URL *</Label>
-                  <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-slate-700 border-slate-600 text-white" placeholder="https://youtube.com/watch?v=..." required />
+                  <Label className="text-foreground">Video URL *</Label>
+                  <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-input border-border" placeholder="https://youtube.com/watch?v=..." required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-white">Start Time * (e.g. 00:01:30 or seconds)</Label>
-                    <Input value={startTime} onChange={(e) => setStartTime(e.target.value)} className="bg-slate-700 border-slate-600 text-white" placeholder="00:01:30" required />
+                    <Label className="text-foreground">Start Time * (e.g. 00:01:30 or seconds)</Label>
+                    <Input value={startTime} onChange={(e) => setStartTime(e.target.value)} className="bg-input border-border" placeholder="00:01:30" required />
                   </div>
                   <div>
-                    <Label className="text-white">End Time *</Label>
-                    <Input value={endTime} onChange={(e) => setEndTime(e.target.value)} className="bg-slate-700 border-slate-600 text-white" placeholder="00:02:30" required />
+                    <Label className="text-foreground">End Time *</Label>
+                    <Input value={endTime} onChange={(e) => setEndTime(e.target.value)} className="bg-input border-border" placeholder="00:02:30" required />
                   </div>
                 </div>
               </div>
 
               {/* YouTube Metadata Section */}
-              <div className="space-y-3 pb-4 border-b border-white/10">
-                <h3 className="text-sm font-semibold text-white">YouTube Metadata</h3>
+              <div className="space-y-3 pb-4 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">YouTube Metadata</h3>
                 <div>
-                  <Label className="text-white">Title *</Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-slate-700 border-slate-600 text-white" placeholder="Enter a compelling video title" required />
-                  <p className="text-xs text-gray-400 mt-1">Max 100 characters recommended</p>
+                  <Label className="text-foreground">Title *</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-input border-border" placeholder="Enter a compelling video title" required />
+                  <p className="text-xs text-muted-foreground mt-1">Max 100 characters recommended</p>
                 </div>
                 <div>
-                  <Label className="text-white">Description *</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="bg-slate-700 border-slate-600 text-white min-h-[100px]" placeholder="Describe your video content, include relevant links and timestamps..." required />
-                  <p className="text-xs text-gray-400 mt-1">Max 5000 characters</p>
+                  <Label className="text-foreground">Description *</Label>
+                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="bg-input border-border min-h-[100px]" placeholder="Describe your video content, include relevant links and timestamps..." required />
+                  <p className="text-xs text-muted-foreground mt-1">Max 5000 characters</p>
                 </div>
                 <div>
-                  <Label className="text-white">Tags</Label>
+                  <Label className="text-foreground">Tags</Label>
                   <div className="flex gap-2">
-                    <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())} className="bg-slate-700 border-slate-600 text-white" placeholder="Add a tag and press Enter" />
-                    <Button type="button" onClick={handleAddTag} className="bg-slate-600 hover:bg-slate-500">Add</Button>
+                    <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())} className="bg-input border-border" placeholder="Add a tag and press Enter" />
+                    <Button type="button" onClick={handleAddTag} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Add</Button>
                   </div>
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {tags.map((tag) => (
-                        <Badge key={tag} className="bg-purple-600 text-white flex items-center gap-1">
+                        <Badge key={tag} className="bg-primary text-primary-foreground flex items-center gap-1">
                           {tag}
                           <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
                         </Badge>
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">Add relevant keywords to help viewers find your video</p>
+                  <p className="text-xs text-muted-foreground mt-1">Add relevant keywords to help viewers find your video</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-white">Category</Label>
+                    <Label className="text-foreground">Category</Label>
                     <Select value={categoryId} onValueChange={setCategoryId}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-input border-border">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="1">Film & Animation</SelectItem>
                         <SelectItem value="2">Autos & Vehicles</SelectItem>
                         <SelectItem value="10">Music</SelectItem>
@@ -613,12 +613,12 @@ export default function AdminClipPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-white">Privacy Status</Label>
+                    <Label className="text-foreground">Privacy Status</Label>
                     <Select value={privacyStatus} onValueChange={setPrivacyStatus}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-input border-border">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="public">Public</SelectItem>
                         <SelectItem value="unlisted">Unlisted</SelectItem>
                         <SelectItem value="private">Private</SelectItem>
@@ -629,29 +629,29 @@ export default function AdminClipPage() {
               </div>
 
               {/* Thumbnail Section */}
-              <div className="space-y-3 pb-4 border-b border-white/10">
-                <h3 className="text-sm font-semibold text-white">Thumbnail</h3>
+              <div className="space-y-3 pb-4 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">Thumbnail</h3>
                 
                 {/* Thumbnail Mode Selector */}
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     onClick={() => setThumbnailMode("auto")}
-                    className={`flex-1 ${thumbnailMode === "auto" ? "bg-purple-600" : "bg-slate-600"} hover:bg-purple-700`}
+                    className={`flex-1 ${thumbnailMode === "auto" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} hover:opacity-90`}
                   >
                     Auto-Extract
                   </Button>
                   <Button
                     type="button"
                     onClick={() => setThumbnailMode("url")}
-                    className={`flex-1 ${thumbnailMode === "url" ? "bg-purple-600" : "bg-slate-600"} hover:bg-purple-700`}
+                    className={`flex-1 ${thumbnailMode === "url" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} hover:opacity-90`}
                   >
                     URL
                   </Button>
                   <Button
                     type="button"
                     onClick={() => setThumbnailMode("upload")}
-                    className={`flex-1 ${thumbnailMode === "upload" ? "bg-purple-600" : "bg-slate-600"} hover:bg-purple-700`}
+                    className={`flex-1 ${thumbnailMode === "upload" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} hover:opacity-90`}
                   >
                     Upload File
                   </Button>
@@ -669,102 +669,101 @@ export default function AdminClipPage() {
                 {/* URL Mode */}
                 {thumbnailMode === "url" && (
                   <div>
-                    <Label className="text-white">Thumbnail URL</Label>
+                    <Label className="text-foreground">Thumbnail URL</Label>
                     <Input 
                       value={thumbnailUrl} 
                       onChange={(e) => setThumbnailUrl(e.target.value)} 
-                      className="bg-slate-700 border-slate-600 text-white" 
+                      className="bg-input border-border" 
                       placeholder="https://example.com/thumbnail.jpg"
                       required
                     />
-                    <p className="text-xs text-gray-400 mt-1">Recommended: 1280x720px, max 2MB (JPG, PNG)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Recommended: 1280x720px, max 2MB (JPG, PNG)</p>
                   </div>
                 )}
 
                 {/* Upload Mode */}
                 {thumbnailMode === "upload" && (
                   <div>
-                    <Label className="text-white">Upload Thumbnail</Label>
+                    <Label className="text-foreground">Upload Thumbnail</Label>
                     <Input 
                       type="file" 
                       accept="image/jpeg,image/jpg,image/png"
                       onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-                      className="bg-slate-700 border-slate-600 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                      className="bg-input border-border file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                       required
                     />
                     {thumbnailFile && (
-                      <p className="text-xs text-green-400 mt-1">✓ Selected: {thumbnailFile.name} ({(thumbnailFile.size / 1024).toFixed(1)} KB)</p>
+                      <p className="text-xs text-primary mt-1">✓ Selected: {thumbnailFile.name} ({(thumbnailFile.size / 1024).toFixed(1)} KB)</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">Recommended: 1280x720px, max 2MB (JPG, PNG)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Recommended: 1280x720px, max 2MB (JPG, PNG)</p>
                   </div>
                 )}
               </div>
 
               {/* Advanced Options Section */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-white">Advanced Options</h3>
+                <h3 className="text-sm font-semibold text-foreground">Webhook (Optional)</h3>
                 <div>
-                  <Label className="text-white">Webhook URL (optional)</Label>
-                  <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="bg-slate-700 border-slate-600 text-white" placeholder="https://example.com/webhook" />
-                  <p className="text-xs text-gray-400 mt-1">Receive notifications when the job completes</p>
+                  <Label className="text-foreground">Webhook URL (optional)</Label>
+                  <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="bg-input border-border" placeholder="https://your-webhook.com/endpoint" />
+                  <p className="text-xs text-muted-foreground">Receive a notification when the clip job completes</p>
                 </div>
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={isSubmitting}>{isSubmitting ? "Creating Job..." : "Create YouTube Clip"}</Button>
+                <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-primary-foreground">{isSubmitting ? "Creating Job..." : "Create YouTube Clip"}</Button>
               </div>
             </form>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">Jobs</CardTitle>
-            <CardDescription className="text-gray-300">Recent clipping jobs</CardDescription>
+              <CardTitle className="text-foreground">Recent Jobs</CardTitle>
+              <CardDescription className="text-muted-foreground">Monitor the status of your clip jobs</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-gray-300">Job ID</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Progress</TableHead>
-                    <TableHead className="text-gray-300">Video</TableHead>
-                    <TableHead className="text-gray-300">Created</TableHead>
-                    <TableHead className="text-gray-300">Actions</TableHead>
+                      <TableHead className="text-muted-foreground">Job ID</TableHead>
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground">Progress</TableHead>
+                    <TableHead className="text-muted-foreground">Video</TableHead>
+                      <TableHead className="text-muted-foreground">Created</TableHead>
+                      <TableHead className="text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {jobs.map((j) => (
-                    <TableRow key={j.job_id} className="border-white/10">
-                      <TableCell className="text-white font-mono text-xs">{j.job_id}</TableCell>
+                    <TableRow key={j.job_id} className="border-border hover:bg-accent/50">
                       <TableCell>
                         <Badge className="uppercase text-xs" variant={j.status === "completed" ? "secondary" : "outline"}>{j.status}</Badge>
                       </TableCell>
-                      <TableCell className="text-gray-300">{j.progress}{j.error ? ` — ${j.error}` : ""}</TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-muted-foreground">{j.progress}{j.error ? ` — ${j.error}` : ""}</TableCell>
+                      <TableCell className="text-muted-foreground">
                         {j.video_url ? (
-                          <a href={j.video_url} target="_blank" rel="noreferrer" className="text-blue-300 underline">Open</a>
+                          <a href={j.video_url} target="_blank" rel="noreferrer" className="text-secondary underline hover:text-secondary/80">Open</a>
                         ) : (
-                          <span className="text-gray-500">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-gray-300">{new Date(j.created_at).toLocaleString()}</TableCell>
+                      <TableCell className="text-muted-foreground">{new Date(j.created_at).toLocaleString()}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/10">Delete</Button>
+                              <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10">Delete</Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent className="bg-slate-800 border-slate-700">
+                            <AlertDialogContent className="bg-card border-border">
                               <AlertDialogHeader>
-                                <AlertDialogTitle className="text-white">Delete Job</AlertDialogTitle>
-                                <div className="text-gray-300">Are you sure you want to delete this job? This cannot be undone.</div>
+                                <AlertDialogTitle className="text-foreground">Delete Job</AlertDialogTitle>
+                                <div className="text-muted-foreground">Are you sure you want to delete this job? This cannot be undone.</div>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(j.job_id)} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                                <AlertDialogCancel className="border-border hover:bg-accent">Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(j.job_id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

@@ -152,19 +152,19 @@ export default function SourceSelectionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Source Video Selection</h1>
-            <p className="text-gray-300">
+            <h1 className="text-3xl font-bold text-foreground">Source Video Selection</h1>
+            <p className="text-muted-foreground">
               Curate AIke channel videos to feed the clipping pipeline and promote to the main platform.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-border hover:bg-accent"
               onClick={() => router.push("/admin/main")}
             >
               <Database className="h-4 w-4 mr-2" />
@@ -173,7 +173,7 @@ export default function SourceSelectionPage() {
             <Button
               disabled={Object.keys(selectedIds).length === 0}
               onClick={handleSendToClip}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Send to Clipper
               <ArrowRight className="h-4 w-4 ml-2" />
@@ -181,19 +181,19 @@ export default function SourceSelectionPage() {
           </div>
         </div>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Filter className="h-4 w-4" /> Filters
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-muted-foreground">
               Refine the source catalog by channel, date, language, and duration.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-white">Search</Label>
+                <Label className="text-foreground">Search</Label>
                 <Input
                   placeholder="Title or description keywords"
                   value={filters.search}
@@ -201,11 +201,11 @@ export default function SourceSelectionPage() {
                     setPage(1)
                     setFilters((prev) => ({ ...prev, search: e.target.value }))
                   }}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-input border-border"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white">Channel</Label>
+                <Label className="text-foreground">Channel</Label>
                 <Input
                   placeholder="Channel name"
                   value={filters.channel}
@@ -213,11 +213,11 @@ export default function SourceSelectionPage() {
                     setPage(1)
                     setFilters((prev) => ({ ...prev, channel: e.target.value }))
                   }}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-input border-border"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white">Language</Label>
+                <Label className="text-foreground">Language</Label>
                 <Input
                   placeholder="e.g. en, es"
                   value={filters.language}
@@ -225,14 +225,14 @@ export default function SourceSelectionPage() {
                     setPage(1)
                     setFilters((prev) => ({ ...prev, language: e.target.value }))
                   }}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-input border-border"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-white">Duration</Label>
+                <Label className="text-foreground">Duration</Label>
                 <Select
                   value={filters.durationBucket}
                   onValueChange={(value) => {
@@ -240,10 +240,10 @@ export default function SourceSelectionPage() {
                     setFilters((prev) => ({ ...prev, durationBucket: value as Filters["durationBucket"] }))
                   }}
                 >
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="bg-input border-border">
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                  <SelectContent className="bg-card border-border">
                     <SelectItem value="any">Any length</SelectItem>
                     <SelectItem value="short">Short (&lt; 10 min)</SelectItem>
                     <SelectItem value="medium">Medium (10-30 min)</SelectItem>
@@ -252,7 +252,7 @@ export default function SourceSelectionPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-white">From</Label>
+                <Label className="text-foreground">From</Label>
                 <Input
                   type="date"
                   value={filters.fromDate}
@@ -260,11 +260,11 @@ export default function SourceSelectionPage() {
                     setPage(1)
                     setFilters((prev) => ({ ...prev, fromDate: e.target.value }))
                   }}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-input border-border"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white">To</Label>
+                <Label className="text-foreground">To</Label>
                 <Input
                   type="date"
                   value={filters.toDate}
@@ -272,14 +272,14 @@ export default function SourceSelectionPage() {
                     setPage(1)
                     setFilters((prev) => ({ ...prev, toDate: e.target.value }))
                   }}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-input border-border"
                 />
               </div>
               <div className="flex items-end gap-3">
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-slate-600 text-white hover:bg-slate-700"
+                  className="border-border hover:bg-accent"
                   onClick={resetFilters}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -288,7 +288,7 @@ export default function SourceSelectionPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="text-gray-300 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                   disabled={isFetching}
                   onClick={() => {
                     setPage(1)
@@ -302,23 +302,23 @@ export default function SourceSelectionPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-card border-border shadow-sm">
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <CardTitle className="text-white">Source Catalog</CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardTitle className="text-foreground">Source Catalog</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 {isFetching ? "Updating catalog..." : `Showing ${videos.length} of ${total} videos`}
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Badge variant="secondary" className="bg-purple-500/20 text-purple-100">
+              <Badge variant="secondary" className="bg-secondary/20 text-secondary-foreground">
                 {Object.keys(selectedIds).length} selected
               </Badge>
               {Object.keys(selectedIds).length > 0 && (
                 <Button
                   type="button"
                   variant="ghost"
-                  className="text-gray-300 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                   onClick={clearSelection}
                 >
                   Clear
@@ -328,28 +328,28 @@ export default function SourceSelectionPage() {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-24 text-gray-300">
+              <div className="flex items-center justify-center py-24 text-muted-foreground">
                 <Loader2 className="h-6 w-6 mr-2 animate-spin" /> Loading source videos...
               </div>
             ) : videos.length === 0 ? (
-              <div className="py-16 text-center text-gray-400">No videos found. Adjust filters and try again.</div>
+              <div className="py-16 text-center text-muted-foreground">No videos found. Adjust filters and try again.</div>
             ) : (
               <Tabs defaultValue="table" className="space-y-6">
-                <TabsList className="bg-white/5 border-white/10">
-                  <TabsTrigger value="table" className="data-[state=active]:bg-white/20">Table</TabsTrigger>
-                  <TabsTrigger value="cards" className="data-[state=active]:bg-white/20">Cards</TabsTrigger>
+                <TabsList className="bg-muted border-border">
+                  <TabsTrigger value="table" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Table</TabsTrigger>
+                  <TabsTrigger value="cards" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Cards</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="table">
                   <Table className="table-fixed min-w-full">
                     <TableHeader>
-                      <TableRow className="border-white/10">
+                      <TableRow className="border-border">
                         <TableHead className="w-12"></TableHead>
-                        <TableHead className="text-gray-300">Title</TableHead>
-                        <TableHead className="text-gray-300">Channel</TableHead>
-                        <TableHead className="text-gray-300">Duration</TableHead>
-                        <TableHead className="text-gray-300">Published</TableHead>
-                        <TableHead className="text-gray-300">Tags</TableHead>
+                        <TableHead className="text-muted-foreground">Title</TableHead>
+                        <TableHead className="text-muted-foreground">Channel</TableHead>
+                        <TableHead className="text-muted-foreground">Duration</TableHead>
+                        <TableHead className="text-muted-foreground">Published</TableHead>
+                        <TableHead className="text-muted-foreground">Tags</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -357,7 +357,7 @@ export default function SourceSelectionPage() {
                         const key = video.source_video_id || video.id
                         const isChecked = Boolean(selectedIds[key])
                         return (
-                          <TableRow key={key} className="border-white/10">
+                          <TableRow key={key} className="border-border hover:bg-accent/50">
                             <TableCell>
                               <Checkbox
                                 checked={isChecked}
@@ -365,24 +365,24 @@ export default function SourceSelectionPage() {
                                 aria-label="Select video"
                               />
                             </TableCell>
-                            <TableCell className="text-white">
+                            <TableCell className="text-foreground">
                               <div className="font-semibold line-clamp-2">{video.title}</div>
-                              <div className="text-xs text-gray-400 line-clamp-2">{video.description}</div>
+                              <div className="text-xs text-muted-foreground line-clamp-2">{video.description}</div>
                             </TableCell>
-                            <TableCell className="text-gray-300">{video.channel_name}</TableCell>
-                            <TableCell className="text-gray-300">{formatDuration(video.duration)}</TableCell>
-                            <TableCell className="text-gray-300">
+                            <TableCell className="text-muted-foreground">{video.channel_name}</TableCell>
+                            <TableCell className="text-muted-foreground">{formatDuration(video.duration)}</TableCell>
+                            <TableCell className="text-muted-foreground">
                               {video.published_at ? new Date(video.published_at).toLocaleDateString() : "—"}
                             </TableCell>
-                            <TableCell className="text-gray-300">
+                            <TableCell className="text-muted-foreground">
                               <div className="flex flex-wrap gap-1">
                                 {(video.tags ?? []).slice(0, 3).map((tag: string) => (
-                                  <Badge key={tag} variant="secondary" className="bg-slate-700 text-gray-200 text-xs">
+                                  <Badge key={tag} variant="secondary" className="bg-secondary/20 text-secondary-foreground text-xs">
                                     {tag}
                                   </Badge>
                                 ))}
                                 {video.tags && video.tags.length > 3 && (
-                                  <Badge variant="secondary" className="bg-slate-700 text-gray-200 text-xs">
+                                  <Badge variant="secondary" className="bg-secondary/20 text-secondary-foreground text-xs">
                                     +{video.tags.length - 3}
                                   </Badge>
                                 )}
@@ -415,22 +415,22 @@ export default function SourceSelectionPage() {
                             className="w-full h-44 object-cover"
                           />
                           <CardHeader className="space-y-1">
-                            <CardTitle className="text-white text-lg line-clamp-2">{video.title}</CardTitle>
-                            <CardDescription className="text-gray-300 flex justify-between text-sm">
+                            <CardTitle className="text-foreground text-lg line-clamp-2">{video.title}</CardTitle>
+                            <CardDescription className="text-muted-foreground flex justify-between text-sm">
                               <span>{video.channel_name}</span>
                               <span>{formatDuration(video.duration)}</span>
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-3">
-                            <p className="text-gray-300 text-sm line-clamp-3">{video.description}</p>
+                            <p className="text-muted-foreground text-sm line-clamp-3">{video.description}</p>
                             <div className="flex flex-wrap gap-1">
                               {(video.tags ?? []).slice(0, 4).map((tag: string) => (
-                                <Badge key={tag} variant="secondary" className="bg-slate-700 text-gray-200 text-xs">
+                                <Badge key={tag} variant="secondary" className="bg-secondary/20 text-secondary-foreground text-xs">
                                   {tag}
                                 </Badge>
                               ))}
                             </div>
-                            <div className="text-xs text-gray-400">
+                            <div className="text-xs text-muted-foreground">
                               Published {video.published_at ? new Date(video.published_at).toLocaleDateString() : "—"}
                             </div>
                           </CardContent>
@@ -444,16 +444,16 @@ export default function SourceSelectionPage() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-between text-gray-300">
+        <div className="flex items-center justify-between text-muted-foreground">
           <div>
             Page {page} of {totalPages}
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               disabled={page <= 1 || isFetching}
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-border hover:bg-accent"
             >
               Previous
             </Button>
@@ -461,7 +461,7 @@ export default function SourceSelectionPage() {
               variant="outline"
               disabled={page >= totalPages || isFetching}
               onClick={() => setPage((prev) => prev + 1)}
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-border hover:bg-accent"
             >
               Next
             </Button>
