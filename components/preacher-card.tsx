@@ -40,34 +40,34 @@ export function PreacherCard({
   }
 
   return (
-    <Card className="bg-card border-border hover:bg-accent/20 transition-all duration-200 group shadow-sm">
+    <Card className="bg-card border-border hover:bg-accent/20 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1 backdrop-blur-sm">
       <CardHeader className="text-center pb-3">
-        <Avatar className="w-20 h-20 mx-auto mb-4 ring-2 ring-primary/30">
+        <Avatar className="w-20 h-20 mx-auto mb-4 ring-2 ring-primary/30 shadow-lg group-hover:ring-primary/50 group-hover:shadow-xl transition-all duration-300">
           <AvatarImage src={preacher.image || "/placeholder.svg"} alt={preacher.name} />
-          <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+          <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-lg font-bold">
             {preacher.name
               .split(" ")
               .map((n) => n[0])
               .join("")}
           </AvatarFallback>
         </Avatar>
-        <CardTitle className="text-foreground text-xl group-hover:text-primary transition-colors">
+        <CardTitle className="text-foreground text-xl group-hover:text-primary transition-colors duration-300 font-bold">
           {preacher.name}
         </CardTitle>
-        <CardDescription className="text-muted-foreground">{preacher.church}</CardDescription>
+        <CardDescription className="text-muted-foreground group-hover:text-secondary/80 transition-colors duration-300">{preacher.church}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
         <p className="text-sm text-muted-foreground">{preacher.description}</p>
 
-        <div className="flex items-center justify-center space-x-1 text-sm text-muted-foreground">
-          <Play className="w-3 h-3" />
+        <div className="flex items-center justify-center space-x-1 text-sm text-muted-foreground group-hover:text-secondary/80 transition-colors duration-300">
+          <Play className="w-3 h-3 text-secondary/70 group-hover:text-secondary transition-colors" />
           <span>{preacher.videoCount.toLocaleString()} videos</span>
         </div>
 
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 border-border hover:bg-accent"
+            className="flex-1 border-border hover:bg-secondary/10 hover:border-secondary/50 hover:text-secondary shadow-md hover:shadow-lg hover:shadow-secondary/10 transition-all duration-300 transform hover:scale-[1.02] font-semibold"
             onClick={handleViewSermons}
           >
             <Users className="w-4 h-4 mr-2" />
@@ -78,8 +78,8 @@ export function PreacherCard({
             <Button
               variant="outline"
               size="icon"
-              className={`border-border hover:bg-accent ${
-                isFavorite ? "text-destructive border-destructive/50" : ""
+              className={`border-border hover:bg-accent shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.05] ${
+                isFavorite ? "text-destructive border-destructive/50 hover:border-destructive" : ""
               }`}
               onClick={handleToggleFavorite}
             >

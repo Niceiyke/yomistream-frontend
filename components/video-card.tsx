@@ -32,10 +32,10 @@ interface VideoCardProps {
 
 export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, onGenerateAI }: VideoCardProps) {
   return (
-    <Card className="bg-card border-border hover:bg-accent/20 transition-all duration-200 group shadow-sm">
+    <Card className="bg-card border-border hover:bg-accent/20 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1 backdrop-blur-sm">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <Badge variant="secondary" className="bg-secondary/20 text-secondary-foreground border-secondary/50">
+          <Badge variant="secondary" className="bg-gradient-to-r from-secondary/30 to-secondary/20 text-secondary-foreground border-secondary/50 shadow-sm font-semibold">
             {video.topic}
           </Badge>
           <div className="flex items-center space-x-1">
@@ -43,7 +43,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 text-muted-foreground hover:text-secondary"
+                className="w-8 h-8 text-muted-foreground hover:text-secondary hover:bg-secondary/10 transition-all duration-200"
                 onClick={() => onGenerateAI(video.id)}
                 title="Generate AI content"
               >
@@ -52,7 +52,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
             )}
             {user && (
               <AddToCollectionDialog videoId={video.id}>
-                <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-secondary hover:bg-secondary/10 transition-all duration-200">
                   <Plus className="w-4 h-4" />
                 </Button>
               </AddToCollectionDialog>
@@ -67,10 +67,10 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
             </Button>
           </div>
         </div>
-        <CardTitle className="text-foreground text-lg leading-tight group-hover:text-primary transition-colors">
+        <CardTitle className="text-foreground text-lg leading-tight group-hover:text-primary transition-colors duration-300 font-bold">
           {video.title}
         </CardTitle>
-        <CardDescription className="text-muted-foreground">by {video.preacher}</CardDescription>
+        <CardDescription className="text-muted-foreground group-hover:text-secondary/80 transition-colors duration-300">by {video.preacher}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>
@@ -103,12 +103,12 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <Clock className="w-3 h-3" />
+            <div className="flex items-center space-x-1 group/duration hover:text-secondary transition-colors">
+              <Clock className="w-3 h-3 text-secondary/70 group-hover/duration:text-secondary" />
               <span>{video.duration}</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <Eye className="w-3 h-3" />
+            <div className="flex items-center space-x-1 group/views hover:text-secondary transition-colors">
+              <Eye className="w-3 h-3 text-secondary/70 group-hover/views:text-secondary" />
               <span>{video.views}</span>
             </div>
           </div>
@@ -116,7 +116,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
 
         <Button
           onClick={onPlay}
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-shadow"
+          className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl hover:shadow-primary/25 transition-all duration-300 transform hover:scale-[1.02]"
         >
           <Play className="w-4 h-4 mr-2" />
           Watch Now

@@ -319,21 +319,21 @@ export default function GospelPlatform() {
                   <Button
                     asChild
                     variant="outline"
-                    className="border-border hover:bg-accent"
+                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                   >
                     <Link href="/collections">
                       <FolderOpen className="w-4 h-4 mr-2" />
                       My Collections
                     </Link>
                   </Button>
-                  <Button variant="outline" className="border-border hover:bg-accent">
+                  <Button variant="outline" className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300">
                     <Heart className="w-4 h-4 mr-2" />
                     Favorites ({favorites.length})
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleSignOut}
-                    className="border-border hover:bg-accent"
+                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
@@ -343,7 +343,7 @@ export default function GospelPlatform() {
                 <Button
                   asChild
                   variant="outline"
-                  className="border-border hover:bg-accent"
+                  className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                 >
                   <Link href="/auth/login">
                     <LogIn className="w-4 h-4 mr-2" />
@@ -379,7 +379,7 @@ export default function GospelPlatform() {
                     <Button
                       asChild
                       variant="outline"
-                      className="border-border hover:bg-accent justify-start"
+                      className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Link href="/collections">
@@ -389,7 +389,7 @@ export default function GospelPlatform() {
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="border-border hover:bg-accent justify-start"
+                      className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Heart className="w-4 h-4 mr-2" />
@@ -401,7 +401,7 @@ export default function GospelPlatform() {
                         handleSignOut()
                         setMobileMenuOpen(false)
                       }}
-                      className="border-border hover:bg-accent justify-start"
+                      className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
@@ -411,7 +411,7 @@ export default function GospelPlatform() {
                   <Button
                     asChild
                     variant="outline"
-                    className="border-border hover:bg-accent justify-start"
+                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Link href="/auth/login">
@@ -460,8 +460,8 @@ export default function GospelPlatform() {
             <Button
               variant="outline"
               onClick={() => setShowTagFilter(!showTagFilter)}
-              className={`border-border hover:bg-accent ${
-                showTagFilter ? "text-secondary border-secondary" : ""
+              className={`border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 transition-all duration-300 ${
+                showTagFilter ? "text-secondary border-secondary bg-secondary/10" : ""
               }`}
             >
               <Tag className="w-4 h-4 mr-2" />
@@ -477,7 +477,7 @@ export default function GospelPlatform() {
                   setSearchQuery("")
                   setSelectedTags([])
                 }}
-                className="border-border hover:bg-accent"
+                className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 transition-all duration-300"
               >
                 <span className="hidden sm:inline">Clear Filters</span>
                 <span className="sm:hidden">Clear</span>
@@ -495,7 +495,7 @@ export default function GospelPlatform() {
             <Button
               variant={activeTab === "videos" ? "default" : "ghost"}
               onClick={() => setActiveTab("videos")}
-              className={`flex-1 ${activeTab === "videos" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+              className={`flex-1 transition-all duration-300 ${activeTab === "videos" ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-secondary/20 hover:text-secondary text-muted-foreground"}`}
             >
               <Play className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="text-sm sm:text-base">Videos</span>
@@ -503,7 +503,7 @@ export default function GospelPlatform() {
             <Button
               variant={activeTab === "preachers" ? "default" : "ghost"}
               onClick={() => setActiveTab("preachers")}
-              className={`flex-1 ${activeTab === "preachers" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+              className={`flex-1 transition-all duration-300 ${activeTab === "preachers" ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-secondary/20 hover:text-secondary text-muted-foreground"}`}
             >
               <Users className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="text-sm sm:text-base">Preachers</span>
