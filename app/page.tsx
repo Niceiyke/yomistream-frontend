@@ -1,19 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Play, Heart, BookOpen, Users, Filter, LogIn, LogOut, FolderOpen, Tag, Menu, X } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Search, Play, Heart, Users, Filter, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { VideoPlayer } from "@/components/video-player"
 import { PreacherCard } from "@/components/preacher-card"
 import { VideoCard } from "@/components/video-card"
 import { TagFilter } from "@/components/tag-filter"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
+import { AppHeader } from "@/components/app-header"
 import { apiGet, apiGetCached, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
@@ -65,35 +64,12 @@ export default function GospelPlatform() {
   const [videos, setVideos] = useState<Video[]>([])
   const [preachers, setPreachers] = useState<Preacher[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
   const queryClient = useQueryClient()
-
-  // Close mobile menu when clicking outside or on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) { // md breakpoint
-        setMobileMenuOpen(false)
-      }
-    }
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element
-      if (mobileMenuOpen && !target.closest('header')) {
-        setMobileMenuOpen(false)
-      }
-    }
-
-    window.addEventListener('resize', handleResize)
-    document.addEventListener('click', handleClickOutside)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      document.removeEventListener('click', handleClickOutside)
-    }
-  }, [mobileMenuOpen])
+  const scrollPositionRef = useRef<number>(0)
+  const hasRestoredScroll = useRef(false)
 
 
   // React Query: videos & preachers
@@ -148,6 +124,51 @@ export default function GospelPlatform() {
     if (favoritesQuery.data) setFavorites(favoritesQuery.data)
     if (preacherFavoritesQuery.data) setPreacherFavorites(preacherFavoritesQuery.data)
   }, [favoritesQuery.data, preacherFavoritesQuery.data])
+
+  // Restore scroll position when returning to page
+  useEffect(() => {
+    // Check if we're returning from a navigation
+    const savedScrollPosition = sessionStorage.getItem('mainPageScrollPosition')
+    
+    if (savedScrollPosition && !hasRestoredScroll.current && videos.length > 0) {
+      hasRestoredScroll.current = true
+      
+      // Wait for images and content to load
+      const restoreScroll = () => {
+        const scrollPos = parseInt(savedScrollPosition, 10)
+        console.log('Restoring scroll to:', scrollPos) // Debug log
+        window.scrollTo(0, scrollPos)
+        sessionStorage.removeItem('mainPageScrollPosition')
+      }
+      
+      // Try multiple times to ensure content is rendered
+      setTimeout(restoreScroll, 100)
+    }
+  }, [videos.length])
+  
+  // Also listen for browser back button
+  useEffect(() => {
+    const handlePopState = () => {
+      const savedScrollPosition = sessionStorage.getItem('mainPageScrollPosition')
+      if (savedScrollPosition) {
+        setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScrollPosition, 10))
+          sessionStorage.removeItem('mainPageScrollPosition')
+        }, 100)
+      }
+    }
+    
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  // Save scroll position before navigating away
+  const handleVideoClick = (videoId: string) => {
+    const currentScroll = window.scrollY
+    console.log('Saving scroll position:', currentScroll) // Debug log
+    sessionStorage.setItem('mainPageScrollPosition', currentScroll.toString())
+    router.push(`/video/${videoId}`)
+  }
 
   // Toggle favorites via API then invalidate queries
   const toggleFavorite = async (videoId: string) => {
@@ -280,132 +301,11 @@ export default function GospelPlatform() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
-                <BookOpen className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">WordLyte</h1>
-                <p className="text-sm text-muted-foreground">Divine Illumination</p>
-              </div>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
-              {user ? (
-                <>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                  >
-                    <Link href="/collections">
-                      <FolderOpen className="w-4 h-4 mr-2" />
-                      My Collections
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300">
-                    <Heart className="w-4 h-4 mr-2" />
-                    Favorites ({favorites.length})
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleSignOut}
-                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                >
-                  <Link href="/auth/login">
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Sign In
-                  </Link>
-                </Button>
-              )}
-            </div>
-            
-            {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="border-border hover:bg-accent"
-              >
-                {mobileMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
-              </Button>
-            </div>
-          </div>
-          
-          {/* Mobile Menu Dropdown */}
-          {mobileMenuOpen && (
-            <div className="md:hidden mt-4 pt-4 border-t border-border animate-in slide-in-from-top-2 duration-200">
-              <div className="flex flex-col space-y-3">
-                {user ? (
-                  <>
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Link href="/collections">
-                        <FolderOpen className="w-4 h-4 mr-2" />
-                        My Collections
-                      </Link>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      Favorites ({favorites.length})
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        handleSignOut()
-                        setMobileMenuOpen(false)
-                      }}
-                      className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Link href="/auth/login">
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Sign In
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+      <AppHeader 
+        favorites={favorites}
+        onSignOut={handleSignOut}
+        showActions={true}
+      />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 space-y-4">
@@ -528,7 +428,7 @@ export default function GospelPlatform() {
                     tags: video.tags || [],
                   }}
                   isFavorite={favorites.includes(video.id)}
-                  onPlay={() => router.push(`/video/${video.id}`)}
+                  onPlay={() => handleVideoClick(video.id)}
                   onToggleFavorite={() => toggleFavorite(video.id)}
                   onGenerateAI={handleGenerateAI}
                   user={user}

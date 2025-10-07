@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { ArrowLeft, Heart, Plus, Sparkles, Clock, Eye, BookOpen, Users, Quote, Scroll, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-// VideoPlayer component removed - using direct iframe for better UX
 import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
+import { AppHeader } from "@/components/app-header"
 import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import Link from "next/link"
 
 interface Preacher {
   id: string
@@ -53,6 +53,14 @@ export default function VideoDetailPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   const videoId = params.id as string
+
+  // Clear the scroll restoration flag when entering video page
+  useEffect(() => {
+    // This ensures the main page knows we navigated away
+    return () => {
+      // Cleanup on unmount
+    }
+  }, [])
 
 
   // Fetch video details
@@ -153,64 +161,54 @@ export default function VideoDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/")}
-                className="hover:bg-accent"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-md">
-                  <BookOpen className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <Link href="/" className="text-xl font-bold text-foreground hover:text-primary transition-colors">
-                    WordLyte
-                  </Link>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {user && (
-                <>
-                  <AddToCollectionDialog videoId={videoId}>
-                    <Button variant="outline" size="sm" className="border-border hover:bg-accent">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add to Collection
-                    </Button>
-                  </AddToCollectionDialog>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateAI}
-                    className="border-border hover:bg-accent"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate AI Content
+      <AppHeader 
+        favorites={favorites}
+        showActions={false}
+        backButton={{
+          label: "← Back to Home",
+          href: "/",
+          scroll: false
+        }}
+      />
+      
+      {/* Action Bar */}
+      <div className="border-b border-border bg-card/30 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-end space-x-2">
+            {user && (
+              <>
+                <AddToCollectionDialog videoId={videoId}>
+                  <Button variant="outline" size="sm" className="border-border hover:bg-accent">
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Add to Collection</span>
+                    <span className="sm:hidden">Add</span>
                   </Button>
-                </>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleFavorite}
-                className={`border-border hover:bg-accent ${isFavorite ? "text-destructive border-destructive/50" : ""}`}
-              >
-                <Heart className={`w-4 h-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
-                {isFavorite ? "Favorited" : "Add to Favorites"}
-              </Button>
-            </div>
+                </AddToCollectionDialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateAI}
+                  className="border-border hover:bg-accent"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Generate AI</span>
+                  <span className="sm:hidden">AI</span>
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleFavorite}
+              className={`border-border hover:bg-accent ${isFavorite ? "text-destructive border-destructive/50" : ""}`}
+            >
+              <Heart className={`w-4 h-4 mr-2 ${isFavorite ? "fill-current" : ""}`} />
+              <span className="hidden sm:inline">{isFavorite ? "Favorited" : "Add to Favorites"}</span>
+              <span className="sm:hidden">{isFavorite ? "★" : "☆"}</span>
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Main Layout - Video + Sidebar */}

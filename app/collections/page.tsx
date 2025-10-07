@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { VideoPlayer } from "@/components/video-player"
+import { AppHeader } from "@/components/app-header"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -199,25 +200,30 @@ export default function CollectionsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+      <AppHeader 
+        showActions={false}
+        backButton={{
+          label: "← Back to Home",
+          href: "/"
+        }}
+      />
+      
+      {/* Page Header with Action */}
+      <div className="border-b border-border bg-card/30 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 md:py-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <Button asChild variant="ghost" className="hover:bg-accent">
-                <Link href="/">← Back to Home</Link>
-              </Button>
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
                 <BookOpen className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">My Collections</h1>
-                <p className="text-sm text-muted-foreground">Organize your favorite WordLyte content</p>
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">My Collections</h1>
+                <p className="text-xs md:text-sm text-muted-foreground">Organize your favorite WordLyte content</p>
               </div>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   New Collection
                 </Button>
@@ -268,7 +274,7 @@ export default function CollectionsPage() {
             </Dialog>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
