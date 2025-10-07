@@ -5,7 +5,7 @@
 
 :root {
   /* Base colors - warm neutrals */
-  --background: oklch(0.96 0.013 128);
+  --background: oklch(0.984 0.001 120);
   --foreground: oklch(0.2 0.01 270);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.01 270);
