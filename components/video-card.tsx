@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
 import { SermonNotesPreview } from "@/components/sermon-notes-preview"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { apiGet } from "@/lib/api"
 
 interface Video {
   id: string
@@ -15,7 +17,7 @@ interface Video {
   preacher: string
   duration: string
   views: string
-  youtubeId: string
+  source_video_id: string
   topic: string
   description: string
   sermonNotes?: string[]
@@ -34,8 +36,10 @@ interface VideoCardProps {
 
 export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, onGenerateAI }: VideoCardProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isHovered, setIsHovered] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
@@ -44,6 +48,14 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
     // Only enable hover preview on desktop (non-touch devices)
     if (window.matchMedia('(hover: hover)').matches) {
       setIsHovered(true)
+      
+      // Prefetch video data on hover for faster navigation
+      queryClient.prefetchQuery({
+        queryKey: ["video", video.id],
+        queryFn: () => apiGet(`/api/data/videos/${video.id}`),
+        staleTime: 60_000,
+      })
+      
       // Start preview after 1 second of hovering
       hoverTimeoutRef.current = setTimeout(() => {
         setShowPreview(true)
@@ -65,12 +77,49 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
   }
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Prevent navigation if clicking on buttons or interactive elements
+    console.log('Card click event triggered')
+    console.log('Event target:', e.target)
+    console.log('Current target:', e.currentTarget)
+    
+    // Prevent navigation if clicking on actual buttons (not the card itself)
     const target = e.target as HTMLElement
-    if (target.closest('button') || target.closest('[role="button"]')) {
+    const currentTarget = e.currentTarget as HTMLElement
+    
+    // Check if we clicked on a button element, but exclude the card itself
+    const isActualButton = target.closest('button') && target.closest('button') !== currentTarget
+    
+    console.log('Is actual button clicked:', isActualButton)
+    
+    if (isActualButton) {
+      console.log('Actual button clicked, preventing navigation')
       return
     }
-    router.push(`/video/${video.id}`)
+    
+    console.log('Card clicked, navigating to:', `/video/${video.id}`)
+    console.log('Router object:', router)
+    
+    // Show loading state
+    setIsNavigating(true)
+    
+    // Prefetch data in background (don't wait for it)
+    queryClient.prefetchQuery({
+      queryKey: ["video", video.id],
+      queryFn: () => apiGet(`/api/data/videos/${video.id}`),
+      staleTime: 60_000,
+    }).catch(error => {
+      console.error('Error prefetching video data:', error)
+    })
+    
+    // Navigate immediately
+    try {
+      router.push(`/video/${video.id}`)
+      console.log('Navigation initiated successfully')
+    } catch (error) {
+      console.error('Navigation error:', error)
+    }
+    
+    // Reset loading state after a short delay
+    setTimeout(() => setIsNavigating(false), 1000)
   }
 
   useEffect(() => {
@@ -86,7 +135,9 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
 
   return (
     <Card 
-      className="bg-card border-border hover:bg-accent/20 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1 backdrop-blur-sm cursor-pointer relative overflow-hidden"
+      className={`bg-card border-border hover:bg-accent/20 transition-all duration-300 group shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1 backdrop-blur-sm cursor-pointer relative overflow-hidden ${
+        isNavigating ? 'opacity-75 scale-[0.98]' : ''
+      }`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleCardClick}
@@ -95,6 +146,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
+          console.log('Keyboard navigation to:', `/video/${video.id}`)
           router.push(`/video/${video.id}`)
         }
       }}
@@ -105,7 +157,7 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
           <div className="w-full h-full relative">
             <iframe
               ref={iframeRef}
-              src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${video.youtubeId}&start=10`}
+              src={`https://www.youtube-nocookie.com/embed/${video.source_video_id}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${video.source_video_id}&start=10`}
               className="w-full h-full rounded-lg"
               allow="autoplay; encrypted-media"
               allowFullScreen={false}
@@ -215,12 +267,16 @@ export function VideoCard({ video, isFavorite, onPlay, onToggleFavorite, user, o
         <Button
           onClick={(e) => {
             e.stopPropagation()
+            console.log('Watch Now button clicked, navigating to:', `/video/${video.id}`)
+            setIsNavigating(true)
             router.push(`/video/${video.id}`)
+            setTimeout(() => setIsNavigating(false), 1000)
           }}
-          className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl hover:shadow-primary/25 transition-all duration-300 transform hover:scale-[1.02]"
+          disabled={isNavigating}
+          className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl hover:shadow-primary/25 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-75"
         >
           <Play className="w-4 h-4 mr-2" />
-          Watch Now
+          {isNavigating ? 'Loading...' : 'Watch Now'}
         </Button>
       </CardContent>
     </Card>

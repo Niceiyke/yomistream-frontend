@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Suspense } from "react"
 import { ReactQueryProvider } from "@/lib/react-query-client"
+import { AuthProvider } from "@/lib/auth-context"
 
 export const metadata: Metadata = {
   title: "WordLyte - Faith-Based Streaming Platform",
@@ -22,10 +23,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense>
-          <ReactQueryProvider>
-            {children}
-            <Analytics />
-          </ReactQueryProvider>
+          <AuthProvider>
+            <ReactQueryProvider>
+              {children}
+              <Analytics />
+            </ReactQueryProvider>
+          </AuthProvider>
         </Suspense>
       </body>
     </html>

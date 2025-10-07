@@ -10,9 +10,9 @@ import { PreacherCard } from "@/components/preacher-card"
 import { VideoCard } from "@/components/video-card"
 import { TagFilter } from "@/components/tag-filter"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
-import { createClient } from "@/lib/supabase/client"
 import { apiGet, apiGetCached, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
+import { useAuth } from "@/lib/auth-context"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -29,7 +29,7 @@ interface Video {
   id: string
   title: string
   description: string | null
-  youtube_id: string
+  source_video_id: string
   topic: string | null
   duration: number | null
   thumbnail_url: string | null
@@ -37,7 +37,8 @@ interface Video {
   sermon_notes: string[] | null
   scripture_references: any[] | null
   tags: string[] | null
-  preacher: Preacher
+  preacher?: Preacher
+  preacher_name?: string
   start_time_seconds?: number | null
   end_time_seconds?: number | null
   video_url?: string | null
@@ -63,18 +64,12 @@ export default function GospelPlatform() {
   const [selectedVideoForAI, setSelectedVideoForAI] = useState<Video | null>(null)
   const [videos, setVideos] = useState<Video[]>([])
   const [preachers, setPreachers] = useState<Preacher[]>([])
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const supabase = createClient()
+  const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
   const queryClient = useQueryClient()
-
-  useEffect(() => {
-    checkUser()
-  }, [])
 
   // Close mobile menu when clicking outside or on window resize
   useEffect(() => {
@@ -100,44 +95,29 @@ export default function GospelPlatform() {
     }
   }, [mobileMenuOpen])
 
-  const checkUser = async () => {
-    try {
-      console.log("[v0] Checking user authentication...")
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      console.log("[v0] User check result:", user ? "authenticated" : "not authenticated")
-      setUser(user)
-    } catch (error) {
-      console.error("[v0] Error checking user:", error)
-    }
-  }
 
   // React Query: videos & preachers
   const videosQuery = useQuery({
     queryKey: ["videos"],
     queryFn: () => apiGetCached("/api/data/videos"),
-    staleTime: 60_000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   })
   const preachersQuery = useQuery({
     queryKey: ["preachers"],
     queryFn: () => apiGetCached("/api/data/preachers"),
-    staleTime: 60_000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   })
 
   useEffect(() => {
     if (videosQuery.data) setVideos(videosQuery.data)
     if (preachersQuery.data) setPreachers(preachersQuery.data)
-    // manage loading/error flags
+    // manage error flags
     if (videosQuery.isError || preachersQuery.isError) {
       setError("Failed to load data")
-      setLoading(false)
-    } else if (videosQuery.isLoading || preachersQuery.isLoading) {
-      setLoading(true)
-    } else {
-      setLoading(false)
     }
-  }, [videosQuery.data, preachersQuery.data, videosQuery.isLoading, preachersQuery.isLoading, videosQuery.isError, preachersQuery.isError])
+  }, [videosQuery.data, preachersQuery.data, videosQuery.isError, preachersQuery.isError])
 
   // React Query: favorites (dependent on user)
   const favoritesQuery = useQuery({
@@ -217,8 +197,7 @@ export default function GospelPlatform() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
+    await signOut()
     setFavorites([])
     setPreacherFavorites([])
     setFilteredPreacherId(null)
@@ -264,7 +243,10 @@ export default function GospelPlatform() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  if (loading) {
+  // Show loading if auth is loading or if we're loading data and don't have any yet
+  const isLoading = authLoading || ((videosQuery.isLoading || preachersQuery.isLoading) && !videosQuery.data && !preachersQuery.data)
+  
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -284,7 +266,6 @@ export default function GospelPlatform() {
           <Button
             onClick={() => {
               setError(null)
-              setLoading(true)
               queryClient.invalidateQueries({ queryKey: ["videos"] })
               queryClient.invalidateQueries({ queryKey: ["preachers"] })
             }}
@@ -536,10 +517,10 @@ export default function GospelPlatform() {
                   video={{
                     id: video.id,
                     title: video.title,
-                    preacher: video.preacher?.name || "Unknown",
+                    preacher: video.preacher?.name || video.preacher_name || "Unknown",
                     duration: formatDuration(video.duration),
                     views: "N/A",
-                    youtubeId: video.youtube_id,
+                    source_video_id: video.source_video_id,
                     topic: video.topic || "General",
                     description: video.description || "",
                     sermonNotes: video.sermon_notes || [],

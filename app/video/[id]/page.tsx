@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Heart, Plus, Sparkles, Clock, Eye, BookOpen, Users } from "lucide-react"
+import { ArrowLeft, Heart, Plus, Sparkles, Clock, Eye, BookOpen, Users, Quote, Scroll, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 // VideoPlayer component removed - using direct iframe for better UX
 import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
-import { createClient } from "@/lib/supabase/client"
 import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
+import { useAuth } from "@/lib/auth-context"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 
@@ -26,7 +26,7 @@ interface Video {
   id: string
   title: string
   description: string | null
-  youtube_id: string
+  source_video_id: string
   topic: string | null
   duration: number | null
   thumbnail_url: string | null
@@ -34,7 +34,8 @@ interface Video {
   sermon_notes: string[] | null
   scripture_references: any[] | null
   tags: string[] | null
-  preacher: Preacher
+  preacher?: Preacher
+  preacher_name?: string
   start_time_seconds?: number | null
   end_time_seconds?: number | null
   video_url?: string | null
@@ -44,29 +45,15 @@ export default function VideoDetailPage() {
   const params = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const supabase = createClient()
+  const { user } = useAuth()
   
-  const [user, setUser] = useState<any>(null)
   const [favorites, setFavorites] = useState<string[]>([])
   const [aiModalOpen, setAiModalOpen] = useState(false)
   const [showPlayer, setShowPlayer] = useState(true) // Auto-start video when page loads
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   const videoId = params.id as string
 
-  useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-    } catch (error) {
-      console.error("Error checking user:", error)
-    }
-  }
 
   // Fetch video details
   const videoQuery = useQuery({
@@ -225,135 +212,201 @@ export default function VideoDetailPage() {
         </div>
       </header>
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Video Player Section */}
-          <div className="mb-8">
-            <div className="aspect-video bg-muted rounded-lg overflow-hidden shadow-lg relative">
-              <div className="w-full h-full">
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&fs=1&controls=1&disablekb=0&iv_load_policy=3&cc_load_policy=0&showinfo=0${video.start_time_seconds ? `&start=${video.start_time_seconds}` : ''}`}
-                  className="w-full h-full rounded-lg"
-                  allow="autoplay; encrypted-media; fullscreen"
-                  allowFullScreen
-                  title={video.title}
-                  loading="eager"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Video Info Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Title and Topic */}
-              <div>
-                <div className="flex items-start justify-between mb-4">
-                  <Badge variant="secondary" className="bg-gradient-to-r from-secondary/30 to-secondary/20 text-secondary-foreground border-secondary/50 shadow-sm font-semibold">
-                    {video.topic || "General"}
-                  </Badge>
-                </div>
-                <h1 className="text-3xl font-bold text-foreground mb-2 leading-tight">
-                  {video.title}
-                </h1>
-                <div className="flex items-center space-x-4 text-muted-foreground">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4" />
-                    <span className="font-medium">{video.preacher.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4" />
-                    <span>{formatDuration(video.duration)}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Eye className="w-4 h-4" />
-                    <span>N/A views</span>
-                  </div>
+        <div className="max-w-7xl mx-auto">
+          {/* Main Layout - Video + Sidebar */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            {/* Left Column - Video and Main Content */}
+            <div className="xl:col-span-3 space-y-8">
+              {/* Video Player Section */}
+              <div className="aspect-video bg-muted rounded-lg overflow-hidden shadow-lg relative">
+                <div className="w-full h-full">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${video.source_video_id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&fs=1&controls=1&disablekb=0&iv_load_policy=3&cc_load_policy=0&showinfo=0${video.start_time_seconds ? `&start=${video.start_time_seconds}` : ''}`}
+                    className="w-full h-full rounded-lg"
+                    allow="autoplay; encrypted-media; fullscreen"
+                    allowFullScreen
+                    title={video.title}
+                    loading="eager"
+                  />
                 </div>
               </div>
 
-              {/* Description */}
-              {video.description && (
-                <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-                  <h2 className="text-xl font-semibold text-foreground mb-3">About This Sermon</h2>
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {video.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Tags */}
-              {video.tags && video.tags.length > 0 && (
-                <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-                  <h2 className="text-xl font-semibold text-foreground mb-3">Tags</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {video.tags.map((tag: string, index: number) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="bg-muted border-border text-muted-foreground hover:bg-accent cursor-pointer transition-colors"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
+              {/* Video Info Section */}
+              <div className="space-y-6">
+                {/* Title and Topic */}
+                <div>
+                  <div className="flex items-start justify-between mb-4">
+                    <Badge variant="secondary" className="bg-gradient-to-r from-secondary/30 to-secondary/20 text-secondary-foreground border-secondary/50 shadow-sm font-semibold">
+                      {video.topic || "General"}
+                    </Badge>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Preacher Info */}
-              <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-                <h2 className="text-xl font-semibold text-foreground mb-4">About the Preacher</h2>
-                <div className="flex items-start space-x-4">
-                  {video.preacher.image_url ? (
-                    <img
-                      src={video.preacher.image_url}
-                      alt={video.preacher.name}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-border"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center border-2 border-border">
-                      <Users className="w-8 h-8 text-muted-foreground" />
+                  <h1 className="text-3xl font-bold text-foreground mb-2 leading-tight">
+                    {video.title}
+                  </h1>
+                  <div className="flex items-center space-x-4 text-muted-foreground">
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">{video.preacher?.name || video.preacher_name || "Unknown"}</span>
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground mb-1">{video.preacher.name}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {video.preacher.bio || "Gospel preacher and teacher dedicated to sharing God's word."}
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{formatDuration(video.duration)}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Eye className="w-4 h-4" />
+                      <span>N/A views</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {video.description && (
+                  <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
+                    <h2 className="text-xl font-semibold text-foreground mb-3">About This Sermon</h2>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                      {video.description}
                     </p>
                   </div>
+                )}
+
+                {/* Tags */}
+                {video.tags && video.tags.length > 0 && (
+                  <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
+                    <h2 className="text-xl font-semibold text-foreground mb-3">Tags</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {video.tags.map((tag: string, index: number) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="bg-muted border-border text-muted-foreground hover:bg-accent cursor-pointer transition-colors"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Sidebar */}
+            <div className="xl:col-span-1 space-y-6">
+              {/* Preacher Info */}
+              <div className="bg-card rounded-lg p-6 border border-border shadow-sm sticky top-4">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                  <Users className="w-5 h-5 mr-2 text-primary" />
+                  Preacher
+                </h2>
+                <div className="text-center">
+                  {video.preacher?.image_url ? (
+                    <img
+                      src={video.preacher.image_url}
+                      alt={video.preacher?.name || video.preacher_name || "Unknown"}
+                      className="w-20 h-20 rounded-full object-cover border-3 border-primary/20 mx-auto mb-3"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center border-3 border-primary/20 mx-auto mb-3">
+                      <Users className="w-10 h-10 text-muted-foreground" />
+                    </div>
+                  )}
+                  <h3 className="font-semibold text-foreground mb-2">{video.preacher?.name || video.preacher_name || "Unknown"}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {video.preacher?.bio || "Gospel preacher and teacher dedicated to sharing God's word."}
+                  </p>
                 </div>
               </div>
 
-              {/* Sermon Notes Preview */}
-              {(video.sermon_notes?.length || video.scripture_references?.length) && (
-                <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Study Materials</h2>
-                  <div className="space-y-3">
-                    {video.sermon_notes && video.sermon_notes.length > 0 && (
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <BookOpen className="w-5 h-5 text-primary" />
-                          <span className="font-medium text-foreground">Sermon Notes</span>
-                        </div>
-                        <Badge variant="secondary">{video.sermon_notes.length}</Badge>
-                      </div>
-                    )}
-                    {video.scripture_references && video.scripture_references.length > 0 && (
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <BookOpen className="w-5 h-5 text-secondary" />
-                          <span className="font-medium text-foreground">Scripture References</span>
-                        </div>
-                        <Badge variant="secondary">{video.scripture_references.length}</Badge>
-                      </div>
+              {/* Video Summary */}
+              {video.description && (
+                <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-lg p-6 border border-primary/20 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <Scroll className="w-5 h-5 mr-2 text-primary" />
+                    Sermon Summary
+                  </h2>
+                  <div className="relative">
+                    <div className={`text-sm text-muted-foreground leading-relaxed ${expandedSection === 'summary' ? '' : 'line-clamp-4'}`}>
+                      {video.description}
+                    </div>
+                    {video.description.length > 200 && (
+                      <button
+                        onClick={() => setExpandedSection(expandedSection === 'summary' ? null : 'summary')}
+                        className="text-primary hover:text-primary/80 text-xs font-medium mt-2 flex items-center transition-colors"
+                      >
+                        {expandedSection === 'summary' ? (
+                          <><ChevronUp className="w-3 h-3 mr-1" /> Show Less</>
+                        ) : (
+                          <><ChevronDown className="w-3 h-3 mr-1" /> Read More</>
+                        )}
+                      </button>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Study materials include detailed sermon notes and scripture references to enhance your learning experience.
-                  </p>
+                </div>
+              )}
+
+              {/* Scripture References */}
+              {video.scripture_references && video.scripture_references.length > 0 && (
+                <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-lg p-6 border border-secondary/20 shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <Quote className="w-5 h-5 mr-2 text-secondary" />
+                    Bible Excerpts
+                  </h2>
+                  <div className="space-y-4">
+                    {video.scripture_references.slice(0, expandedSection === 'scripture' ? undefined : 3).map((ref: any, index: number) => (
+                      <div key={index} className="bg-card/50 rounded-lg p-4 border border-border/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-primary">
+                            {ref.book} {ref.chapter}:{ref.verse}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground italic leading-relaxed">
+                          "{ref.text}"
+                        </p>
+                      </div>
+                    ))}
+                    {video.scripture_references.length > 3 && (
+                      <button
+                        onClick={() => setExpandedSection(expandedSection === 'scripture' ? null : 'scripture')}
+                        className="text-secondary hover:text-secondary/80 text-xs font-medium flex items-center transition-colors w-full justify-center pt-2"
+                      >
+                        {expandedSection === 'scripture' ? (
+                          <><ChevronUp className="w-3 h-3 mr-1" /> Show Less</>
+                        ) : (
+                          <><ChevronDown className="w-3 h-3 mr-1" /> Show {video.scripture_references.length - 3} More</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Sermon Notes */}
+              {video.sermon_notes && video.sermon_notes.length > 0 && (
+                <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <BookOpen className="w-5 h-5 mr-2 text-primary" />
+                    Sermon Notes
+                  </h2>
+                  <div className="space-y-3">
+                    {video.sermon_notes.slice(0, expandedSection === 'notes' ? undefined : 3).map((note: string, index: number) => (
+                      <div key={index} className="bg-muted/50 rounded-lg p-3 border-l-4 border-primary/30">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {note}
+                        </p>
+                      </div>
+                    ))}
+                    {video.sermon_notes.length > 3 && (
+                      <button
+                        onClick={() => setExpandedSection(expandedSection === 'notes' ? null : 'notes')}
+                        className="text-primary hover:text-primary/80 text-xs font-medium flex items-center transition-colors w-full justify-center pt-2"
+                      >
+                        {expandedSection === 'notes' ? (
+                          <><ChevronUp className="w-3 h-3 mr-1" /> Show Less</>
+                        ) : (
+                          <><ChevronDown className="w-3 h-3 mr-1" /> Show {video.sermon_notes.length - 3} More</>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
