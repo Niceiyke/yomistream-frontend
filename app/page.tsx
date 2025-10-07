@@ -50,7 +50,7 @@ interface UserFavorite {
 }
 
 export default function GospelPlatform() {
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
+  // Removed selectedVideo state as videos now open in dedicated pages
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTopic, setSelectedTopic] = useState("all")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -511,18 +511,7 @@ export default function GospelPlatform() {
           </div>
         </div>
 
-        {selectedVideo && (
-          <VideoPlayer
-            videoId={selectedVideo.youtube_id}
-            videoTitle={selectedVideo.title}
-            sermonNotes={selectedVideo.sermon_notes || []}
-            scriptureReferences={selectedVideo.scripture_references || []}
-            startTimeSeconds={selectedVideo.start_time_seconds ?? undefined}
-            endTimeSeconds={selectedVideo.end_time_seconds ?? undefined}
-            videoUrl={selectedVideo.video_url ?? undefined}
-            onClose={() => setSelectedVideo(null)}
-          />
-        )}
+        {/* Inline video player removed - videos now open in dedicated pages */}
 
         {activeTab === "videos" ? (
           <div>
@@ -558,7 +547,7 @@ export default function GospelPlatform() {
                     tags: video.tags || [],
                   }}
                   isFavorite={favorites.includes(video.id)}
-                  onPlay={() => setSelectedVideo(video)}
+                  onPlay={() => router.push(`/video/${video.id}`)}
                   onToggleFavorite={() => toggleFavorite(video.id)}
                   onGenerateAI={handleGenerateAI}
                   user={user}
