@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Play, Heart, BookOpen, Users, Filter, LogIn, LogOut, FolderOpen, Tag } from "lucide-react"
+import { Search, Play, Heart, BookOpen, Users, Filter, LogIn, LogOut, FolderOpen, Tag, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -66,6 +66,7 @@ export default function GospelPlatform() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const supabase = createClient()
   const router = useRouter()
@@ -74,6 +75,30 @@ export default function GospelPlatform() {
   useEffect(() => {
     checkUser()
   }, [])
+
+  // Close mobile menu when clicking outside or on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) { // md breakpoint
+        setMobileMenuOpen(false)
+      }
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (mobileMenuOpen && !target.closest('header')) {
+        setMobileMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    document.addEventListener('click', handleClickOutside)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [mobileMenuOpen])
 
   const checkUser = async () => {
     try {
@@ -286,7 +311,9 @@ export default function GospelPlatform() {
                 <p className="text-sm text-muted-foreground">Divine Illumination</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-4">
               {user ? (
                 <>
                   <Button
@@ -325,7 +352,77 @@ export default function GospelPlatform() {
                 </Button>
               )}
             </div>
+            
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="border-border hover:bg-accent"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
           </div>
+          
+          {/* Mobile Menu Dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pt-4 border-t border-border animate-in slide-in-from-top-2 duration-200">
+              <div className="flex flex-col space-y-3">
+                {user ? (
+                  <>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="border-border hover:bg-accent justify-start"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Link href="/collections">
+                        <FolderOpen className="w-4 h-4 mr-2" />
+                        My Collections
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-border hover:bg-accent justify-start"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Heart className="w-4 h-4 mr-2" />
+                      Favorites ({favorites.length})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleSignOut()
+                        setMobileMenuOpen(false)
+                      }}
+                      className="border-border hover:bg-accent justify-start"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="border-border hover:bg-accent justify-start"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Link href="/auth/login">
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Sign In
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -368,7 +465,9 @@ export default function GospelPlatform() {
               }`}
             >
               <Tag className="w-4 h-4 mr-2" />
-              Tags {selectedTags.length > 0 && `(${selectedTags.length})`}
+              <span className="hidden sm:inline">Tags</span>
+              <span className="sm:hidden">Tags</span>
+              {selectedTags.length > 0 && ` (${selectedTags.length})`}
             </Button>
             {(filteredPreacherId || selectedTags.length > 0) && (
               <Button
@@ -380,7 +479,8 @@ export default function GospelPlatform() {
                 }}
                 className="border-border hover:bg-accent"
               >
-                Clear Filters
+                <span className="hidden sm:inline">Clear Filters</span>
+                <span className="sm:hidden">Clear</span>
               </Button>
             )}
           </div>
@@ -397,16 +497,16 @@ export default function GospelPlatform() {
               onClick={() => setActiveTab("videos")}
               className={`flex-1 ${activeTab === "videos" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
             >
-              <Play className="w-4 h-4 mr-2" />
-              Videos
+              <Play className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="text-sm sm:text-base">Videos</span>
             </Button>
             <Button
               variant={activeTab === "preachers" ? "default" : "ghost"}
               onClick={() => setActiveTab("preachers")}
               className={`flex-1 ${activeTab === "preachers" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
             >
-              <Users className="w-4 h-4 mr-2" />
-              Preachers
+              <Users className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="text-sm sm:text-base">Preachers</span>
             </Button>
           </div>
         </div>
