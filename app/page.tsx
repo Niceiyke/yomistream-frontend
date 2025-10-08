@@ -20,7 +20,7 @@ interface Preacher {
   id: string
   name: string
   bio: string | null
-  image_url: string | null
+  profile_image_url: string | null
   created_at: string
 }
 
@@ -28,19 +28,19 @@ interface Video {
   id: string
   title: string
   description: string | null
-  source_video_id: string
+  preacher_id: string | null
   topic: string | null
   duration: number | null
   thumbnail_url: string | null
   created_at: string
-  sermon_notes: string[] | null
+  sermon_notes: any[] | null
   scripture_references: any[] | null
   tags: string[] | null
-  preacher?: Preacher
-  preacher_name?: string
-  start_time_seconds?: number | null
-  end_time_seconds?: number | null
-  video_url?: string | null
+  start_time_seconds: number | null
+  end_time_seconds: number | null
+  video_url: string | null
+  hls_variant_urls: any[] | null
+  preachers?: Preacher
 }
 
 interface UserFavorite {
@@ -246,9 +246,9 @@ export default function GospelPlatform() {
   const filteredVideos = videos.filter((video) => {
     const matchesSearch =
       video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      video.preacher?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      video.preachers?.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesTopic = selectedTopic === "all" || video.topic?.toLowerCase() === selectedTopic.toLowerCase()
-    const matchesPreacher = !filteredPreacherId || video.preacher?.id === filteredPreacherId
+    const matchesPreacher = !filteredPreacherId || video.preachers?.id === filteredPreacherId
     const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => video.tags?.includes(tag))
     return matchesSearch && matchesTopic && matchesPreacher && matchesTags
   })
@@ -258,9 +258,14 @@ export default function GospelPlatform() {
   )
 
   const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "N/A"
-    const minutes = Math.floor(seconds / 60)
+    if (!seconds) return "0:00"
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
     const remainingSeconds = seconds % 60
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
+    }
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
@@ -417,15 +422,16 @@ export default function GospelPlatform() {
                   video={{
                     id: video.id,
                     title: video.title,
-                    preacher: video.preacher?.name || video.preacher_name || "Unknown",
+                    preacher: video.preachers?.name || "Unknown",
                     duration: formatDuration(video.duration),
                     views: "N/A",
-                    source_video_id: video.source_video_id,
+                    video_url: video.video_url || "",
                     topic: video.topic || "General",
                     description: video.description || "",
                     sermonNotes: video.sermon_notes || [],
                     scriptureReferences: video.scripture_references || [],
                     tags: video.tags || [],
+                    thumbnail_url: video.thumbnail_url || "",
                   }}
                   isFavorite={favorites.includes(video.id)}
                   onPlay={() => handleVideoClick(video.id)}
@@ -446,8 +452,8 @@ export default function GospelPlatform() {
                   name: preacher.name,
                   church: "Ministry",
                   description: preacher.bio || "Gospel preacher and teacher",
-                  videoCount: videos.filter((v) => v.preacher?.id === preacher.id).length,
-                  image: preacher.image_url || "/preacher.jpg",
+                  videoCount: videos.filter((v) => v.preachers?.id === preacher.id).length,
+                  image: preacher.profile_image_url || "/preacher.jpg",
                 }}
                 isFavorite={preacherFavorites.includes(preacher.id)}
                 onViewSermons={() => handleViewPreacherSermons(preacher.id, preacher.name)}
@@ -480,7 +486,7 @@ export default function GospelPlatform() {
           videoId={selectedVideoForAI!.id}
           videoTitle={selectedVideoForAI!.title}
           videoDescription={selectedVideoForAI!.description || undefined}
-          preacherName={selectedVideoForAI!.preacher?.name}
+          preacherName={selectedVideoForAI!.preachers?.name}
           onContentGenerated={handleAIContentGenerated}
         />
       )}

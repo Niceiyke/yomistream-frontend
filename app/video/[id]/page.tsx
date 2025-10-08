@@ -18,7 +18,7 @@ interface Preacher {
   id: string
   name: string
   bio: string | null
-  image_url: string | null
+  profile_image_url: string | null
   created_at: string
 }
 
@@ -26,19 +26,19 @@ interface Video {
   id: string
   title: string
   description: string | null
-  source_video_id: string
+  preacher_id: string | null
   topic: string | null
   duration: number | null
   thumbnail_url: string | null
   created_at: string
-  sermon_notes: string[] | null
+  sermon_notes: any[] | null
   scripture_references: any[] | null
   tags: string[] | null
-  preacher?: Preacher
-  preacher_name?: string
-  start_time_seconds?: number | null
-  end_time_seconds?: number | null
-  video_url?: string | null
+  start_time_seconds: number | null
+  end_time_seconds: number | null
+  video_url: string | null
+  hls_variant_urls: any[] | null
+  preachers?: Preacher
 }
 
 export default function VideoDetailPage() {
@@ -218,14 +218,39 @@ export default function VideoDetailPage() {
               {/* Video Player Section */}
               <div className="aspect-video bg-muted rounded-lg overflow-hidden shadow-lg relative">
                 <div className="w-full h-full">
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${video.source_video_id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&fs=1&controls=1&disablekb=0&iv_load_policy=3&cc_load_policy=0&showinfo=0${video.start_time_seconds ? `&start=${video.start_time_seconds}` : ''}`}
-                    className="w-full h-full rounded-lg"
-                    allow="autoplay; encrypted-media; fullscreen"
-                    allowFullScreen
-                    title={video.title}
-                    loading="eager"
-                  />
+                  {video.video_url ? (
+                    // Check if it's a direct video file (mp4, webm, etc.) or an embed URL
+                    video.video_url.match(/\.(mp4|webm|ogg|m3u8)(\?|$)/i) ? (
+                      <video
+                        src={video.video_url}
+                        className="w-full h-full rounded-lg"
+                        controls
+                        autoPlay
+                        playsInline
+                        controlsList="nodownload"
+                        onLoadedMetadata={(e) => {
+                          if (video.start_time_seconds) {
+                            e.currentTarget.currentTime = video.start_time_seconds
+                          }
+                        }}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      <iframe
+                        src={`${video.video_url}${video.start_time_seconds ? `&start=${video.start_time_seconds}` : ''}`}
+                        className="w-full h-full rounded-lg"
+                        allow="autoplay; encrypted-media; fullscreen"
+                        allowFullScreen
+                        title={video.title}
+                        loading="eager"
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <p className="text-muted-foreground">Video URL not available</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -244,7 +269,7 @@ export default function VideoDetailPage() {
                   <div className="flex items-center space-x-4 text-muted-foreground">
                     <div className="flex items-center space-x-2">
                       <Users className="w-4 h-4" />
-                      <span className="font-medium">{video.preacher?.name || video.preacher_name || "Unknown"}</span>
+                      <span className="font-medium">{video.preachers?.name || "Unknown"}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4" />
@@ -296,10 +321,10 @@ export default function VideoDetailPage() {
                   Preacher
                 </h2>
                 <div className="text-center">
-                  {video.preacher?.image_url ? (
+                  {video.preachers?.profile_image_url ? (
                     <img
-                      src={video.preacher.image_url}
-                      alt={video.preacher?.name || video.preacher_name || "Unknown"}
+                      src={video.preachers.profile_image_url}
+                      alt={video.preachers?.name || "Unknown"}
                       className="w-20 h-20 rounded-full object-cover border-3 border-primary/20 mx-auto mb-3"
                     />
                   ) : (
@@ -307,9 +332,9 @@ export default function VideoDetailPage() {
                       <Users className="w-10 h-10 text-muted-foreground" />
                     </div>
                   )}
-                  <h3 className="font-semibold text-foreground mb-2">{video.preacher?.name || video.preacher_name || "Unknown"}</h3>
+                  <h3 className="font-semibold text-foreground mb-2">{video.preachers?.name || "Unknown"}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    {video.preacher?.bio || "Gospel preacher and teacher dedicated to sharing God's word."}
+                    {video.preachers?.bio || "Gospel preacher and teacher dedicated to sharing God's word."}
                   </p>
                 </div>
               </div>
@@ -420,7 +445,7 @@ export default function VideoDetailPage() {
           videoId={video.id}
           videoTitle={video.title}
           videoDescription={video.description || undefined}
-          preacherName={video.preacher?.name}
+          preacherName={video.preachers?.name}
           onContentGenerated={handleAIContentGenerated}
         />
       )}
