@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
-import { X, Loader2, ExternalLink } from "lucide-react"
+import { X, Loader2, ExternalLink, ChevronLeft, ChevronRight, SkipForward } from "lucide-react"
 
 interface JobStatus {
   job_id: string
@@ -85,6 +85,7 @@ export default function AdminClipPage() {
   const [thumbnailMode, setThumbnailMode] = useState<"auto" | "url" | "upload">("auto")
   const [webhookUrl, setWebhookUrl] = useState("")
   const [sourceVideos, setSourceVideos] = useState<SourceVideoDetails[]>([])
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [isPrefilling, setIsPrefilling] = useState(false)
   const [prefillError, setPrefillError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
@@ -97,6 +98,53 @@ export default function AdminClipPage() {
   const authHeaders = async (): Promise<Record<string, string>> => {
     const token = await getAccessTokenCached()
     return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
+  const clearForm = () => {
+    setVideoUrl("")
+    setStartTime("")
+    setEndTime("")
+    setTitle("")
+    setDescription("")
+    setTags([])
+    setTagInput("")
+    setThumbnailUrl("")
+    setThumbnailFile(null)
+    setThumbnailMode("auto")
+  }
+
+  const prefillFormWithVideo = (video: SourceVideoDetails) => {
+    let url = ""
+    if (video.youtube_url) {
+      url = video.youtube_url
+      setVideoUrl(video.youtube_url)
+    } else if (video.source_video_id) {
+      url = `https://www.youtube.com/watch?v=${video.source_video_id}`
+      setVideoUrl(url)
+    }
+    const vidId = extractYoutubeId(url)
+    if (vidId) setYoutubeVideoId(vidId)
+    if (video.title) setTitle(video.title)
+    if (video.description) setDescription(video.description)
+    if (video.tags && video.tags.length > 0) setTags(video.tags)
+    if (video.thumbnail_url) {
+      setThumbnailMode("url")
+      setThumbnailUrl(video.thumbnail_url)
+    }
+    if (typeof video.duration === "number" && !Number.isNaN(video.duration) && video.duration > 0) {
+      setStartTime(formatSecondsToTimestamp(0))
+      setEndTime(formatSecondsToTimestamp(Math.floor(video.duration)))
+    } else {
+      setStartTime("")
+      setEndTime("")
+    }
+  }
+
+  const navigateToVideo = (index: number) => {
+    if (index >= 0 && index < sourceVideos.length) {
+      setCurrentVideoIndex(index)
+      prefillFormWithVideo(sourceVideos[index])
+    }
   }
 
   const extractYoutubeId = (url: string): string | null => {
@@ -186,31 +234,9 @@ export default function AdminClipPage() {
           setPrefillError("No metadata found for selected source videos.")
           return
         }
-        const primary = valid[0]
-        let url = ""
-        if (primary.youtube_url) {
-          url = primary.youtube_url
-          setVideoUrl(primary.youtube_url)
-        } else if (primary.source_video_id) {
-          url = `https://www.youtube.com/watch?v=${primary.source_video_id}`
-          setVideoUrl(url)
-        }
-        const vidId = extractYoutubeId(url)
-        if (vidId) setYoutubeVideoId(vidId)
-        if (primary.title) setTitle(primary.title)
-        if (primary.description) setDescription(primary.description)
-        if (primary.tags && primary.tags.length > 0) setTags(primary.tags)
-        if (primary.thumbnail_url) {
-          setThumbnailMode("url")
-          setThumbnailUrl(primary.thumbnail_url)
-        }
-        if (typeof primary.duration === "number" && !Number.isNaN(primary.duration) && primary.duration > 0) {
-          setStartTime(formatSecondsToTimestamp(0))
-          setEndTime(formatSecondsToTimestamp(Math.floor(primary.duration)))
-        } else {
-          setStartTime("")
-          setEndTime("")
-        }
+        // Set the first video as current and prefill form
+        setCurrentVideoIndex(0)
+        prefillFormWithVideo(valid[0])
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to prefill clip form", error)
