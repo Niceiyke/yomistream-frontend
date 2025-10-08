@@ -209,12 +209,12 @@ export default function VideoDetailPage() {
           </div>
         </div>
       </div>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Main Layout - Video + Sidebar */}
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 min-w-0">
             {/* Left Column - Video and Main Content */}
-            <div className="xl:col-span-3 space-y-8">
+            <div className="xl:col-span-3 space-y-8 min-w-0 overflow-hidden">
               {/* Video Player Section */}
               <div className="aspect-video bg-muted rounded-lg overflow-hidden shadow-lg relative">
                 <div className="w-full h-full">
@@ -259,11 +259,11 @@ export default function VideoDetailPage() {
                 {/* Title and Topic */}
                 <div>
                   <div className="flex items-start justify-between mb-4">
-                    <Badge variant="secondary" className="bg-gradient-to-r from-secondary/30 to-secondary/20 text-secondary-foreground border-secondary/50 shadow-sm font-semibold">
+                    <Badge variant="secondary" className="bg-gradient-to-r from-secondary/30 to-secondary/20 text-secondary-foreground border-secondary/50 shadow-sm font-semibold max-w-full truncate">
                       {video.topic || "General"}
                     </Badge>
                   </div>
-                  <h1 className="text-3xl font-bold text-foreground mb-2 leading-tight">
+                  <h1 className="text-3xl font-bold text-foreground mb-2 leading-tight break-words">
                     {video.title}
                   </h1>
                   <div className="flex items-center space-x-4 text-muted-foreground">
@@ -301,7 +301,7 @@ export default function VideoDetailPage() {
                         <Badge
                           key={index}
                           variant="outline"
-                          className="bg-muted border-border text-muted-foreground hover:bg-accent cursor-pointer transition-colors"
+                          className="bg-muted border-border text-muted-foreground hover:bg-accent cursor-pointer transition-colors max-w-full truncate"
                         >
                           {tag}
                         </Badge>
@@ -313,7 +313,7 @@ export default function VideoDetailPage() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="xl:col-span-1 space-y-6">
+            <div className="xl:col-span-1 space-y-6 min-w-0 overflow-hidden">
               {/* Preacher Info */}
               <div className="bg-card rounded-lg p-6 border border-border shadow-sm sticky top-4">
                 <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center">
@@ -332,8 +332,8 @@ export default function VideoDetailPage() {
                       <Users className="w-10 h-10 text-muted-foreground" />
                     </div>
                   )}
-                  <h3 className="font-semibold text-foreground mb-2">{video.preachers?.name || "Unknown"}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <h3 className="font-semibold text-foreground mb-2 break-words">{video.preachers?.name || "Unknown"}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed break-words">
                     {video.preachers?.bio || "Gospel preacher and teacher dedicated to sharing God's word."}
                   </p>
                 </div>
