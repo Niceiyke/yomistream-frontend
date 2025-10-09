@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { AppHeader } from "@/components/app-header"
+import { EnhancedVideoPlayer } from "@/components/enhanced-video-player"
 import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
@@ -217,41 +218,43 @@ export default function VideoDetailPage() {
             <div className="xl:col-span-3 space-y-8 min-w-0 overflow-hidden">
               {/* Video Player Section */}
               <div className="aspect-video bg-muted rounded-lg overflow-hidden shadow-lg relative">
-                <div className="w-full h-full">
-                  {video.video_url ? (
-                    // Check if it's a direct video file (mp4, webm, etc.) or an embed URL
-                    video.video_url.match(/\.(mp4|webm|ogg|m3u8)(\?|$)/i) ? (
-                      <video
-                        src={video.video_url}
-                        className="w-full h-full rounded-lg"
-                        controls
-                        autoPlay
-                        playsInline
-                        controlsList="nodownload"
-                        onLoadedMetadata={(e) => {
-                          if (video.start_time_seconds) {
-                            e.currentTarget.currentTime = video.start_time_seconds
-                          }
-                        }}
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    ) : (
-                      <iframe
-                        src={`${video.video_url}${video.start_time_seconds ? `&start=${video.start_time_seconds}` : ''}`}
-                        className="w-full h-full rounded-lg"
-                        allow="autoplay; encrypted-media; fullscreen"
-                        allowFullScreen
-                        title={video.title}
-                        loading="eager"
-                      />
-                    )
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <p className="text-muted-foreground">Video URL not available</p>
-                    </div>
-                  )}
-                </div>
+                {video.video_url ? (
+                  <EnhancedVideoPlayer
+                    videoId={video.id}
+                    videoUrl={video.video_url}
+                    hlsVariants={video.hls_variant_urls || []}
+                    poster={video.thumbnail_url || undefined}
+                    autoPlay={true}
+                    startTime={video.start_time_seconds || 0}
+                    endTime={video.end_time_seconds || undefined}
+                    userId={user?.id}
+                    watermark={{
+                      src: "/yomistream-logo.png",
+                      position: "bottom-right",
+                      opacity: 0.8,
+                      size: "small",
+                      clickUrl: "https://yomistream.com"
+                    }}
+                    logo={video.preachers?.profile_image_url ? {
+                      src: video.preachers.profile_image_url,
+                      position: "top-left",
+                      size: "medium",
+                      showDuration: 15,
+                      clickUrl: `https://yomistream.com/preacher/${video.preacher_id}`
+                    } : undefined}
+                    onTimeUpdate={(currentTime) => {
+                      console.log('Video time update:', currentTime)
+                    }}
+                    onEnded={() => {
+                      console.log('Video ended')
+                    }}
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                    <p className="text-muted-foreground">Video URL not available</p>
+                  </div>
+                )}
               </div>
 
               {/* Video Info Section */}

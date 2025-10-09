@@ -1,17 +1,17 @@
-import type React from "react"
-import type { Metadata } from "next"
+import { Suspense } from "react"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
+import { Metadata } from "next"
 import "./globals.css"
-import { Suspense } from "react"
-import { ReactQueryProvider } from "@/lib/react-query-client"
 import { AuthProvider } from "@/lib/auth-context"
+import { ReactQueryProvider } from "@/lib/react-query-provider"
+import { PreviewProvider } from "@/lib/contexts/preview-context"
+import '@/lib/init-ad-system' // Initialize ad system
 
 export const metadata: Metadata = {
   title: "WordLyte - Faith-Based Streaming Platform",
   description: "Experience divine illumination through curated Christian content from trusted preachers and teachers",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -22,14 +22,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Suspense>
-          <AuthProvider>
-            <ReactQueryProvider>
+        <AuthProvider>
+          <ReactQueryProvider>
+            <PreviewProvider maxConcurrentPreviews={1}>
               {children}
               <Analytics />
-            </ReactQueryProvider>
-          </AuthProvider>
-        </Suspense>
+            </PreviewProvider>
+          </ReactQueryProvider>
+        </AuthProvider>
       </body>
     </html>
   )

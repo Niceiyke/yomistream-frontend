@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PreacherCard } from "@/components/preacher-card"
-import { VideoCard } from "@/components/video-card"
+import { FixedVideoCard } from "@/components/video-card-fixed"
 import { TagFilter } from "@/components/tag-filter"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { AppHeader } from "@/components/app-header"
+import { SimplePerformanceDashboard } from "@/components/simple-performance-dashboard"
 import { apiGet, apiGetCached, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
@@ -64,6 +65,7 @@ export default function GospelPlatform() {
   const [videos, setVideos] = useState<Video[]>([])
   const [preachers, setPreachers] = useState<Preacher[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false)
 
   const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
@@ -417,7 +419,7 @@ export default function GospelPlatform() {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredVideos.map((video) => (
-                <VideoCard
+                <FixedVideoCard
                   key={video.id}
                   video={{
                     id: video.id,
@@ -437,7 +439,7 @@ export default function GospelPlatform() {
                   onPlay={() => handleVideoClick(video.id)}
                   onToggleFavorite={() => toggleFavorite(video.id)}
                   onGenerateAI={handleGenerateAI}
-                  user={user}
+                  user={user || undefined}
                 />
               ))}
             </div>
@@ -489,6 +491,23 @@ export default function GospelPlatform() {
           preacherName={selectedVideoForAI!.preachers?.name}
           onContentGenerated={handleAIContentGenerated}
         />
+      )}
+
+      {/* Performance Dashboard - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <>
+          <button
+            onClick={() => setShowPerformanceDashboard(true)}
+            className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors z-40"
+            title="Open Performance Dashboard"
+          >
+            📊
+          </button>
+          <SimplePerformanceDashboard
+            isOpen={showPerformanceDashboard}
+            onClose={() => setShowPerformanceDashboard(false)}
+          />
+        </>
       )}
     </div>
   )
