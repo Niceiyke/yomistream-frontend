@@ -10,7 +10,6 @@ import { FrontendAd } from '@/lib/types/ad-system'
 import { initializeAdSystem } from '@/lib/init-ad-system'
 import { NoAdsHandler, FallbackContent } from './no-ads-handler'
 import { NO_ADS_CONFIG } from '@/lib/config/ad-config'
-import { usePerformanceMonitor } from '@/lib/hooks/use-performance-monitor'
 import { User } from '@/lib/types/user'
 
 interface EnhancedVideoPlayerProps {
@@ -64,7 +63,6 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   onEnded,
   className
 }) => {
-  const { trackEvent } = usePerformanceMonitor()
   // Temporarily disable ad system initialization for performance
   useEffect(() => {
     // Ad system disabled for performance optimization
@@ -90,19 +88,19 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const adMetrics = { impressions: 0, clicks: 0, completions: 0, skips: 0 }
   const getNextAd = (type: string) => null
   const trackImpression = (ad: FrontendAd) => {
-    trackEvent({ type: 'ad_impression', videoId, adId: ad.id })
+    console.log('Ad impression:', ad.id)
   }
   const trackClick = (ad: FrontendAd) => {
-    trackEvent({ type: 'ad_click', videoId, adId: ad.id })
+    console.log('Ad click:', ad.id)
   }
   const trackCompletion = (ad: FrontendAd) => {
-    trackEvent({ type: 'ad_completion', videoId, adId: ad.id })
+    console.log('Ad completion:', ad.id)
   }
   const trackSkip = (ad: FrontendAd, watchedDuration?: number) => {
-    trackEvent({ type: 'ad_skip', videoId, adId: ad.id, watchedDuration })
+    console.log('Ad skip:', ad.id, 'watched:', watchedDuration)
   }
   const trackQuartile = (ad: FrontendAd, quartile: number) => {
-    trackEvent({ type: 'ad_quartile', videoId, adId: ad.id, quartile })
+    console.log('Ad quartile:', ad.id, 'quartile:', quartile)
   }
   const shouldShowAd = (time?: number, type?: string) => false
   const getAdForTime = (time: number) => null
@@ -309,26 +307,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
         />
       )}
       
-      {/* Ad Metrics Overlay (Development/Debug) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded">
-          <div>Ads Loaded: {ads.length}</div>
-          <div>Impressions: {adMetrics.impressions}</div>
-          <div>Clicks: {adMetrics.clicks}</div>
-          <div>Completions: {adMetrics.completions}</div>
-          <div>Skips: {adMetrics.skips}</div>
-          <div>Pre-roll: {hasPreRollAds ? '✓' : '✗'}</div>
-          <div>Mid-roll: {hasMidRollAds ? '✓' : '✗'}</div>
-          <div>Post-roll: {hasPostRollAds ? '✓' : '✗'}</div>
-        </div>
-      )}
       
-      {/* Ad Error Notification */}
-      {adError && (
-        <div className="absolute bottom-2 left-2 bg-red-500/90 text-white text-xs p-2 rounded">
-          Ad Error: {adError}
-        </div>
-      )}
     </div>
   )
 }

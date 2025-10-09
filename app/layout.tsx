@@ -6,7 +6,6 @@ import { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { ReactQueryProvider } from "@/lib/react-query-provider"
-import { PreviewProvider } from "@/lib/contexts/preview-context"
 import '@/lib/init-ad-system' // Initialize ad system
 
 export const metadata: Metadata = {
@@ -24,10 +23,8 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <AuthProvider>
           <ReactQueryProvider>
-            <PreviewProvider maxConcurrentPreviews={1}>
-              {children}
-              <Analytics />
-            </PreviewProvider>
+            {children}
+            <Analytics />
           </ReactQueryProvider>
         </AuthProvider>
       </body>

@@ -151,6 +151,7 @@ export const CustomVideoPlayer = ({
   const hlsRef = useRef<Hls | null>(null)
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dragCleanupRef = useRef<(() => void) | null>(null)
+  const lastTimeUpdateRef = useRef<number>(0)
   
   const [state, setState] = useState<VideoState>({
     isPlaying: false,
@@ -377,7 +378,13 @@ export const CustomVideoPlayer = ({
       if (!isDragging) {
         const currentTime = video.currentTime
         setState(prev => ({ ...prev, currentTime }))
-        onTimeUpdate?.(currentTime)
+        
+        // Throttle onTimeUpdate callback to prevent excessive calls (max once per 250ms)
+        const now = Date.now()
+        if (onTimeUpdate && now - lastTimeUpdateRef.current > 250) {
+          onTimeUpdate(currentTime)
+          lastTimeUpdateRef.current = now
+        }
         
         // Handle ad timing
         if (state.isPlayingAd && state.currentAd) {
@@ -780,11 +787,52 @@ useEffect(() => {
     )
   }
 
+  // Handle mouse events for controls visibility
+  const handleMouseEnter = () => {
+    setShowControls(true)
+  }
+
+  const handleMouseLeave = () => {
+    if (state.isPlaying) {
+      setShowControls(false)
+    }
+  }
+
+  const handleMouseMove = () => {
+    setShowControls(true)
+    // Auto-hide controls after 3 seconds of no mouse movement
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current)
+    }
+    if (state.isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false)
+      }, 3000)
+    }
+  }
+
+  // Handle touch events for mobile
+  const handleTouchStart = () => {
+    setShowControls(true)
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current)
+    }
+    if (state.isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false)
+      }, 4000) // Longer timeout for touch devices
+    }
+  }
+
   return (
     <div 
       ref={containerRef}
       className={`relative bg-black rounded-lg overflow-hidden group ${className}`}
       onDoubleClick={toggleFullscreen}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+      onTouchStart={handleTouchStart}
     >
       {/* Video Element */}
       <video

@@ -7,13 +7,14 @@ import { ArrowLeft, Heart, Plus, Sparkles, Clock, Eye, BookOpen, Users, Quote, S
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
-import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { AppHeader } from "@/components/app-header"
 import { EnhancedVideoPlayer } from "@/components/enhanced-video-player"
 import { apiGet, apiPost, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { AIGenerationModal } from "@/components/ai-generation-modal"
+import { debugLog } from "@/lib/utils/debug"
 
 interface Preacher {
   id: string
@@ -243,10 +244,12 @@ export default function VideoDetailPage() {
                       clickUrl: `https://yomistream.com/preacher/${video.preacher_id}`
                     } : undefined}
                     onTimeUpdate={(currentTime) => {
-                      console.log('Video time update:', currentTime)
+                      // Optional: Add analytics or other time-based logic here
+                      debugLog.video('Time update', currentTime)
                     }}
                     onEnded={() => {
-                      console.log('Video ended')
+                      // Video playback completed
+                      // Optional: Add analytics or next video logic here
                     }}
                     className="w-full h-full"
                   />
