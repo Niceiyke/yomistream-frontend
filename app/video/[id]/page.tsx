@@ -15,33 +15,8 @@ import { useAuth } from "@/lib/auth-context"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { debugLog } from "@/lib/utils/debug"
-
-interface Preacher {
-  id: string
-  name: string
-  bio: string | null
-  profile_image_url: string | null
-  created_at: string
-}
-
-interface Video {
-  id: string
-  title: string
-  description: string | null
-  preacher_id: string | null
-  topic: string | null
-  duration: number | null
-  thumbnail_url: string | null
-  created_at: string
-  sermon_notes: any[] | null
-  scripture_references: any[] | null
-  tags: string[] | null
-  start_time_seconds: number | null
-  end_time_seconds: number | null
-  video_url: string | null
-  hls_variant_urls: any[] | null
-  preachers?: Preacher
-}
+import { Video, Preacher } from "@/lib/types"
+import { formatDuration, getPreacherName, getPreacherImageUrl, normalizeVideoTags } from "@/lib/utils/video-helpers"
 
 export default function VideoDetailPage() {
   const params = useParams()
@@ -122,12 +97,6 @@ export default function VideoDetailPage() {
     queryClient.invalidateQueries({ queryKey: ["video", videoId] })
   }
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "N/A"
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
 
   if (videoQuery.isLoading) {
     return (
@@ -236,8 +205,8 @@ export default function VideoDetailPage() {
                       size: "small",
                       clickUrl: "https://yomistream.com"
                     }}
-                    logo={video.preachers?.profile_image_url ? {
-                      src: video.preachers.profile_image_url,
+                    logo={getPreacherImageUrl(video) ? {
+                      src: getPreacherImageUrl(video)!,
                       position: "top-left",
                       size: "medium",
                       showDuration: 15,
@@ -275,7 +244,7 @@ export default function VideoDetailPage() {
                   <div className="flex items-center space-x-4 text-muted-foreground">
                     <div className="flex items-center space-x-2">
                       <Users className="w-4 h-4" />
-                      <span className="font-medium">{video.preachers?.name || "Unknown"}</span>
+                      <span className="font-medium">{getPreacherName(video) || "Unknown"}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4" />
@@ -299,11 +268,11 @@ export default function VideoDetailPage() {
                 )}
 
                 {/* Tags */}
-                {video.tags && video.tags.length > 0 && (
+                {normalizeVideoTags(video.tags).length > 0 && (
                   <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
                     <h2 className="text-xl font-semibold text-foreground mb-3">Tags</h2>
                     <div className="flex flex-wrap gap-2">
-                      {video.tags.map((tag: string, index: number) => (
+                      {normalizeVideoTags(video.tags).map((tag: string, index: number) => (
                         <Badge
                           key={index}
                           variant="outline"

@@ -16,33 +16,8 @@ import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-
-interface Preacher {
-  id: string
-  name: string
-  bio: string | null
-  profile_image_url: string | null
-  created_at: string
-}
-
-interface Video {
-  id: string
-  title: string
-  description: string | null
-  preacher_id: string | null
-  topic: string | null
-  duration: number | null
-  thumbnail_url: string | null
-  created_at: string
-  sermon_notes: any[] | null
-  scripture_references: any[] | null
-  tags: string[] | null
-  start_time_seconds: number | null
-  end_time_seconds: number | null
-  video_url: string | null
-  hls_variant_urls: any[] | null
-  preachers?: Preacher
-}
+import { Video, Preacher } from "@/lib/types"
+import { getAllUniqueTags, videoHasTag, formatDuration, getPreacherName, getPreacherId, normalizeVideoTags, getPreacherImageUrl } from "@/lib/utils/video-helpers"
 
 interface UserFavorite {
   id: string
@@ -241,17 +216,18 @@ export default function GospelPlatform() {
   }
 
   // Get all unique tags from videos
-  const allTags = Array.from(
-    new Set(videos.flatMap((video) => video.tags || []).filter((tag) => tag && tag.trim() !== "")),
-  ).sort()
+  const allTags = getAllUniqueTags(videos)
 
   const filteredVideos = videos.filter((video) => {
+    const preacherName = getPreacherName(video)
+    const preacherId = getPreacherId(video)
+    
     const matchesSearch =
       video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      video.preachers?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      (preacherName && preacherName.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesTopic = selectedTopic === "all" || video.topic?.toLowerCase() === selectedTopic.toLowerCase()
-    const matchesPreacher = !filteredPreacherId || video.preachers?.id === filteredPreacherId
-    const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => video.tags?.includes(tag))
+    const matchesPreacher = !filteredPreacherId || preacherId === filteredPreacherId
+    const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => videoHasTag(video, tag))
     return matchesSearch && matchesTopic && matchesPreacher && matchesTags
   })
 
@@ -259,17 +235,6 @@ export default function GospelPlatform() {
     preacher.name.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "0:00"
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const remainingSeconds = seconds % 60
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
-    }
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
 
   // Show loading if auth is loading or if we're loading data and don't have any yet
   const isLoading = authLoading || ((videosQuery.isLoading || preachersQuery.isLoading) && !videosQuery.data && !preachersQuery.data)
@@ -424,15 +389,15 @@ export default function GospelPlatform() {
                   video={{
                     id: video.id,
                     title: video.title,
-                    preacher: video.preachers?.name || "Unknown",
+                    preacher: getPreacherName(video) || "Unknown",
                     duration: formatDuration(video.duration),
-                    views: "N/A",
+                    views: `${video.view_count || 0} views`,
                     video_url: video.video_url || "",
-                    topic: video.topic || "General",
+                    topic: video.topic || "",
                     description: video.description || "",
                     sermonNotes: video.sermon_notes || [],
                     scriptureReferences: video.scripture_references || [],
-                    tags: video.tags || [],
+                    tags: normalizeVideoTags(video.tags),
                     thumbnail_url: video.thumbnail_url || "",
                   }}
                   isFavorite={favorites.includes(video.id)}
@@ -454,8 +419,8 @@ export default function GospelPlatform() {
                   name: preacher.name,
                   church: "Ministry",
                   description: preacher.bio || "Gospel preacher and teacher",
-                  videoCount: videos.filter((v) => v.preachers?.id === preacher.id).length,
-                  image: preacher.profile_image_url || "/preacher.jpg",
+                  videoCount: videos.filter((v) => getPreacherId(v) === preacher.id).length,
+                  image: preacher.image_url || preacher.profile_image_url || "/preacher.jpg",
                 }}
                 isFavorite={preacherFavorites.includes(preacher.id)}
                 onViewSermons={() => handleViewPreacherSermons(preacher.id, preacher.name)}
