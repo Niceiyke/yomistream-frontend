@@ -264,6 +264,8 @@ export interface AdRequest {
       country: string
       region: string
       city: string
+      latitude?: number
+      longitude?: number
     }
     preferences?: {
       denominations: string[]

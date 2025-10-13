@@ -17,19 +17,17 @@ import {
   Video,
   Library,
   ChevronLeft,
-  Plus,
-  Users,
-  Shield
+  Plus
 } from "lucide-react"
-import { AdminSidebar } from "@/components/admin/admin-sidebar"
-import { AdminDashboard } from "@/components/admin/admin-dashboard"
-import { AdminContentManager } from "@/components/admin/admin-content-manager"
-import { AdminUserManager } from "@/components/admin/admin-user-manager"
-import { AdminImageGallery } from "@/components/admin/admin-image-gallery"
-import { AdminUploadInterface } from "@/components/admin/admin-upload-interface"
-import { AdminAnalytics } from "@/components/admin/admin-analytics"
+import { StudioSidebar } from "@/components/studio/studio-sidebar"
+import { DashboardOverview } from "@/components/studio/dashboard-overview"
+import { ContentManager } from "@/components/studio/content-manager"
+import { ImageGallery } from "@/components/studio/image-gallery"
+import { ChannelManager } from "@/components/studio/channel-manager"
+import { VideoUploadInterface } from "@/components/studio/video-upload-interface"
+import { AnalyticsDashboard } from "@/components/studio/analytics-dashboard"
 
-export default function AdminPage() {
+export default function StudioPage() {
   const router = useRouter()
   const [activeSection, setActiveSection] = useState("dashboard")
 
@@ -38,9 +36,9 @@ export default function AdminPage() {
     return token ? { Authorization: `Bearer ${token}` } : {}
   }
 
-  // Fetch platform stats
+  // Fetch user's content stats
   const { data: stats } = useQuery({
-    queryKey: ["admin", "stats"],
+    queryKey: ["studio", "stats"],
     queryFn: async () => {
       const headers = await authHeaders()
       return apiGet("/api/admin/stats", { headers })
@@ -50,19 +48,19 @@ export default function AdminPage() {
   const renderActiveSection = () => {
     switch (activeSection) {
       case "dashboard":
-        return <AdminDashboard stats={stats} />
+        return <DashboardOverview stats={stats} />
+      case "channel":
+        return <ChannelManager />
       case "content":
-        return <AdminContentManager />
-      case "users":
-        return <AdminUserManager />
+        return <ContentManager />
       case "images":
-        return <AdminImageGallery />
+        return <ImageGallery />
       case "upload":
-        return <AdminUploadInterface />
+        return <VideoUploadInterface />
       case "analytics":
-        return <AdminAnalytics />
+        return <AnalyticsDashboard />
       default:
-        return <AdminDashboard stats={stats} />
+        return <DashboardOverview stats={stats} />
     }
   }
 
@@ -82,10 +80,7 @@ export default function AdminPage() {
               Back to Platform
             </Button>
             <div className="h-6 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold text-foreground">Admin Portal</h1>
-            </div>
+            <h1 className="text-xl font-semibold text-foreground">YouTube Studio</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -94,7 +89,7 @@ export default function AdminPage() {
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Upload Content
+              Create
             </Button>
           </div>
         </div>
@@ -102,7 +97,7 @@ export default function AdminPage() {
 
       <div className="flex">
         {/* Sidebar */}
-        <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <StudioSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
 
         {/* Main Content */}
         <main className="flex-1 p-6">

@@ -12,21 +12,25 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.01 270);
   
-  /* Primary - Deep Blue (trust, faith, stability) */
-  --primary: oklch(0.45 0.15 250);
+  /* Primary - Sacred Blue (divine wisdom, heavenly peace) */
+  --primary: oklch(0.48 0.18 245);
   --primary-foreground: oklch(0.99 0 0);
-  
-  /* Secondary - Warm Gold (hope, divine light) */
-  --secondary: oklch(0.88 0.08 85);
-  --secondary-foreground: oklch(0.25 0.02 270);
-  
+
+  /* Secondary - Covenant Gold (divine promise, eternal light) */
+  --secondary: oklch(0.82 0.12 75);
+  --secondary-foreground: oklch(0.20 0.02 270);
+
+  /* Tertiary - Grace Purple (spiritual depth, redemption) */
+  --tertiary: oklch(0.50 0.15 295);
+  --tertiary-foreground: oklch(0.98 0 0);
+
+  /* Accent - Mercy Teal (healing, compassion) */
+  --accent: oklch(0.55 0.12 175);
+  --accent-foreground: oklch(0.15 0.01 270);
+
   /* Muted - Soft neutral with slight warmth */
   --muted: oklch(0.96 0.01 90);
   --muted-foreground: oklch(0.5 0.02 270);
-  
-  /* Accent - Lighter blue for highlights */
-  --accent: oklch(0.92 0.05 250);
-  --accent-foreground: oklch(0.25 0.05 250);
   
   /* Destructive - Fixed foreground for readability */
   --destructive: oklch(0.55 0.22 25);
@@ -66,20 +70,20 @@
   --popover: oklch(0.18 0.01 270);
   --popover-foreground: oklch(0.95 0.01 90);
   
-  /* Primary - Brighter blue for dark mode */
-  --primary: oklch(0.65 0.2 250);
+  /* Primary - Sacred Blue (brighter for dark mode) */
+  --primary: oklch(0.65 0.22 245);
   --primary-foreground: oklch(0.15 0.01 270);
   
-  /* Secondary - Warm gold accent */
-  --secondary: oklch(0.35 0.08 85);
+  /* Secondary - Covenant Gold (warmer for dark backgrounds) */
+  --secondary: oklch(0.40 0.12 75);
   --secondary-foreground: oklch(0.95 0.01 90);
-  
-  /* Muted */
-  --muted: oklch(0.25 0.01 270);
-  --muted-foreground: oklch(0.65 0.02 270);
-  
-  /* Accent */
-  --accent: oklch(0.3 0.05 250);
+
+  /* Tertiary - Grace Purple (spiritual depth in dark) */
+  --tertiary: oklch(0.65 0.18 295);
+  --tertiary-foreground: oklch(0.15 0.01 270);
+
+  /* Accent - Mercy Teal (healing compassion in dark) */
+  --accent: oklch(0.65 0.15 175);
   --accent-foreground: oklch(0.85 0.08 250);
   
   /* Destructive - Adjusted for dark mode */
@@ -122,8 +126,8 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);

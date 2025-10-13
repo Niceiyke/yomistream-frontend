@@ -432,11 +432,12 @@ export default function AdminDashboard() {
               Source Selection
             </Button>
             <Button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/studio")}
               variant="outline"
               className="border-border hover:bg-accent"
             >
-              Back to Platform
+              <Sparkles className="h-4 w-4 mr-2" />
+              YouTube Studio
             </Button>
           </div>
         </div>
