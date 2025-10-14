@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient,useQuery } from "@tanstack/react-query"
 import { apiGet, apiPost } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,9 @@ import {
   CheckCircle,
   Loader2,
   Tv,
-  Plus
+  ArrowLeft,
+  FileVideo,
+  Info
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -32,41 +34,34 @@ interface Channel {
   description: string | null
 }
 
-interface VideoUploadData {
+interface BasicVideoData {
   title: string
   description: string
   channel_id: string
-  youtube_id?: string
   topic?: string
-  tags: string[]
-  sermon_notes: string[]
-  scripture_references: string[]
 }
 
 interface UploadedVideo {
   file: File
   preview: string
   id: string
-  status: "uploading" | "completed" | "error"
+  status: "uploading" | "completed" | "error" | "creating_record"
   progress: number
   error?: string
-  uploadData?: VideoUploadData
+  video_id?: string // From transcoding service
+  videoData?: BasicVideoData
 }
 
 export function VideoUploadInterface() {
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [showUploadForm, setShowUploadForm] = useState(false)
+  const [showMetadataForm, setShowMetadataForm] = useState(true) // Start with metadata form
   const [selectedVideo, setSelectedVideo] = useState<UploadedVideo | null>(null)
-  const [uploadForm, setUploadForm] = useState<VideoUploadData>({
+  const [videoData, setVideoData] = useState<BasicVideoData>({
     title: "",
     description: "",
     channel_id: "",
-    youtube_id: "",
     topic: "",
-    tags: [],
-    sermon_notes: [],
-    scripture_references: []
   })
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -76,14 +71,21 @@ export function VideoUploadInterface() {
     return token ? { Authorization: `Bearer ${token}` } : {}
   }
 
-  // Fetch user's channel
-  const { data: channel } = useQuery({
-    queryKey: ["channel", "my"],
+  // Fetch user's channels
+  const { data: channels } = useQuery({
+    queryKey: ["channels", "my"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/channels/my", { headers }) as Promise<Channel>
+      return apiGet("/api/channels/my", { headers }) as Promise<Channel[]>
     }
   })
+
+  // Set default channel when channels are loaded
+  useEffect(() => {
+    if (channels && channels.length > 0 && !videoData.channel_id) {
+      setVideoData(prev => ({ ...prev, channel_id: channels[0].id }))
+    }
+  }, [channels, videoData.channel_id])
 
   // Fetch available topics
   const { data: topics } = useQuery({
@@ -94,7 +96,7 @@ export function VideoUploadInterface() {
     }
   })
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = (acceptedFiles: File[]) => {
     const videoFiles = acceptedFiles.filter(file =>
       file.type.startsWith('video/') || file.name.toLowerCase().includes('.mp4') || file.name.toLowerCase().includes('.mov')
     )
@@ -104,21 +106,25 @@ export function VideoUploadInterface() {
       return
     }
 
-    const newVideos: UploadedVideo[] = videoFiles.map(file => ({
+    if (videoFiles.length > 1) {
+      toast.error("Please upload only one video file at a time")
+      return
+    }
+
+    const file = videoFiles[0]
+    const uploadedVideo: UploadedVideo = {
       file,
       preview: URL.createObjectURL(file),
       id: Math.random().toString(36).substr(2, 9),
       status: "uploading",
       progress: 0,
-    }))
+      videoData: videoData,
+    }
 
-    setUploadedVideos(prev => [...prev, ...newVideos])
-
-    // Start upload for each video
-    newVideos.forEach(uploadedVideo => {
-      startVideoUpload(uploadedVideo.id, uploadedVideo.file)
-    })
-  }, [])
+    setUploadedVideos([uploadedVideo])
+    setSelectedVideo(uploadedVideo)
+    startVideoUpload(uploadedVideo)
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -130,15 +136,15 @@ export function VideoUploadInterface() {
     onDragLeave: () => setIsDragging(false),
   })
 
-  const startVideoUpload = async (videoId: string, file: File) => {
+  const startVideoUpload = async (uploadedVideo: UploadedVideo) => {
     try {
       const token = await getAccessTokenCached()
 
-      // First, upload the video file to get a temporary URL
+      // First, upload the video file to the transcoding service via our backend
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', uploadedVideo.file)
 
-      const uploadResponse = await fetch('/api/admin/upload/video', {
+      const uploadResponse = await fetch('/api/users/studio/upload/video', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -151,21 +157,53 @@ export function VideoUploadInterface() {
       }
 
       const uploadResult = await uploadResponse.json()
+      const videoId = uploadResult.video_id
 
+      // Update status to creating record
       setUploadedVideos(prev =>
         prev.map(v =>
-          v.id === videoId
+          v.id === uploadedVideo.id
+            ? { ...v, status: "creating_record", progress: 75, video_id: videoId }
+            : v
+        )
+      )
+
+      // Now create the database record with the transcoding service video_id
+      const dbData = {
+        title: uploadedVideo.videoData!.title,
+        description: uploadedVideo.videoData!.description,
+        channel_id: uploadedVideo.videoData!.channel_id,
+        topic: uploadedVideo.videoData!.topic,
+        video_url: videoId, // Store the transcoding service video_id
+        tags: [],
+        sermon_notes: [],
+        scripture_references: []
+      }
+
+      const headers = await authHeaders()
+      await apiPost("/api/users/studio/videos", dbData, { headers })
+
+      // Update status to completed
+      setUploadedVideos(prev =>
+        prev.map(v =>
+          v.id === uploadedVideo.id
             ? { ...v, status: "completed", progress: 100 }
             : v
         )
       )
 
-      toast.success("Video uploaded successfully!")
+      // Refresh the videos list
+      queryClient.invalidateQueries({ queryKey: ["videos"] })
+      queryClient.invalidateQueries({ queryKey: ["channel", "stats"] })
+
+      toast.success("Video uploaded and saved successfully!")
+      setShowMetadataForm(true) // Reset to show metadata form again
+
     } catch (error) {
       console.error('Upload error:', error)
       setUploadedVideos(prev =>
         prev.map(v =>
-          v.id === videoId
+          v.id === uploadedVideo.id
             ? { ...v, status: "error", error: "Upload failed", progress: 0 }
             : v
         )
@@ -184,64 +222,30 @@ export function VideoUploadInterface() {
     })
   }
 
-  const openUploadForm = (video: UploadedVideo) => {
-    if (!channel) {
-      toast.error("You need to create a channel first")
-      return
-    }
-
-    setSelectedVideo(video)
-    setUploadForm({
-      title: video.file.name.replace(/\.[^/.]+$/, ""), // Remove extension
-      description: "",
-      channel_id: channel.id,
-      youtube_id: "",
-      topic: "",
-      tags: [],
-      sermon_notes: [],
-      scripture_references: []
-    })
-    setShowUploadForm(true)
-  }
-
-  const publishVideoMutation = useMutation({
-    mutationFn: async (data: VideoUploadData & { video_url: string }) => {
-      const headers = await authHeaders()
-      return apiPost("/api/admin/videos", data, { headers })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["videos"] })
-      queryClient.invalidateQueries({ queryKey: ["channel", "stats"] })
-      toast.success("Video published successfully!")
-      setShowUploadForm(false)
-      setSelectedVideo(null)
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "Failed to publish video")
-    }
-  })
-
-  const handlePublishVideo = () => {
-    if (!selectedVideo) return
-
-    if (!uploadForm.title.trim()) {
+  const handleMetadataSubmit = () => {
+    if (!videoData.title.trim()) {
       toast.error("Video title is required")
       return
     }
 
-    if (!uploadForm.channel_id) {
+    if (!videoData.channel_id) {
       toast.error("Channel selection is required")
       return
     }
 
-    // For now, we'll assume the video is uploaded and use a placeholder URL
-    // In a real implementation, you'd get the actual uploaded video URL
-    const videoData = {
-      ...uploadForm,
-      video_url: `uploaded://${selectedVideo.file.name}` // Placeholder
-    }
+    setShowMetadataForm(false) // Switch to upload view
+  }
 
-    publishVideoMutation.mutate(videoData)
+  const resetUpload = () => {
+    setShowMetadataForm(true)
+    setUploadedVideos([])
+    setSelectedVideo(null)
+    setVideoData({
+      title: "",
+      description: "",
+      channel_id: channels?.[0]?.id || "",
+      topic: "",
+    })
   }
 
   const formatFileSize = (bytes: number) => {
@@ -267,125 +271,16 @@ export function VideoUploadInterface() {
         </div>
       </div>
 
-      {/* Upload Area */}
-      <Card>
-        <CardContent className="p-6">
-          <div
-            {...getRootProps()}
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-              isDragActive || isDragging
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50",
-              "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            )}
-          >
-            <input {...getInputProps()} ref={fileInputRef} />
-            <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              {isDragActive ? "Drop your videos here" : "Upload Christian Videos"}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Drag and drop video files, or click to browse
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Supported formats: MP4, MOV, AVI, MKV, WebM (max 2GB)
-            </p>
-            <Button variant="outline" className="mt-4" onClick={() => fileInputRef.current?.click()}>
-              Browse Files
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Uploaded Videos */}
-      {uploadedVideos.length > 0 && (
+      {showMetadataForm ? (
+        /* Metadata Form */
         <Card>
           <CardHeader>
-            <CardTitle>Uploaded Videos</CardTitle>
-            <CardDescription>
-              {uploadedVideos.filter(v => v.status === "completed").length} of {uploadedVideos.length} videos uploaded
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {uploadedVideos.map((uploadedVideo) => (
-              <div key={uploadedVideo.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
-                <div className="w-20 h-12 rounded overflow-hidden bg-accent flex-shrink-0">
-                  <video
-                    src={uploadedVideo.preview}
-                    className="w-full h-full object-cover"
-                    muted
-                  />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-foreground truncate">
-                      {uploadedVideo.file.name}
-                    </p>
-                    <Badge variant="secondary" className="text-xs">
-                      {formatFileSize(uploadedVideo.file.size)}
-                    </Badge>
-                  </div>
-
-                  {uploadedVideo.status === "uploading" && (
-                    <div className="space-y-2">
-                      <Progress value={uploadedVideo.progress} className="h-2" />
-                      <p className="text-sm text-muted-foreground">
-                        Uploading... {uploadedVideo.progress}%
-                      </p>
-                    </div>
-                  )}
-
-                  {uploadedVideo.status === "completed" && (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <p className="text-sm text-green-600">Upload completed</p>
-                      <Button
-                        size="sm"
-                        onClick={() => openUploadForm(uploadedVideo)}
-                        className="ml-auto"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Details & Publish
-                      </Button>
-                    </div>
-                  )}
-
-                  {uploadedVideo.status === "error" && (
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      <p className="text-sm text-red-600">
-                        {uploadedVideo.error || "Upload failed"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeVideo(uploadedVideo.id)}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Video Details Form Modal */}
-      {showUploadForm && selectedVideo && (
-        <Card className="border-primary/20">
-          <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Video className="h-5 w-5" />
-              Video Details
+              <Info className="h-5 w-5" />
+              Video Information
             </CardTitle>
             <CardDescription>
-              Add details to publish your video to your channel
+              Provide basic information about your video before uploading
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -394,18 +289,40 @@ export function VideoUploadInterface() {
                 <Label htmlFor="title">Title *</Label>
                 <Input
                   id="title"
-                  value={uploadForm.title}
-                  onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                  value={videoData.title}
+                  onChange={(e) => setVideoData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Enter video title"
+                  required
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="channel">Channel *</Label>
-                <div className="flex items-center gap-2 p-2 border border-border rounded-md bg-muted/50">
-                  <Tv className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{channel?.name || "No channel"}</span>
-                </div>
+                {channels && channels.length > 1 ? (
+                  <Select
+                    value={videoData.channel_id}
+                    onValueChange={(value) => setVideoData(prev => ({ ...prev, channel_id: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {channels.map((ch) => (
+                        <SelectItem key={ch.id} value={ch.id}>
+                          <div className="flex items-center gap-2">
+                            <Tv className="h-3 w-3" />
+                            {ch.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center gap-2 p-2 border border-border rounded-md bg-muted/50">
+                    <Tv className="h-4 w-4 text-primary" />
+                    <span className="text-sm">{channels?.[0]?.name || "No channel available"}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -413,8 +330,8 @@ export function VideoUploadInterface() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={uploadForm.description}
-                onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
+                value={videoData.description}
+                onChange={(e) => setVideoData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe your video..."
                 rows={3}
               />
@@ -422,10 +339,10 @@ export function VideoUploadInterface() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="topic">Topic</Label>
+                <Label htmlFor="topic">Topic (optional)</Label>
                 <Select
-                  value={uploadForm.topic}
-                  onValueChange={(value) => setUploadForm(prev => ({ ...prev, topic: value }))}
+                  value={videoData.topic}
+                  onValueChange={(value) => setVideoData(prev => ({ ...prev, topic: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a topic" />
@@ -439,53 +356,176 @@ export function VideoUploadInterface() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="youtube_id">YouTube ID (optional)</Label>
-                <Input
-                  id="youtube_id"
-                  value={uploadForm.youtube_id}
-                  onChange={(e) => setUploadForm(prev => ({ ...prev, youtube_id: e.target.value }))}
-                  placeholder="e.g., dQw4w9WgXcQ"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
-              <Input
-                id="tags"
-                value={uploadForm.tags.join(', ')}
-                onChange={(e) => setUploadForm(prev => ({
-                  ...prev,
-                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
-                }))}
-                placeholder="christian, sermon, worship (comma-separated)"
-              />
             </div>
 
             <div className="flex gap-2 pt-4">
               <Button
-                onClick={handlePublishVideo}
-                disabled={publishVideoMutation.isPending}
+                onClick={handleMetadataSubmit}
                 className="flex-1"
               >
-                {publishVideoMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Video className="h-4 w-4 mr-2" />
-                )}
-                Publish Video
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowUploadForm(false)}
-              >
-                Cancel
+                <Video className="h-4 w-4 mr-2" />
+                Continue to Upload
               </Button>
             </div>
           </CardContent>
         </Card>
+      ) : (
+        /* Upload Interface */
+        <>
+          {/* Upload Area */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileVideo className="h-5 w-5" />
+                    Upload Video File
+                  </CardTitle>
+                  <CardDescription>
+                    Upload your video file for "{videoData.title}"
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMetadataForm(true)}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Edit Info
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div
+                {...getRootProps()}
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                  isDragActive || isDragging
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50",
+                  "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                )}
+              >
+                <input {...getInputProps()} ref={fileInputRef} />
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  {isDragActive ? "Drop your video here" : "Upload Video File"}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Drag and drop or click to browse
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: MP4, MOV, AVI, MKV, WebM (max 2GB)
+                </p>
+                <Button variant="outline" className="mt-4" onClick={() => fileInputRef.current?.click()}>
+                  Browse Files
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Uploaded Videos */}
+          {uploadedVideos.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload Progress</CardTitle>
+                <CardDescription>
+                  Processing your video upload
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {uploadedVideos.map((uploadedVideo) => (
+                  <div key={uploadedVideo.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
+                    <div className="w-20 h-12 rounded overflow-hidden bg-accent flex-shrink-0">
+                      <video
+                        src={uploadedVideo.preview}
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-foreground truncate">
+                          {uploadedVideo.file.name}
+                        </p>
+                        <Badge variant="secondary" className="text-xs">
+                          {formatFileSize(uploadedVideo.file.size)}
+                        </Badge>
+                      </div>
+
+                      {uploadedVideo.status === "uploading" && (
+                        <div className="space-y-2">
+                          <Progress value={uploadedVideo.progress} className="h-2" />
+                          <p className="text-sm text-muted-foreground">
+                            Uploading to transcoding service... {uploadedVideo.progress}%
+                          </p>
+                        </div>
+                      )}
+
+                      {uploadedVideo.status === "creating_record" && (
+                        <div className="space-y-2">
+                          <Progress value={uploadedVideo.progress} className="h-2" />
+                          <p className="text-sm text-muted-foreground">
+                            Creating database record... {uploadedVideo.progress}%
+                          </p>
+                        </div>
+                      )}
+
+                      {uploadedVideo.status === "completed" && (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <p className="text-sm text-green-600">Upload completed successfully!</p>
+                        </div>
+                      )}
+
+                      {uploadedVideo.status === "error" && (
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <p className="text-sm text-red-600">
+                            {uploadedVideo.error || "Upload failed"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeVideo(uploadedVideo.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Success Actions */}
+          {uploadedVideos.some(v => v.status === "completed") && (
+            <Card className="border-green-200 bg-green-50/50">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <h3 className="text-lg font-semibold text-green-800">Upload Successful!</h3>
+                </div>
+                <p className="text-sm text-green-700 mb-4">
+                  Your video has been uploaded and saved to your channel. The transcoding process will begin automatically.
+                </p>
+                <div className="flex gap-2">
+                  <Button onClick={resetUpload} variant="outline">
+                    Upload Another Video
+                  </Button>
+                  <Button onClick={() => window.location.reload()}>
+                    View in Content Manager
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   )

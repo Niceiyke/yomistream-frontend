@@ -41,7 +41,7 @@ export default function StudioPage() {
     queryKey: ["studio", "stats"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/admin/stats", { headers })
+      return apiGet("/api/users/studio/stats", { headers })
     },
   })
 
@@ -52,7 +52,7 @@ export default function StudioPage() {
       case "channel":
         return <ChannelManager />
       case "content":
-        return <ContentManager />
+        return <ContentManager onCreateVideo={() => setActiveSection("upload")} />
       case "images":
         return <ImageGallery />
       case "upload":

@@ -17,9 +17,11 @@ import { cn } from "@/lib/utils"
 interface DashboardOverviewProps {
   stats?: {
     totalVideos: number
-    totalPreachers: number
-    totalUsers: number
-    totalCollections: number
+    totalViews: number
+    totalLikes: number
+    totalComments: number
+    recentUploads: number
+    channelSubscribers: number
   }
 }
 
@@ -40,22 +42,22 @@ export function DashboardOverview({ stats }: DashboardOverviewProps) {
       bgColor: "bg-blue-500/10"
     },
     {
-      label: "Images Uploaded",
-      value: 42, // Mock data
-      icon: ImageIcon,
+      label: "Total Views",
+      value: stats?.totalViews || 0,
+      icon: Eye,
       color: "text-green-500",
       bgColor: "bg-green-500/10"
     },
     {
-      label: "Total Views",
-      value: "12.5K", // Mock data
-      icon: Eye,
+      label: "Channel Subscribers",
+      value: stats?.channelSubscribers || 0,
+      icon: Users,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10"
     },
     {
-      label: "This Month",
-      value: "+8", // Mock data
+      label: "Recent Uploads",
+      value: stats?.recentUploads || 0,
       icon: TrendingUp,
       color: "text-orange-500",
       bgColor: "bg-orange-500/10"

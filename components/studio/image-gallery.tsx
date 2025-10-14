@@ -98,7 +98,7 @@ export function ImageGallery() {
       if (searchQuery) params.set("search", searchQuery)
       params.set("page_size", "50") // Load more images
 
-      const path = `/api/admin/images${params.toString() ? `?${params.toString()}` : ""}`
+      const path = `/api/users/studio/images${params.toString() ? `?${params.toString()}` : ""}`
       const headers = await authHeaders()
       return apiGet(path, { headers })
     },
