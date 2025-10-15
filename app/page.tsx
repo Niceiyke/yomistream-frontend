@@ -52,13 +52,13 @@ export default function GospelPlatform() {
   // React Query: videos & preachers
   const videosQuery = useQuery({
     queryKey: ["videos"],
-    queryFn: () => apiGetCached("/api/data/videos"),
+    queryFn: () => apiGetCached("/api/public/videos"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
   const preachersQuery = useQuery({
     queryKey: ["preachers"],
-    queryFn: () => apiGetCached("/api/data/preachers"),
+    queryFn: () => apiGetCached("/api/public/preachers"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
