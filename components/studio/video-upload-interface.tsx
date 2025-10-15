@@ -152,7 +152,7 @@ export function VideoUploadInterface() {
       const formData = new FormData()
       formData.append('file', uploadedVideo.file)
 
-      const uploadResponse = await fetch(`${API_BASE_URL}/api/users/studio/upload/video`, {
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/users/studio/videos/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
