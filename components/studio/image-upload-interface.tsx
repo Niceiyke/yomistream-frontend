@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { getAccessTokenCached } from "@/lib/auth-cache"
+import { API_BASE_URL } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -75,7 +76,7 @@ export function UploadInterface({ onUploadComplete }: UploadInterfaceProps) {
       formData.append('tags', 'uploaded')
       formData.append('description', '')
 
-      const response = await fetch('/api/admin/images/upload', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/images/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

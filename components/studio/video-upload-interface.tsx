@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
 import { useMutation, useQueryClient,useQuery } from "@tanstack/react-query"
-import { apiGet, apiPost } from "@/lib/api"
+import { API_BASE_URL, apiGet, apiPost } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -152,7 +152,7 @@ export function VideoUploadInterface() {
       const formData = new FormData()
       formData.append('file', uploadedVideo.file)
 
-      const uploadResponse = await fetch('/api/users/studio/upload/video', {
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/users/studio/upload/video`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
