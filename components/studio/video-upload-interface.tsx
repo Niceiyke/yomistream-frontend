@@ -151,6 +151,14 @@ export function VideoUploadInterface() {
       // First, upload the video file to the transcoding service via our backend
       const formData = new FormData()
       formData.append('file', uploadedVideo.file)
+      formData.append('title', uploadedVideo.videoData!.title)
+      formData.append('description', uploadedVideo.videoData!.description || '')
+      formData.append('channel_id', uploadedVideo.videoData!.channel_id)
+      if (uploadedVideo.videoData!.topic) {
+        formData.append('topic', uploadedVideo.videoData!.topic)
+      }
+      // Tags can be empty for now
+      formData.append('tags', '')
 
       const uploadResponse = await fetch(`${API_BASE_URL}/api/users/studio/videos/upload`, {
         method: 'POST',
@@ -176,20 +184,8 @@ export function VideoUploadInterface() {
         )
       )
 
-      // Now create the database record with the transcoding service video_id
-      const dbData = {
-        title: uploadedVideo.videoData!.title,
-        description: uploadedVideo.videoData!.description,
-        channel_id: uploadedVideo.videoData!.channel_id,
-        topic: uploadedVideo.videoData!.topic,
-        video_url: videoId, // Store the transcoding service video_id
-        tags: [],
-        sermon_notes: [],
-        scripture_references: []
-      }
-
-      const headers = await authHeaders()
-      await apiPost("/api/users/studio/videos", dbData, { headers })
+      // Video record is already created by the upload endpoint
+      // No need to make another API call
 
       // Update status to completed
       setUploadedVideos(prev =>
