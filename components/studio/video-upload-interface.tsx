@@ -45,7 +45,7 @@ interface UploadedVideo {
   file: File
   preview: string
   id: string
-  status: "uploading" | "completed" | "error" | "creating_record"
+  status: "selected" | "uploading" | "completed" | "error" | "creating_record"
   progress: number
   error?: string
   video_id?: string // From transcoding service
@@ -112,18 +112,26 @@ export function VideoUploadInterface() {
     }
 
     const file = videoFiles[0]
+
+    // Check file size (10GB limit)
+    const maxSize = 10 * 1024 * 1024 * 1024 // 10GB
+    if (file.size > maxSize) {
+      toast.error("File too large. Maximum size: 10GB")
+      return
+    }
+
     const uploadedVideo: UploadedVideo = {
       file,
       preview: URL.createObjectURL(file),
       id: Math.random().toString(36).substr(2, 9),
-      status: "uploading",
+      status: "selected",
       progress: 0,
       videoData: videoData,
     }
 
     setUploadedVideos([uploadedVideo])
     setSelectedVideo(uploadedVideo)
-    startVideoUpload(uploadedVideo)
+    // Removed automatic startVideoUpload call
   }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -210,6 +218,13 @@ export function VideoUploadInterface() {
       )
       toast.error("Video upload failed")
     }
+  }
+
+  const handleUploadClick = () => {
+    if (uploadedVideos.length === 0 || uploadedVideos[0].status !== "selected") {
+      return
+    }
+    startVideoUpload(uploadedVideos[0])
   }
 
   const removeVideo = (videoId: string) => {
@@ -415,7 +430,9 @@ export function VideoUploadInterface() {
                   Drag and drop or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Supported formats: MP4, MOV, AVI, MKV, WebM (max 2GB)
+                  Supported formats: MP4, MOV, AVI, MKV, WebM (max 10GB)
+                  <br />
+                  <span className="text-amber-600">Large files may take several minutes to upload</span>
                 </p>
                 <Button variant="outline" className="mt-4" onClick={() => fileInputRef.current?.click()}>
                   Browse Files
@@ -453,6 +470,21 @@ export function VideoUploadInterface() {
                           {formatFileSize(uploadedVideo.file.size)}
                         </Badge>
                       </div>
+
+                      {uploadedVideo.status === "selected" && (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            File ready for upload
+                          </p>
+                          <Button
+                            onClick={handleUploadClick}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Start Upload
+                          </Button>
+                        </div>
+                      )}
 
                       {uploadedVideo.status === "uploading" && (
                         <div className="space-y-2">
