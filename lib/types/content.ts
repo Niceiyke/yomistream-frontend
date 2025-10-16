@@ -268,7 +268,7 @@ export interface Collection {
 export interface SourceVideo {
   id: string
   source_video_id: string // e.g., YouTube video ID
-  channel_id: string | null
+  youtube_channel_id: string | null
   channel_name: string | null
   title: string
   description: string | null
@@ -379,7 +379,7 @@ export interface PreacherUpdateRequest {
 export interface SourceVideoCreateRequest {
   source_video_id: string
   title: string
-  channel_id?: string | null
+  youtube_channel_id?: string | null
   channel_name?: string | null
   description?: string | null
   youtube_url: string
