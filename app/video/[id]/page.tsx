@@ -191,7 +191,7 @@ export default function VideoDetailPage() {
                 {video.hls_master_url ? (
                   <EnhancedVideoPlayer
                     videoId={video.id}
-                    videoUrl="https://video.wordlyte.com/videos/292c6e47-b5ed-4975-b0cd-967eab4cae58/hls/master.m3u8"
+                    videoUrl={video.hls_master_url}
                     hlsVariants={video.hls_variant_urls || []}
                     poster={video.thumbnail_url || undefined}
                     autoPlay={true}
