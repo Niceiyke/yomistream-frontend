@@ -43,7 +43,7 @@ export default function VideoDetailPage() {
   // Fetch video details
   const videoQuery = useQuery({
     queryKey: ["video", videoId],
-    queryFn: () => apiGet(`/api/data/videos/${videoId}`),
+    queryFn: () => apiGet(`/api/public/videos/${videoId}`),
     enabled: !!videoId,
   })
 
@@ -188,10 +188,10 @@ export default function VideoDetailPage() {
             <div className="xl:col-span-3 space-y-8 min-w-0 overflow-hidden">
               {/* Video Player Section */}
               <div className="aspect-video bg-muted rounded-lg overflow-hidden shadow-lg relative">
-                {video.video_url ? (
+                {video.hls_master_url ? (
                   <EnhancedVideoPlayer
                     videoId={video.id}
-                    videoUrl={video.video_url}
+                    videoUrl="https://video.wordlyte.com/videos/292c6e47-b5ed-4975-b0cd-967eab4cae58/hls/master.m3u8"
                     hlsVariants={video.hls_variant_urls || []}
                     poster={video.thumbnail_url || undefined}
                     autoPlay={true}

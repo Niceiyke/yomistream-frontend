@@ -70,7 +70,7 @@ export const FixedVideoCard = memo(function FixedVideoCard({
     try {
       await queryClient.prefetchQuery({
         queryKey: ["video", video.id],
-        queryFn: () => apiGet(`/api/data/videos/${video.id}`),
+        queryFn: () => apiGet(`/api/public/videos/${video.id}`),
         staleTime: 60_000,
       })
     } catch (error) {
