@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { AppHeader } from "@/components/app-header"
-import { apiGet, apiPost, API_BASE_URL } from "@/lib/api"
+import { apiGet, apiPost, API_BASE_URL, BACKEND_VM } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter, useParams } from "next/navigation"
 import { SourceVideo } from "@/lib/types/content"
@@ -49,7 +49,7 @@ export default function SourceVideoDetailPage() {
         source_video_id: videoId,
         start_time: data.start_time,
         end_time: data.end_time,
-        webhook_url: API_BASE_URL ? `${API_BASE_URL}/api/v1/webhooks/trimming` : "/api/v1/webhooks/trimming", // Use backend URL for webhooks
+        webhook_url: `${BACKEND_VM}/api/v1/webhooks/trimming`, // Use BACKEND_VM for webhooks
       })
       return response
     },

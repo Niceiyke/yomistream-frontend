@@ -1,5 +1,6 @@
 // lib/api.ts
 const rawBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8002";
+const rawBackendVM = process.env.NEXT_PUBLIC_BACKEND_VM;
 
 // Normalize API base so we don't accidentally concatenate malformed hosts.
 // - If the value is a full URL (starts with http/https), strip trailing slash.
@@ -19,6 +20,7 @@ function normalizeBase(base: string) {
 }
 
 export const API_BASE_URL = normalizeBase(rawBase);
+export const BACKEND_VM = rawBackendVM ? normalizeBase(rawBackendVM) : API_BASE_URL;
 
 // Simple in-memory cache for GET requests. Resets on page reload.
 const getCache = new Map<string, { data: any; expiresAt: number }>();
