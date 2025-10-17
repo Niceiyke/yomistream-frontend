@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import {
   Home,
   Video,
@@ -9,7 +10,8 @@ import {
   Upload,
   BarChart3,
   Users,
-  ChevronRight
+  ChevronRight,
+  ExternalLink
 } from "lucide-react"
 
 interface AdminSidebarProps {
@@ -121,6 +123,17 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
           >
             <ImageIcon className="h-4 w-4 mr-2" />
             Add Image
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            asChild
+          >
+            <Link href="/source-videos">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Browse Source Videos
+            </Link>
           </Button>
         </div>
       </div>

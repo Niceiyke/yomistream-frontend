@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
+import { getAccessTokenCached } from "@/lib/auth-cache"
 
 export default function SourceVideoDetailPage() {
   const [video, setVideo] = useState<SourceVideo | null>(null)
@@ -34,10 +35,18 @@ export default function SourceVideoDetailPage() {
   const videoId = params.id as string
   const queryClient = useQueryClient()
 
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const token = await getAccessTokenCached()
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
   // Fetch video details
   const videoQuery = useQuery({
     queryKey: ["source-video", videoId],
-    queryFn: () => apiGet(`/api/public/source-videos/${videoId}`),
+    queryFn: async () => {
+      const headers = await authHeaders()
+      return apiGet(`/api/admin/source-videos/${videoId}`, { headers })
+    },
     enabled: !!videoId,
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
@@ -45,12 +54,13 @@ export default function SourceVideoDetailPage() {
   // Mutation for video trimming
   const trimVideoMutation = useMutation({
     mutationFn: async (data: { start_time: number; end_time: number }) => {
+      const headers = await authHeaders()
       const response = await apiPost("/api/v1/source-videos/trim", {
         source_video_id: videoId,
         start_time: data.start_time,
         end_time: data.end_time,
         webhook_url: `${BACKEND_VM}/api/v1/webhooks/trimming`, // Use BACKEND_VM for webhooks
-      })
+      }, { headers })
       return response
     },
     onSuccess: (data) => {
@@ -68,7 +78,8 @@ export default function SourceVideoDetailPage() {
   // Poll for trim status
   const pollTrimStatus = async (jobId: string) => {
     try {
-      const status = await apiGet(`/api/v1/source-videos/trim/status/${jobId}`)
+      const headers = await authHeaders()
+      const status = await apiGet(`/api/v1/source-videos/trim/status/${jobId}`, { headers })
       setTrimStatus(status.status)
       setTrimProgress(status.progress || 0)
 
@@ -93,7 +104,8 @@ export default function SourceVideoDetailPage() {
   // Poll for transcoding status when video is created
   const pollTranscodingStatus = async (videoId: string) => {
     try {
-      const status = await apiGet(`/api/public/videos/${videoId}`)
+      const headers = await authHeaders()
+      const status = await apiGet(`/api/public/videos/${videoId}`, { headers })
       if (status.status === "published") {
         // Transcoding completed, redirect to video page
         setTrimStatus("ready")
@@ -251,11 +263,11 @@ export default function SourceVideoDetailPage() {
               <div className="text-destructive text-xl mb-4">Video Not Found</div>
               <p className="text-muted-foreground mb-6">{error || "The requested video could not be found."}</p>
               <Button
-                onClick={() => router.push('/source-videos')}
+                onClick={() => router.push('/admin')}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Source Videos
+                Back to Admin
               </Button>
             </div>
           </div>
@@ -271,8 +283,8 @@ export default function SourceVideoDetailPage() {
       <AppHeader
         onSignOut={handleSignOut}
         backButton={{
-          label: "Source Videos",
-          href: "/source-videos",
+          label: "Back to Admin",
+          href: "/admin",
           scroll: false
         }}
       />
@@ -283,11 +295,11 @@ export default function SourceVideoDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <Button
               variant="outline"
-              onClick={() => router.push('/source-videos')}
+              onClick={() => router.push('/admin')}
               className="hover:bg-secondary/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Videos
+              Back to Admin
             </Button>
 
             <div className="flex items-center gap-2">

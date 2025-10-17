@@ -13,6 +13,8 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { SourceVideo } from "@/lib/types/content"
 import { useQuery } from "@tanstack/react-query"
+import { SourceVideoFilters } from '@/components/source-video-filters'
+import { getAccessTokenCached } from "@/lib/auth-cache"
 
 interface SourceVideoListResponse {
   items: SourceVideo[]
@@ -23,35 +25,86 @@ interface SourceVideoListResponse {
 }
 
 export default function SourceVideosPage() {
+  // Search and basic filters
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedLanguage, setSelectedLanguage] = useState("all")
-  const [selectedChannel, setSelectedChannel] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [videos, setVideos] = useState<SourceVideo[]>([])
   const [total, setTotal] = useState(0)
   const [hasNext, setHasNext] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Advanced filters
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  })
+  const [selectedDuration, setSelectedDuration] = useState("all")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedChannel, setSelectedChannel] = useState("all")
+  const [sortBy, setSortBy] = useState("relevance")
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+  // Available options
+  const [availableTags, setAvailableTags] = useState<string[]>([])
+  const [availableChannels, setAvailableChannels] = useState<{ id: string; name: string }[]>([])
+
   const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
   const scrollPositionRef = useRef<number>(0)
 
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const token = await getAccessTokenCached()
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
   // React Query: source videos with pagination and filters
   const sourceVideosQuery = useQuery({
-    queryKey: ["source-videos", currentPage, searchQuery, selectedLanguage, selectedChannel],
-    queryFn: () => {
+    queryKey: ["source-videos", currentPage, searchQuery, selectedLanguage, dateRange, selectedDuration, selectedTags, selectedChannel, sortBy],
+    queryFn: async () => {
       // Build query parameters
       const params = new URLSearchParams({
         page: currentPage.toString(),
         page_size: '20',
+        sort_by: sortBy,
       })
 
       if (searchQuery) params.append('search', searchQuery)
       if (selectedLanguage !== "all") params.append('language', selectedLanguage)
-      if (selectedChannel) params.append('youtube_channel_id', selectedChannel)
+      if (selectedChannel !== "all") params.append('youtube_channel_id', selectedChannel)
 
-      const url = `/api/public/source-videos?${params.toString()}`
-      return apiGet(url)
+      // Date range filters
+      if (dateRange.from) params.append('published_after', dateRange.from.toISOString().split('T')[0])
+      if (dateRange.to) params.append('published_before', dateRange.to.toISOString().split('T')[0])
+
+      // Duration filters
+      if (selectedDuration !== "all") {
+        switch (selectedDuration) {
+          case "short":
+            params.append('max_duration', '300') // 5 minutes
+            break
+          case "medium":
+            params.append('min_duration', '300') // 5 minutes
+            params.append('max_duration', '1200') // 20 minutes
+            break
+          case "long":
+            params.append('min_duration', '1200') // 20 minutes
+            params.append('max_duration', '3600') // 60 minutes
+            break
+          case "very_long":
+            params.append('min_duration', '3600') // 60 minutes
+            break
+        }
+      }
+
+      // Tags filter
+      if (selectedTags.length > 0) {
+        params.append('tags', selectedTags.join(','))
+      }
+
+      const url = `/api/admin/source-videos?${params.toString()}`
+      const headers = await authHeaders()
+      return apiGet(url, { headers })
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -98,7 +151,7 @@ export default function SourceVideosPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedLanguage, selectedChannel])
+  }, [searchQuery, selectedLanguage, dateRange, selectedDuration, selectedTags, selectedChannel])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,6 +164,61 @@ export default function SourceVideosPage() {
       setCurrentPage(prev => prev + 1)
     }
   }
+
+  const handleClearAllFilters = () => {
+    setSearchQuery("")
+    setSelectedLanguage("all")
+    setDateRange({ from: undefined, to: undefined })
+    setSelectedDuration("all")
+    setSelectedTags([])
+    setSelectedChannel("all")
+    setSortBy("relevance")
+    setCurrentPage(1)
+  }
+
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode)
+    localStorage.setItem('sourceVideosViewMode', mode)
+  }
+
+  // Load view mode from localStorage
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('sourceVideosViewMode') as 'grid' | 'list'
+    if (savedViewMode) {
+      setViewMode(savedViewMode)
+    }
+  }, [])
+
+  // Fetch available tags and channels
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const headers = await authHeaders()
+        // Fetch available tags
+        const tagsResponse = await apiGet('/api/admin/source-videos/tags', { headers })
+        if (tagsResponse?.tags) {
+          setAvailableTags(tagsResponse.tags)
+        }
+
+        // Fetch available channels
+        const channelsResponse = await apiGet('/api/admin/source-videos/channels', { headers })
+        if (channelsResponse?.channels) {
+          const filteredChannels = channelsResponse.channels
+            .filter((ch: any) => ch.youtube_channel_id && ch.youtube_channel_id.trim() !== '')
+            .map((ch: any) => ({
+              id: ch.youtube_channel_id,
+              name: ch.channel_name || ch.youtube_channel_id
+            }))
+          
+          setAvailableChannels(filteredChannels)
+        }
+      } catch (error) {
+        console.warn('Failed to fetch filter options:', error)
+      }
+    }
+
+    fetchFilterOptions()
+  }, [])
 
   // Show loading if auth is loading or if we're loading data and don't have any yet
   const isLoading = authLoading || (sourceVideosQuery.isLoading && videos.length === 0)
@@ -149,6 +257,11 @@ export default function SourceVideosPage() {
         favorites={[]}
         onSignOut={handleSignOut}
         showActions={false}
+        backButton={{
+          label: "Back to Admin",
+          href: "/admin",
+          scroll: false
+        }}
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -164,76 +277,28 @@ export default function SourceVideosPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
-          <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search videos, channels, or topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-input border-border placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-              <SelectTrigger className="w-full md:w-48 bg-input border-border">
-                <Globe className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Languages</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="es">Spanish</SelectItem>
-                <SelectItem value="fr">French</SelectItem>
-                <SelectItem value="de">German</SelectItem>
-                <SelectItem value="pt">Portuguese</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              type="submit"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={sourceVideosQuery.isLoading}
-            >
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </Button>
-          </form>
-
-          {/* Active Filters */}
-          {(searchQuery || selectedLanguage !== "all" || selectedChannel) && (
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-
-              {searchQuery && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Search className="w-3 h-3" />
-                  "{searchQuery}"
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-4 h-4 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-
-              {selectedLanguage !== "all" && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Globe className="w-3 h-3" />
-                  {selectedLanguage.toUpperCase()}
-                  <button
-                    onClick={() => setSelectedLanguage("all")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-4 h-4 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-            </div>
-          )}
-        </div>
+        <SourceVideoFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          selectedDuration={selectedDuration}
+          onDurationChange={setSelectedDuration}
+          availableTags={availableTags}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          availableChannels={availableChannels}
+          selectedChannel={selectedChannel}
+          onChannelChange={setSelectedChannel}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          isLoading={sourceVideosQuery.isLoading}
+          onClearAll={handleClearAllFilters}
+        />
 
         {/* Results Count */}
         <div className="mb-6">
@@ -249,10 +314,14 @@ export default function SourceVideosPage() {
           </p>
         </div>
 
-        {/* Videos Grid */}
+        {/* Videos Grid/List */}
         {videos.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className={
+              viewMode === 'grid'
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
+                : "space-y-4 mb-8"
+            }>
               {videos.map((video) => (
                 <SourceVideoCard
                   key={video.id}
@@ -296,7 +365,10 @@ export default function SourceVideosPage() {
               onClick={() => {
                 setSearchQuery("")
                 setSelectedLanguage("all")
-                setSelectedChannel("")
+                setDateRange({ from: undefined, to: undefined })
+                setSelectedDuration("all")
+                setSelectedTags([])
+                setSelectedChannel("all")
                 setCurrentPage(1)
               }}
               variant="outline"
