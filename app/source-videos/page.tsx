@@ -44,6 +44,7 @@ export default function SourceVideosPage() {
   const [selectedChannel, setSelectedChannel] = useState("all")
   const [sortBy, setSortBy] = useState("relevance")
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [excludeTrimmed, setExcludeTrimmed] = useState(false)
 
   // Available options
   const [availableTags, setAvailableTags] = useState<string[]>([])
@@ -60,7 +61,7 @@ export default function SourceVideosPage() {
 
   // React Query: source videos with pagination and filters
   const sourceVideosQuery = useQuery({
-    queryKey: ["source-videos", currentPage, searchQuery, selectedLanguage, dateRange, selectedDuration, selectedTags, selectedChannel, sortBy],
+    queryKey: ["source-videos", currentPage, searchQuery, selectedLanguage, dateRange, selectedDuration, selectedTags, selectedChannel, sortBy, excludeTrimmed],
     queryFn: async () => {
       // Build query parameters
       const params = new URLSearchParams({
@@ -102,6 +103,11 @@ export default function SourceVideosPage() {
         params.append('tags', selectedTags.join(','))
       }
 
+      // Exclude trimmed videos filter
+      if (excludeTrimmed) {
+        params.append('exclude_trimmed', 'true')
+      }
+
       const url = `/api/admin/source-videos?${params.toString()}`
       const headers = await authHeaders()
       return apiGet(url, { headers })
@@ -122,10 +128,25 @@ export default function SourceVideosPage() {
     }
   }, [sourceVideosQuery.data, sourceVideosQuery.isError])
 
-  // Save scroll position before navigating away
+  // Save scroll position and filter state before navigating away
   const handleVideoClick = (video: SourceVideo) => {
     const currentScroll = window.scrollY
     sessionStorage.setItem('sourceVideosScrollPosition', currentScroll.toString())
+
+    // Save all filter state to sessionStorage
+    const filterState = {
+      searchQuery,
+      selectedLanguage,
+      dateRange,
+      selectedDuration,
+      selectedTags,
+      selectedChannel,
+      sortBy,
+      currentPage,
+      viewMode,
+      excludeTrimmed
+    }
+    sessionStorage.setItem('sourceVideosFilters', JSON.stringify(filterState))
 
     // Navigate to detail page
     router.push(`/source-videos/${video.id}`)
@@ -143,6 +164,43 @@ export default function SourceVideosPage() {
     }
   }, [])
 
+  // Load saved filter state when returning to page
+  useEffect(() => {
+    const savedFilters = sessionStorage.getItem('sourceVideosFilters')
+    if (savedFilters) {
+      try {
+        const filterState = JSON.parse(savedFilters)
+
+        // Restore filter state
+        setSearchQuery(filterState.searchQuery || "")
+        setSelectedLanguage(filterState.selectedLanguage || "all")
+
+        // Handle date range - convert ISO strings back to Date objects
+        if (filterState.dateRange) {
+          setDateRange({
+            from: filterState.dateRange.from ? new Date(filterState.dateRange.from) : undefined,
+            to: filterState.dateRange.to ? new Date(filterState.dateRange.to) : undefined
+          })
+        }
+
+        setSelectedDuration(filterState.selectedDuration || "all")
+        setSelectedTags(filterState.selectedTags || [])
+        setSelectedChannel(filterState.selectedChannel || "all")
+        setSortBy(filterState.sortBy || "relevance")
+        setCurrentPage(filterState.currentPage || 1)
+        setViewMode(filterState.viewMode || 'grid')
+        setExcludeTrimmed(filterState.excludeTrimmed || false)
+
+        // Clear the saved filters from sessionStorage
+        sessionStorage.removeItem('sourceVideosFilters')
+      } catch (error) {
+        console.warn('Failed to parse saved filter state:', error)
+        // Clear corrupted data
+        sessionStorage.removeItem('sourceVideosFilters')
+      }
+    }
+  }, [])
+
   const handleSignOut = async () => {
     await signOut()
     router.refresh()
@@ -151,7 +209,7 @@ export default function SourceVideosPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedLanguage, dateRange, selectedDuration, selectedTags, selectedChannel])
+  }, [searchQuery, selectedLanguage, dateRange, selectedDuration, selectedTags, selectedChannel, excludeTrimmed])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -174,6 +232,7 @@ export default function SourceVideosPage() {
     setSelectedChannel("all")
     setSortBy("relevance")
     setCurrentPage(1)
+    setExcludeTrimmed(false)
   }
 
   const handleViewModeChange = (mode: 'grid' | 'list') => {
@@ -296,6 +355,8 @@ export default function SourceVideosPage() {
           onSortChange={setSortBy}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          excludeTrimmed={excludeTrimmed}
+          onExcludeTrimmedChange={setExcludeTrimmed}
           isLoading={sourceVideosQuery.isLoading}
           onClearAll={handleClearAllFilters}
         />
@@ -370,6 +431,7 @@ export default function SourceVideosPage() {
                 setSelectedTags([])
                 setSelectedChannel("all")
                 setCurrentPage(1)
+                setExcludeTrimmed(false)
               }}
               variant="outline"
             >

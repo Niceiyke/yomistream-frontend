@@ -52,6 +52,10 @@ interface SourceVideoFiltersProps {
   viewMode: 'grid' | 'list'
   onViewModeChange: (mode: 'grid' | 'list') => void
 
+  // Exclude Trimmed
+  excludeTrimmed: boolean
+  onExcludeTrimmedChange: (value: boolean) => void
+
   // Loading
   isLoading: boolean
 
@@ -78,6 +82,8 @@ export function SourceVideoFilters({
   onSortChange,
   viewMode,
   onViewModeChange,
+  excludeTrimmed,
+  onExcludeTrimmedChange,
   isLoading,
   onClearAll
 }: SourceVideoFiltersProps) {
@@ -91,7 +97,8 @@ export function SourceVideoFilters({
     dateRange.from || dateRange.to,
     selectedDuration !== "all",
     selectedTags.length > 0,
-    selectedChannel !== "all"
+    selectedChannel !== "all",
+    excludeTrimmed
   ].filter(Boolean).length
 
   const handleTagToggle = (tag: string) => {
@@ -208,7 +215,7 @@ export function SourceVideoFilters({
 
       {/* Active Filters Display */}
       {(searchQuery || selectedLanguage !== "all" || dateRange.from || dateRange.to ||
-        selectedDuration !== "all" || selectedTags.length > 0 || selectedChannel !== "all") && (
+        selectedDuration !== "all" || selectedTags.length > 0 || selectedChannel !== "all" || excludeTrimmed) && (
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-muted-foreground">Active filters:</span>
 
@@ -290,6 +297,18 @@ export function SourceVideoFilters({
               Channel: {availableChannels.find(c => c.id === selectedChannel)?.name || selectedChannel}
               <button
                 onClick={() => handleClearFilter('channel')}
+                className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-4 h-4 flex items-center justify-center"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
+
+          {excludeTrimmed && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Exclude Processed
+              <button
+                onClick={() => onExcludeTrimmedChange(false)}
                 className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-4 h-4 flex items-center justify-center"
               >
                 <X className="w-3 h-3" />
@@ -413,6 +432,24 @@ export function SourceVideoFilters({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Exclude Trimmed Filter */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Content Status</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="exclude-trimmed"
+                  checked={excludeTrimmed}
+                  onCheckedChange={(checked) => onExcludeTrimmedChange(checked as boolean)}
+                />
+                <Label
+                  htmlFor="exclude-trimmed"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Exclude processed videos
+                </Label>
+              </div>
             </div>
 
             {/* Tags Filter */}

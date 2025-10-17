@@ -295,11 +295,11 @@ export default function SourceVideoDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <Button
               variant="outline"
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/source-videos')}
               className="hover:bg-secondary/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Admin
+              Back to Source Videos
             </Button>
 
             <div className="flex items-center gap-2">
