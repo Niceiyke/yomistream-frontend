@@ -7,7 +7,7 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { EnhancedVideoPlayer } from './enhanced-video-player'
+import { CustomVideoPlayer } from './custom-video-player'
 
 export const NoAdsDemo: React.FC = () => {
   const [scenario, setScenario] = useState<'normal' | 'no-ads' | 'failed-ads'>('no-ads')
@@ -114,12 +114,10 @@ export const NoAdsDemo: React.FC = () => {
 
       {/* Video Player */}
       <div className="aspect-video">
-        <EnhancedVideoPlayer
-          videoId={demoVideo.id}
-          videoUrl={demoVideo.url}
+        <CustomVideoPlayer
+          src={demoVideo.url}
           poster={demoVideo.poster}
           autoPlay={false}
-          userId="demo-user"
           watermark={{
             src: "/yomistream-logo.png",
             position: "bottom-right",

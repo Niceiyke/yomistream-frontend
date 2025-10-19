@@ -1,32 +1,32 @@
 // lib/auth-cache.ts
-import { createClient } from "@/lib/supabase/client"
-
 // Simple in-memory cache. Resets on page reload.
-let sessionCache: { value: any | null; expiresAt: number } = {
-  value: null,
+let tokenCache: { value: string | undefined; expiresAt: number } = {
+  value: undefined,
   expiresAt: 0,
 }
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
-const supabase = createClient()
-
-// Invalidate cache on auth state changes
-supabase.auth.onAuthStateChange((_event, _session) => {
-  sessionCache = { value: null, expiresAt: 0 }
-})
-
 export async function getSessionCached(ttlMs: number = DEFAULT_TTL_MS) {
-  const now = Date.now()
-  if (sessionCache.value && sessionCache.expiresAt > now) {
-    return sessionCache.value
-  }
-  const { data } = await supabase.auth.getSession()
-  sessionCache = { value: data, expiresAt: now + ttlMs }
-  return data
+  // Backwards-compatible shape for callers expecting { session: { access_token } }
+  const accessToken = await getAccessTokenCached(ttlMs)
+  return { session: accessToken ? { access_token: accessToken } : null }
 }
 
 export async function getAccessTokenCached(ttlMs: number = DEFAULT_TTL_MS): Promise<string | undefined> {
-  const sessionData = await getSessionCached(ttlMs)
-  return sessionData.session?.access_token
+  const now = Date.now()
+  if (tokenCache.value && tokenCache.expiresAt > now) return tokenCache.value
+  let token: string | undefined
+  try {
+    token = typeof window !== "undefined" ? localStorage.getItem("access_token") || undefined : undefined
+  } catch {
+    token = undefined
+  }
+  tokenCache = { value: token, expiresAt: now + ttlMs }
+  return token
+}
+
+// Allow other modules to invalidate cache when auth state changes
+export function invalidateAuthCache() {
+  tokenCache = { value: undefined, expiresAt: 0 }
 }

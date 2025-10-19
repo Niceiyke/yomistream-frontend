@@ -43,7 +43,7 @@ export default function AdminPage() {
     queryKey: ["admin", "stats"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/admin/stats", { headers })
+      return apiGet("/api/v1/admin/stats", { headers })
     },
   })
 

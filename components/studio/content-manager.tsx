@@ -54,7 +54,6 @@ interface VideoResponse {
 export function ContentManager({ onCreateVideo }: { onCreateVideo?: () => void }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
-  const [selectedTopic, setSelectedTopic] = useState("all")
   const [selectedChannelId, setSelectedChannelId] = useState("all")
 
   // Fetch videos from API
@@ -71,7 +70,7 @@ export function ContentManager({ onCreateVideo }: { onCreateVideo?: () => void }
       if (selectedChannelId !== "all") {
         params.append("channel_id", selectedChannelId)
       }
-      const url = `/api/users/videos${params.toString() ? `?${params.toString()}` : ""}`
+      const url = `/api/v1/videos${params.toString() ? `?${params.toString()}` : ""}`
       return apiGet(url, { headers })
     },
   })
@@ -81,18 +80,17 @@ export function ContentManager({ onCreateVideo }: { onCreateVideo?: () => void }
     queryKey: ["channels", "my"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/channels/my", { headers }) as Promise<{ id: string; name: string }[]>
+      return apiGet("/api/v1/channels/my", { headers }) as Promise<{ id: string; name: string }[]>
     }
   })
 
-  const filteredContent = videos?.filter((item: VideoResponse) => {
+  const filteredContent = Array.isArray(videos) ? videos.filter((item: VideoResponse) => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
                          (item.preacher?.name.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
     const matchesStatus = selectedStatus === "all" || item.status === selectedStatus
-    const matchesTopic = selectedTopic === "all" || item.topic === selectedTopic
-    return matchesSearch && matchesStatus && matchesTopic
-  }) || []
+    return matchesSearch && matchesStatus
+  }) : []
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -183,19 +181,6 @@ export function ContentManager({ onCreateVideo }: { onCreateVideo?: () => void }
                 <SelectItem value="published">Published</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-              <SelectTrigger className="w-full md:w-40 bg-input border-border">
-                <SelectValue placeholder="All Topics" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="all">All Topics</SelectItem>
-                <SelectItem value="Faith">Faith</SelectItem>
-                <SelectItem value="Worship">Worship</SelectItem>
-                <SelectItem value="Youth Ministry">Youth Ministry</SelectItem>
-                <SelectItem value="Prayer">Prayer</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -337,7 +322,7 @@ export function ContentManager({ onCreateVideo }: { onCreateVideo?: () => void }
             <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No content found</h3>
             <p className="text-muted-foreground mb-6">
-              {searchQuery || selectedStatus !== "all" || selectedTopic !== "all"
+              {searchQuery || selectedStatus !== "all"
                 ? "Try adjusting your search or filters"
                 : "Create your first video to get started"}
             </p>

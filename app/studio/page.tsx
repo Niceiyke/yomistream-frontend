@@ -41,7 +41,7 @@ export default function StudioPage() {
     queryKey: ["studio", "stats"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/users/studio/stats", { headers })
+      return apiGet("/api/v1/users/studio/stats", { headers })
     },
   })
 

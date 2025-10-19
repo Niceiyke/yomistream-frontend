@@ -1,11 +1,11 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
+import { API_BASE_URL } from '@/lib/api'
+import { invalidateAuthCache, getAccessTokenCached } from '@/lib/auth-cache'
 
 interface AuthContextType {
-  user: User | null
+  user: any | null
   loading: boolean
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -18,20 +18,27 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const checkUser = async () => {
     try {
-      console.log("[AuthProvider] Checking user authentication...")
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      console.log("[AuthProvider] User check result:", user ? "authenticated" : "not authenticated")
-      setUser(user)
+      const token = await getAccessTokenCached()
+      if (!token) {
+        setUser(null)
+        return
+      }
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      if (!res.ok) {
+        setUser(null)
+        return
+      }
+      const data = await res.json()
+      setUser(data)
     } catch (error) {
-      console.error("[AuthProvider] Error checking user:", error)
       setUser(null)
     } finally {
       setLoading(false)
@@ -40,10 +47,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut()
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('token_type')
+          localStorage.removeItem('verification_token')
+        }
+      } catch {}
+      invalidateAuthCache()
       setUser(null)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('wordlyte-auth-changed'))
+      }
     } catch (error) {
-      console.error("[AuthProvider] Error signing out:", error)
     }
   }
 
@@ -53,26 +70,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
-    // Initial user check
     checkUser()
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[AuthProvider] Auth state changed:", event, session?.user ? "user present" : "no user")
-      
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setUser(session?.user ?? null)
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-      }
-      
-      setLoading(false)
-    })
-
+    const handle = () => refreshUser()
+    if (typeof window !== 'undefined') {
+      window.addEventListener('wordlyte-auth-changed', handle)
+    }
     return () => {
-      subscription.unsubscribe()
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('wordlyte-auth-changed', handle)
+      }
     }
   }, [])
 
@@ -93,3 +99,4 @@ export function useAuth(): AuthContextType {
   }
   return context
 }
+

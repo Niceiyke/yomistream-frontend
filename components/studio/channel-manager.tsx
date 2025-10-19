@@ -61,7 +61,7 @@ export function ChannelManager() {
     queryKey: ["channels", "my"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/channels/my", { headers }) as Promise<Channel[]>
+      return apiGet("/api/v1/channels/my", { headers }) as Promise<Channel[]>
     },
     retry: false
   })
@@ -76,7 +76,7 @@ export function ChannelManager() {
     queryFn: async () => {
       if (!selectedChannel?.id) return null
       const headers = await authHeaders()
-      return apiGet(`/api/channels/${selectedChannel.id}/stats`, { headers }) as Promise<ChannelStats>
+      return apiGet(`/api/v1/channels/${selectedChannel.id}/stats`, { headers }) as Promise<ChannelStats>
     },
     enabled: !!selectedChannel?.id
   })
@@ -85,7 +85,7 @@ export function ChannelManager() {
   const createChannelMutation = useMutation({
     mutationFn: async (data: { name: string; description: string }) => {
       const headers = await authHeaders()
-      return apiPost("/api/channels/", data, { headers })
+      return apiPost("/api/v1/channels/", data, { headers })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["channels"] })
@@ -101,7 +101,7 @@ export function ChannelManager() {
     mutationFn: async (data: { name: string; description: string }) => {
       if (!selectedChannel?.id) throw new Error("No channel selected")
       const headers = await authHeaders()
-      return apiPut(`/api/channels/${selectedChannel.id}`, data, { headers })
+      return apiPut(`/api/v1/channels/${selectedChannel.id}`, data, { headers })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["channels"] })

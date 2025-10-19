@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { 
   Play, 
   Pause, 
@@ -56,6 +57,14 @@ interface Logo {
   showDuration?: number // seconds to show logo, 0 for always
 }
 
+interface Chapter {
+  id: string
+  title: string
+  startTime: number
+  endTime?: number
+  thumbnail?: string
+}
+
 interface VideoPlayerProps {
   src: string
   hlsVariants?: Array<{
@@ -74,6 +83,8 @@ interface VideoPlayerProps {
   ads?: Ad[]
   watermark?: Watermark
   logo?: Logo
+  chapters?: Chapter[]
+  onChapterChange?: (chapter: Chapter) => void
   onAdStart?: (ad: Ad) => void
   onAdEnd?: (ad: Ad) => void
   onAdSkip?: (ad: Ad) => void
@@ -103,6 +114,10 @@ interface VideoState {
   // Error recovery
   retryCount: number
   canRetry: boolean
+  // Thumbnail preview
+  showThumbnailPreview: boolean
+  thumbnailPreviewTime: number
+  thumbnailPreviewPosition: number
 }
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -127,7 +142,7 @@ const getPositionClasses = (position: string, size: string) => {
   return `${sizeClasses[size as keyof typeof sizeClasses]} ${positionClasses[position as keyof typeof positionClasses]}`
 }
 
-export const CustomVideoPlayer = ({
+const CustomVideoPlayer = ({
   src,
   hlsVariants = [],
   poster,
@@ -140,6 +155,8 @@ export const CustomVideoPlayer = ({
   ads = [],
   watermark,
   logo,
+  chapters = [],
+  onChapterChange,
   onAdStart,
   onAdEnd,
   onAdSkip,
@@ -175,11 +192,28 @@ export const CustomVideoPlayer = ({
     playedAds: [],
     // Error recovery
     retryCount: 0,
-    canRetry: false
+    canRetry: false,
+    // Thumbnail preview
+    showThumbnailPreview: false,
+    thumbnailPreviewTime: 0,
+    thumbnailPreviewPosition: 0
   })
   
+  const [announcements, setAnnouncements] = useState<Array<{id: string, text: string}>>([])
+
   const [showControls, setShowControls] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
+
+  // Screen reader announcements
+  const announce = useCallback((message: string) => {
+    const id = `announcement-${Date.now()}-${Math.random()}`
+    setAnnouncements(prev => [...prev, { id, text: message }])
+    
+    // Remove announcement after screen reader has time to read it
+    setTimeout(() => {
+      setAnnouncements(prev => prev.filter(a => a.id !== id))
+    }, 1000)
+  }, [])
 
   // Ad management functions (declared early to avoid reference errors)
   const endCurrentAd = useCallback(() => {
@@ -357,7 +391,7 @@ export const CustomVideoPlayer = ({
     }
   }, [src, autoPlay])
 
-  // Video event handlers
+// Video event handlers
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
@@ -368,6 +402,7 @@ export const CustomVideoPlayer = ({
         duration: video.duration,
         isLoading: false 
       }))
+      announce(`Video loaded, duration ${formatTime(video.duration)}`)
       
       if (startTime > 0) {
         video.currentTime = startTime
@@ -411,6 +446,7 @@ export const CustomVideoPlayer = ({
           )
           
           if (midRollAd) {
+            announce("Advertisement starting")
             playAd(midRollAd)
             return
           }
@@ -419,27 +455,37 @@ export const CustomVideoPlayer = ({
         // Check end time
         if (endTime && currentTime >= endTime) {
           video.pause()
+          announce("Video ended")
           onEnded?.()
         }
       }
     }
 
-    const handlePlay = () => setState(prev => ({ ...prev, isPlaying: true }))
-    const handlePause = () => setState(prev => ({ ...prev, isPlaying: false }))
+    const handlePlay = () => {
+      setState(prev => ({ ...prev, isPlaying: true }))
+      announce(state.isPlayingAd ? "Advertisement playing" : "Video playing")
+    }
+    const handlePause = () => {
+      setState(prev => ({ ...prev, isPlaying: false }))
+      announce(state.isPlayingAd ? "Advertisement paused" : "Video paused")
+    }
     const handleEnded = () => {
       if (state.isPlayingAd) {
         endCurrentAd()
+        announce("Advertisement completed")
         return
       }
       
       // Check for post-roll ads that haven't been played yet
       const postRollAd = ads.find(ad => ad.type === 'post-roll' && !state.playedAds.includes(ad.id))
       if (postRollAd) {
+        announce("Post-roll advertisement starting")
         playAd(postRollAd)
         return
       }
       
       setState(prev => ({ ...prev, isPlaying: false }))
+      announce("Video ended")
       onEnded?.()
     }
 
@@ -496,7 +542,7 @@ export const CustomVideoPlayer = ({
       video.removeEventListener('leavepictureinpicture', handleLeavePiP)
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
-  }, [isDragging, startTime, endTime, onTimeUpdate, onEnded, state.isPlayingAd, state.currentAd, state.playedAds, ads, playAd, endCurrentAd])
+  }, [startTime, endTime, onTimeUpdate, onEnded, state.isPlayingAd, state.currentAd, state.playedAds, ads, playAd, endCurrentAd])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -604,7 +650,7 @@ useEffect(() => {
     }
   }
 }, [state.isPlaying])
-  // Player controls
+  // Optimized control handlers with useCallback
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return
     
@@ -737,6 +783,29 @@ useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp)
   }, [state.duration, setIsDragging])
 
+  // Thumbnail preview handlers
+  const handleProgressHover = useCallback((e: React.MouseEvent) => {
+    if (!progressRef.current || !state.duration) return
+    
+    const rect = progressRef.current.getBoundingClientRect()
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const time = percent * state.duration
+    
+    setState(prev => ({ 
+      ...prev, 
+      showThumbnailPreview: true,
+      thumbnailPreviewTime: time,
+      thumbnailPreviewPosition: percent * 100
+    }))
+  }, [state.duration])
+
+  const handleProgressLeave = useCallback(() => {
+    setState(prev => ({ 
+      ...prev, 
+      showThumbnailPreview: false
+    }))
+  }, [])
+
   // Cleanup drag listeners on unmount
   useEffect(() => {
     return () => {
@@ -746,8 +815,8 @@ useEffect(() => {
     }
   }, [])
 
-  // Format time
-  const formatTime = (seconds: number) => {
+  // Memoized values to prevent unnecessary re-renders
+  const formatTime = useCallback((seconds: number) => {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     const secs = Math.floor(seconds % 60)
@@ -756,10 +825,18 @@ useEffect(() => {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
     return `${minutes}:${secs.toString().padStart(2, '0')}`
-  }
+  }, [])
+
+  // Get current chapter
+  const getCurrentChapter = useCallback(() => {
+    return chapters.find(chapter => 
+      state.currentTime >= chapter.startTime && 
+      (!chapter.endTime || state.currentTime < chapter.endTime)
+    )
+  }, [chapters, state.currentTime])
 
   // Get available qualities
-  const getAvailableQualities = () => {
+  const getAvailableQualities = useCallback(() => {
     const qualities = ['auto']
     
     if (hlsRef.current?.levels) {
@@ -771,7 +848,7 @@ useEffect(() => {
     }
     
     return qualities
-  }
+  }, [])
 
   if (state.error) {
     return (
@@ -820,7 +897,7 @@ useEffect(() => {
     if (state.isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
-      }, 4000) // Longer timeout for touch devices
+      }, 6000) // Extended from 4000ms to 6000ms for better mobile UX
     }
   }
 
@@ -833,7 +910,26 @@ useEffect(() => {
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
       onTouchStart={handleTouchStart}
+      role="region"
+      aria-label="Video player"
+      aria-live="polite"
     >
+      {/* Hidden video description for screen readers */}
+      <div id="video-description" className="sr-only">
+        {useMemo(() => 
+          state.isPlayingAd 
+            ? `Currently playing advertisement: ${state.currentAd?.advertiser || 'Unknown advertiser'}. Duration: ${Math.ceil(state.adTimeRemaining)} seconds remaining. ${state.canSkipAd ? 'Skip button available.' : ''}`
+            : `Video player. ${state.isPlaying ? 'Playing' : 'Paused'} at ${formatTime(state.currentTime)} of ${formatTime(state.duration)}. Volume: ${Math.round(state.volume * 100)}%. Playback rate: ${state.playbackRate}x. Quality: ${state.quality}.`,
+          [state.isPlayingAd, state.currentAd?.advertiser, state.adTimeRemaining, state.canSkipAd, state.isPlaying, state.currentTime, state.duration, state.volume, state.playbackRate, state.quality, formatTime]
+        )}
+      </div>
+
+      {/* Screen reader announcements */}
+      <div aria-live="assertive" aria-atomic="true" className="sr-only">
+        {announcements.map(msg => (
+          <div key={msg.id}>{msg.text}</div>
+        ))}
+      </div>
       {/* Video Element */}
       <video
         ref={videoRef}
@@ -842,6 +938,10 @@ useEffect(() => {
         playsInline
         preload="metadata"
         onClick={state.isPlayingAd ? handleAdClick : togglePlay}
+        aria-label={state.isPlayingAd ? "Advertisement video" : "Main video content"}
+        aria-describedby="video-description"
+        role="application"
+        tabIndex={0}
       />
 
       {/* Watermark Overlay */}
@@ -939,12 +1039,14 @@ useEffect(() => {
         }`}
       >
         {/* Progress Bar */}
-        <div className="px-4 py-2">
+        <div className="px-4 py-2 relative">
           <div 
             ref={progressRef}
             className="relative h-1 bg-white/20 rounded-full cursor-pointer group/progress"
             onClick={handleProgressClick}
             onMouseDown={handleProgressDrag}
+            onMouseMove={handleProgressHover}
+            onMouseLeave={handleProgressLeave}
           >
             {/* Buffer Progress */}
             <div 
@@ -963,7 +1065,41 @@ useEffect(() => {
               className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-red-600 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
               style={{ left: `${(state.currentTime / state.duration) * 100}%`, marginLeft: '-6px' }}
             />
+            
+            {/* Chapter Markers */}
+            {chapters.map(chapter => (
+              <div
+                key={chapter.id}
+                className="absolute top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-500 rounded-full opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
+                style={{ left: `${(chapter.startTime / state.duration) * 100}%`, marginLeft: '-2px' }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  seek(chapter.startTime)
+                  onChapterChange?.(chapter)
+                }}
+                title={`${chapter.title} (${formatTime(chapter.startTime)})`}
+              />
+            ))}
           </div>
+          
+          {/* Thumbnail Preview */}
+          {state.showThumbnailPreview && poster && (
+            <div 
+              className="absolute bottom-8 left-0 transform -translate-x-1/2 pointer-events-none z-50"
+              style={{ left: `${state.thumbnailPreviewPosition}%` }}
+            >
+              <div className="bg-black/90 rounded-lg p-2 shadow-lg border border-white/20">
+                <img 
+                  src={poster} 
+                  alt="Video thumbnail"
+                  className="w-32 h-18 object-cover rounded"
+                />
+                <div className="text-white text-xs text-center mt-1 font-mono">
+                  {formatTime(state.thumbnailPreviewTime)}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Control Bar */}
@@ -975,6 +1111,8 @@ useEffect(() => {
               size="sm"
               onClick={togglePlay}
               className="text-white hover:bg-white/20 p-2"
+              aria-label={state.isPlaying ? "Pause video" : "Play video"}
+              title={state.isPlaying ? "Pause (Space)" : "Play (Space)"}
             >
               {state.isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </Button>
@@ -985,6 +1123,8 @@ useEffect(() => {
               size="sm"
               onClick={() => seek(state.currentTime - SEEK_STEP)}
               className="text-white hover:bg-white/20 p-2"
+              aria-label={`Rewind ${SEEK_STEP} seconds (Left Arrow)`}
+              title={`Rewind ${SEEK_STEP}s (←)`}
             >
               <SkipBack className="w-4 h-4" />
             </Button>
@@ -995,17 +1135,21 @@ useEffect(() => {
               size="sm"
               onClick={() => seek(state.currentTime + SEEK_STEP)}
               className="text-white hover:bg-white/20 p-2"
+              aria-label={`Fast forward ${SEEK_STEP} seconds (Right Arrow)`}
+              title={`Fast forward ${SEEK_STEP}s (→)`}
             >
               <SkipForward className="w-4 h-4" />
             </Button>
 
             {/* Volume */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 group/volume">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleMute}
                 className="text-white hover:bg-white/20 p-2"
+                aria-label={state.isMuted || state.volume === 0 ? "Unmute (M)" : "Mute (M)"}
+                title={state.isMuted || state.volume === 0 ? "Unmute (M)" : "Mute (M)"}
               >
                 {state.isMuted || state.volume === 0 ? 
                   <VolumeX className="w-4 h-4" /> : 
@@ -1013,7 +1157,18 @@ useEffect(() => {
                 }
               </Button>
               
-              <div className="w-20 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="hidden md:block w-20 opacity-70 hover:opacity-100 transition-opacity">
+                <Slider
+                  value={[state.isMuted ? 0 : state.volume * 100]}
+                  onValueChange={([value]: number[]) => setVolume(value / 100)}
+                  max={100}
+                  step={1}
+                  className="cursor-pointer"
+                />
+              </div>
+              
+              {/* Mobile volume - show on tap */}
+              <div className="md:hidden w-20 opacity-0 group-hover/volume:opacity-100 transition-opacity">
                 <Slider
                   value={[state.isMuted ? 0 : state.volume * 100]}
                   onValueChange={([value]: number[]) => setVolume(value / 100)}
@@ -1038,6 +1193,8 @@ useEffect(() => {
                   variant="ghost"
                   size="sm"
                   className="text-white hover:bg-white/20 p-2"
+                  aria-label="Settings menu"
+                  title="Settings"
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
@@ -1051,6 +1208,24 @@ useEffect(() => {
                     className={state.playbackRate === rate ? 'bg-accent' : ''}
                   >
                     {rate}x {rate === 1 ? '(Normal)' : ''}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuLabel>Chapters</DropdownMenuLabel>
+                {chapters.map(chapter => (
+                  <DropdownMenuItem
+                    key={chapter.id}
+                    onClick={() => {
+                      seek(chapter.startTime)
+                      onChapterChange?.(chapter)
+                    }}
+                    className={getCurrentChapter()?.id === chapter.id ? 'bg-accent' : ''}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm">{chapter.title}</span>
+                      <span className="text-xs text-muted-foreground">{formatTime(chapter.startTime)}</span>
+                    </div>
                   </DropdownMenuItem>
                 ))}
                 
@@ -1071,15 +1246,16 @@ useEffect(() => {
 
             {/* Picture-in-Picture */}
             {typeof window !== 'undefined' && 'pictureInPictureEnabled' in document && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={togglePictureInPicture}
-                className="text-white hover:bg-white/20 p-2"
-                title="Picture-in-Picture"
-              >
-                {state.isPictureInPicture ? <PictureInPicture2 className="w-4 h-4" /> : <PictureInPicture className="w-4 h-4" />}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={togglePictureInPicture}
+                  className="text-white hover:bg-white/20 p-2"
+                  title="Picture-in-Picture"
+                  aria-label={state.isPictureInPicture ? "Exit picture-in-picture mode" : "Enter picture-in-picture mode"}
+                >
+                  {state.isPictureInPicture ? <PictureInPicture2 className="w-4 h-4" /> : <PictureInPicture className="w-4 h-4" />}
+                </Button>
             )}
 
             {/* Fullscreen */}
@@ -1088,6 +1264,8 @@ useEffect(() => {
               size="sm"
               onClick={toggleFullscreen}
               className="text-white hover:bg-white/20 p-2"
+              aria-label={state.isFullscreen ? "Exit fullscreen (F)" : "Enter fullscreen (F)"}
+              title={state.isFullscreen ? "Exit fullscreen (F)" : "Enter fullscreen (F)"}
             >
               {state.isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </Button>
@@ -1097,3 +1275,6 @@ useEffect(() => {
     </div>
   )
 }
+
+export { CustomVideoPlayer }
+export default React.memo(CustomVideoPlayer)

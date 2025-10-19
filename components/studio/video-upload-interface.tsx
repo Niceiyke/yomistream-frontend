@@ -38,7 +38,6 @@ interface BasicVideoData {
   title: string
   description: string
   channel_id: string
-  topic?: string
 }
 
 interface UploadedVideo {
@@ -61,7 +60,6 @@ export function VideoUploadInterface() {
     title: "",
     description: "",
     channel_id: "",
-    topic: "",
   })
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -76,7 +74,7 @@ export function VideoUploadInterface() {
     queryKey: ["channels", "my"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/channels/my", { headers }) as Promise<Channel[]>
+      return apiGet("/api/v1/channels/my", { headers }) as Promise<Channel[]>
     }
   })
 
@@ -86,15 +84,6 @@ export function VideoUploadInterface() {
       setVideoData(prev => ({ ...prev, channel_id: channels[0].id }))
     }
   }, [channels, videoData.channel_id])
-
-  // Fetch available topics
-  const { data: topics } = useQuery({
-    queryKey: ["topics"],
-    queryFn: async () => {
-      const headers = await authHeaders()
-      return apiGet("/api/admin/topics", { headers })
-    }
-  })
 
   const onDrop = (acceptedFiles: File[]) => {
     const videoFiles = acceptedFiles.filter(file =>
@@ -154,9 +143,6 @@ export function VideoUploadInterface() {
       formData.append('title', uploadedVideo.videoData!.title)
       formData.append('description', uploadedVideo.videoData!.description || '')
       formData.append('channel_id', uploadedVideo.videoData!.channel_id)
-      if (uploadedVideo.videoData!.topic) {
-        formData.append('topic', uploadedVideo.videoData!.topic)
-      }
       // Tags can be empty for now
       formData.append('tags', '')
 
@@ -255,7 +241,6 @@ export function VideoUploadInterface() {
       title: "",
       description: "",
       channel_id: channels?.[0]?.id || "",
-      topic: "",
     })
   }
 
@@ -346,27 +331,6 @@ export function VideoUploadInterface() {
                 placeholder="Describe your video..."
                 rows={3}
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="topic">Topic (optional)</Label>
-                <Select
-                  value={videoData.topic}
-                  onValueChange={(value) => setVideoData(prev => ({ ...prev, topic: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a topic" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {topics?.map((topic: any) => (
-                      <SelectItem key={topic.id} value={topic.name}>
-                        {topic.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="flex gap-2 pt-4">

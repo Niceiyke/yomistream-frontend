@@ -52,13 +52,13 @@ export default function GospelPlatform() {
   // React Query: videos & preachers
   const videosQuery = useQuery({
     queryKey: ["videos"],
-    queryFn: () => apiGetCached("/api/public/videos"),
+    queryFn: () => apiGetCached("/api/v1/public/videos"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
   const preachersQuery = useQuery({
     queryKey: ["preachers"],
-    queryFn: () => apiGetCached("/api/public/preachers"),
+    queryFn: () => apiGetCached("/api/v1/public/preachers"),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
@@ -77,7 +77,7 @@ export default function GospelPlatform() {
     queryKey: ["favorites", user?.id],
     queryFn: async () => {
       const accessToken = await getAccessTokenCached()
-      const favs = await apiGet("/api/favorites", {
+      const favs = await apiGet("/api/v1/favorites", {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       })
       return favs?.video_ids || []
@@ -89,7 +89,7 @@ export default function GospelPlatform() {
     queryKey: ["preacherFavorites", user?.id],
     queryFn: async () => {
       const accessToken = await getAccessTokenCached()
-      const favs = await apiGet("/api/favorites/preachers", {
+      const favs = await apiGet("/api/v1/favorites/preachers", {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       })
       return favs?.preacher_ids || []
@@ -158,9 +158,9 @@ export default function GospelPlatform() {
     const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     try {
       if (isFavorite) {
-        await apiDelete(`/api/favorites/${videoId}`, { headers })
+        await apiDelete(`/api/v1/favorites/${videoId}`, { headers })
       } else {
-        await apiPost("/api/favorites", { video_id: videoId }, { headers })
+        await apiPost("/api/v1/favorites", { video_id: videoId }, { headers })
       }
       await queryClient.invalidateQueries({ queryKey: ["favorites", user.id] })
     } catch (error) {
@@ -178,9 +178,9 @@ export default function GospelPlatform() {
     const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     try {
       if (isFavorite) {
-        await apiDelete(`/api/favorites/preachers/${preacherId}`, { headers })
+        await apiDelete(`/api/v1/favorites/preachers/${preacherId}`, { headers })
       } else {
-        await apiPost("/api/favorites/preachers", { preacher_id: preacherId }, { headers })
+        await apiPost("/api/v1/favorites/preachers", { preacher_id: preacherId }, { headers })
       }
       await queryClient.invalidateQueries({ queryKey: ["preacherFavorites", user.id] })
     } catch (error) {
