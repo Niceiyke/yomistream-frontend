@@ -158,7 +158,15 @@ export function ChannelManager() {
     )
   }
 
-  if (channelsError && (!channels || channels.length === 0)) {
+  if (channelsError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Failed to load channels. Please try again.</p>
+      </div>
+    )
+  }
+
+  if (!channels || channels.length === 0) {
     // User doesn't have any channels yet
     return (
       <div className="space-y-6">
@@ -214,8 +222,6 @@ export function ChannelManager() {
       </div>
     )
   }
-
-  if (!channels || channels.length === 0) return null
 
   // selectedChannel should always be defined here since we check channels.length > 0 above
   if (!selectedChannel) return null
