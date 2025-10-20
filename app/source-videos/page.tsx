@@ -108,7 +108,7 @@ export default function SourceVideosPage() {
         params.append('exclude_trimmed', 'true')
       }
 
-      const url = `/api/admin/source-videos?${params.toString()}`
+      const url = `/api/v1/admin/source-videos?${params.toString()}`
       const headers = await authHeaders()
       return apiGet(url, { headers })
     },
@@ -254,13 +254,13 @@ export default function SourceVideosPage() {
       try {
         const headers = await authHeaders()
         // Fetch available tags
-        const tagsResponse = await apiGet('/api/admin/source-videos/tags', { headers })
+        const tagsResponse = await apiGet('/api/v1/admin/source-videos/tags', { headers })
         if (tagsResponse?.tags) {
           setAvailableTags(tagsResponse.tags)
         }
 
         // Fetch available channels
-        const channelsResponse = await apiGet('/api/admin/source-videos/channels', { headers })
+        const channelsResponse = await apiGet('/api/v1/admin/source-videos/channels', { headers })
         if (channelsResponse?.channels) {
           const filteredChannels = channelsResponse.channels
             .filter((ch: any) => ch.youtube_channel_id && ch.youtube_channel_id.trim() !== '')

@@ -45,7 +45,7 @@ export default function SourceVideoDetailPage() {
     queryKey: ["source-video", videoId],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet(`/api/admin/source-videos/${videoId}`, { headers })
+      return apiGet(`/api/v1/admin/source-videos/${videoId}`, { headers })
     },
     enabled: !!videoId,
     staleTime: 10 * 60 * 1000, // 10 minutes
