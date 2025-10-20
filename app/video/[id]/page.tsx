@@ -79,7 +79,7 @@ export default function VideoDetailPage() {
   // Fetch video details
   const videoQuery = useQuery({
     queryKey: ["video", videoId],
-    queryFn: () => apiGet(`/api/public/videos/${videoId}`),
+    queryFn: () => apiGet(`/api/v1/videos/${videoId}`),
     enabled: !!videoId,
   })
 
@@ -88,7 +88,7 @@ export default function VideoDetailPage() {
     queryKey: ["favorites", user?.id],
     queryFn: async () => {
       const accessToken = await getAccessTokenCached()
-      const favs = await apiGet("/api/favorites", {
+      const favs = await apiGet("/api/v1/favorites", {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       })
       return favs?.video_ids || []
@@ -116,9 +116,9 @@ export default function VideoDetailPage() {
 
     try {
       if (isFavorite) {
-        await apiDelete(`/api/favorites/${videoId}`, { headers })
+        await apiDelete(`/api/v1/favorites/${videoId}`, { headers })
       } else {
-        await apiPost("/api/favorites", { video_id: videoId }, { headers })
+        await apiPost("/api/v1/favorites", { video_id: videoId }, { headers })
       }
       await queryClient.invalidateQueries({ queryKey: ["favorites", user.id] })
     } catch (error) {
@@ -386,11 +386,11 @@ export default function VideoDetailPage() {
                       startTime={video.start_time_seconds || 0}
                       endTime={video.end_time_seconds || undefined}
                       watermark={{
-                        src: "/yomistream-logo.png",
+                        src: "",
                         position: "bottom-right",
                         opacity: 0.8,
                         size: "small",
-                        clickUrl: "https://yomistream.com"
+                        clickUrl: ""
                       }}
                       logo={getPreacherImageUrl(video) ? {
                         src: getPreacherImageUrl(video)!,
