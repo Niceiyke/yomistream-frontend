@@ -146,7 +146,7 @@ export function VideoUploadInterface() {
       // Tags can be empty for now
       formData.append('tags', '')
 
-      const uploadResponse = await fetch(`${API_BASE_URL}/api/v1/users/studio/videos/upload`, {
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/v1/videos/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
