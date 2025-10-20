@@ -247,6 +247,8 @@ export default function VideoDetailPage() {
   const video = videoQuery.data
   const isFavorite = favorites.includes(videoId)
 
+  console.log("video", video)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
       {/* Header with glassmorphism effect */}
@@ -380,7 +382,7 @@ export default function VideoDetailPage() {
                   {video.hls_master_url ? (
                     <CustomVideoPlayer
                       src={video.hls_master_url}
-                      hlsVariants={video.hls_variant_urls || []}
+                      hlsVariants={video.hls_playlist_url || []}
                       poster={video.thumbnail_url || undefined}
                       autoPlay={true}
                       startTime={video.start_time_seconds || 0}
