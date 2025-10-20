@@ -21,23 +21,74 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const refreshAccessToken = async (): Promise<string | null> => {
+    try {
+      const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null
+      if (!refreshToken) return null
+
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+
+      if (!res.ok) return null
+
+      const data = await res.json()
+      if (data.access_token) {
+        // Store the new tokens
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('access_token', data.access_token)
+          if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
+          if (data.token_type) localStorage.setItem('token_type', data.token_type)
+        }
+        // Invalidate cache to force refresh
+        invalidateAuthCache()
+        return data.access_token
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+    }
+    return null
+  }
+
   const checkUser = async () => {
     try {
-      const token = await getAccessTokenCached()
+      let token = await getAccessTokenCached()
       if (!token) {
         setUser(null)
         return
       }
+
       const res = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       })
-      if (!res.ok) {
-        setUser(null)
+
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data)
         return
       }
-      const data = await res.json()
-      setUser(data)
+
+      // If 401/403, try refreshing token
+      if (res.status === 401 || res.status === 403) {
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          // Retry with new token
+          const retryRes = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+            headers: { Authorization: `Bearer ${newToken}` },
+            cache: 'no-store',
+          })
+          if (retryRes.ok) {
+            const data = await retryRes.json()
+            setUser(data)
+            return
+          }
+        }
+      }
+
+      setUser(null)
     } catch (error) {
       setUser(null)
     } finally {
