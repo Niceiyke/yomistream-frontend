@@ -55,11 +55,11 @@ export default function SourceVideoDetailPage() {
   const trimVideoMutation = useMutation({
     mutationFn: async (data: { start_time: number; end_time: number }) => {
       const headers = await authHeaders()
-      const response = await apiPost("/api/v1/source-videos/trim", {
+      const response = await apiPost("/api/v1/admin/source-videos/trim", {
         source_video_id: videoId,
         start_time: data.start_time,
         end_time: data.end_time,
-        webhook_url: `${BACKEND_VM}/api/v1/webhooks/trimming`, // Use BACKEND_VM for webhooks
+        webhook_url: `${BACKEND_VM}/api/v1/admin/webhooks/trimming`, // Use BACKEND_VM for webhooks
       }, { headers })
       return response
     },
@@ -79,7 +79,7 @@ export default function SourceVideoDetailPage() {
   const pollTrimStatus = async (jobId: string) => {
     try {
       const headers = await authHeaders()
-      const status = await apiGet(`/api/v1/source-videos/trim/status/${jobId}`, { headers })
+      const status = await apiGet(`/api/v1/admin/source-videos/trim/status/${jobId}`, { headers })
       setTrimStatus(status.status)
       setTrimProgress(status.progress || 0)
 
@@ -105,7 +105,7 @@ export default function SourceVideoDetailPage() {
   const pollTranscodingStatus = async (videoId: string) => {
     try {
       const headers = await authHeaders()
-      const status = await apiGet(`/api/public/videos/${videoId}`, { headers })
+      const status = await apiGet(`/api/v1/admin/public/videos/${videoId}`, { headers })
       if (status.status === "published") {
         // Transcoding completed, redirect to video page
         setTrimStatus("ready")
