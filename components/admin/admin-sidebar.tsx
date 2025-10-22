@@ -46,9 +46,9 @@ const sidebarItems = [
   },
   {
     id: "upload",
-    label: "Upload Content",
+    label: "Transcription",
     icon: Upload,
-    description: "Upload videos and images"
+    description: "Transcribe video and audio content"
   },
   {
     id: "analytics",
