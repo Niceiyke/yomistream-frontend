@@ -162,9 +162,15 @@ export function AdminContentManager() {
       const headers = await authHeaders()
       const youtubeUrl = video.video_url ? video.video_url : `https://www.youtube.com/watch?v=${video.youtube_id}`
 
+      console.log("Transcribing video:", video.id, "URL:", youtubeUrl)
+
       // Send as form data since the backend expects Form parameters
       const formData = new FormData()
       formData.append('audio_url', youtubeUrl)
+      formData.append('video_id', video.id)
+
+      console.log("Content manager transcription - audio_url:", youtubeUrl, "video_id:", video.id)
+      console.log("Content manager transcription Form data:", formData)
 
       const response = await fetch(`${API_BASE_URL}/api/v1/transcription/transcribe-url`, {
         method: 'POST',

@@ -36,6 +36,7 @@ export function AdminUploadInterface() {
   const [url, setUrl] = useState("")
   const [webhookUrl, setWebhookUrl] = useState("")
   const [language, setLanguage] = useState("")
+  const [videoId, setVideoId] = useState("")
   const [progress, setProgress] = useState(0)
   const [result, setResult] = useState<TranscriptionResult | null>(null)
   const [isTranscribing, setIsTranscribing] = useState(false)
@@ -83,6 +84,9 @@ export function AdminUploadInterface() {
 
     if (webhookUrl) formData.append("webhook_url", webhookUrl)
     if (language) formData.append("language", language)
+    if (videoId) formData.append("video_id", videoId)
+
+    console.log("File upload Form data:", formData)
 
     setProgress(25)
     transcribeMutation.mutate(formData)
@@ -100,6 +104,9 @@ export function AdminUploadInterface() {
 
     if (webhookUrl) formData.append("webhook_url", webhookUrl)
     if (language) formData.append("language", language)
+    if (videoId) formData.append("video_id", videoId)
+
+    console.log("URL transcription Form data:", formData)
 
     // Use URL transcription endpoint
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8001"
@@ -206,7 +213,18 @@ export function AdminUploadInterface() {
               )}
 
               {/* Additional Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="video-id">Video ID *</Label>
+                  <Input
+                    id="video-id"
+                    placeholder="Enter video UUID"
+                    value={videoId}
+                    onChange={(e) => setVideoId(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Required: Video to associate transcription with</p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="webhook-url">Webhook URL (Optional)</Label>
                   <Input
@@ -231,7 +249,7 @@ export function AdminUploadInterface() {
               {/* Upload Button */}
               <Button
                 onClick={handleFileUpload}
-                disabled={!file || isTranscribing}
+                disabled={!file || !videoId.trim() || isTranscribing}
                 className="w-full"
                 size="lg"
               >
@@ -276,7 +294,18 @@ export function AdminUploadInterface() {
               </div>
 
               {/* Additional Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="video-id-url">Video ID *</Label>
+                  <Input
+                    id="video-id-url"
+                    placeholder="Enter video UUID"
+                    value={videoId}
+                    onChange={(e) => setVideoId(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Required: Video to associate transcription with</p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="webhook-url-url">Webhook URL (Optional)</Label>
                   <Input
@@ -301,7 +330,7 @@ export function AdminUploadInterface() {
               {/* Transcribe Button */}
               <Button
                 onClick={handleUrlTranscription}
-                disabled={!url.trim() || isTranscribing}
+                disabled={!url.trim() || !videoId.trim() || isTranscribing}
                 className="w-full"
                 size="lg"
               >
