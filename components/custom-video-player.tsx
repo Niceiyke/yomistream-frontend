@@ -208,7 +208,7 @@ const CustomVideoPlayer = ({
   const announce = useCallback((message: string) => {
     const id = `announcement-${Date.now()}-${Math.random()}`
     setAnnouncements(prev => [...prev, { id, text: message }])
-    
+
     // Remove announcement after screen reader has time to read it
     setTimeout(() => {
       setAnnouncements(prev => prev.filter(a => a.id !== id))
@@ -850,6 +850,14 @@ useEffect(() => {
     return qualities
   }, [])
 
+  // Video description for screen readers
+  const videoDescription = useMemo(() => 
+    state.isPlayingAd 
+      ? `Currently playing advertisement: ${state.currentAd?.advertiser || 'Unknown advertiser'}. Duration: ${Math.ceil(state.adTimeRemaining)} seconds remaining. ${state.canSkipAd ? 'Skip button available.' : ''}`
+      : `Video player. ${state.isPlaying ? 'Playing' : 'Paused'} at ${formatTime(state.currentTime)} of ${formatTime(state.duration)}. Volume: ${Math.round(state.volume * 100)}%. Playback rate: ${state.playbackRate}x. Quality: ${state.quality}.`,
+    [state.isPlayingAd, state.currentAd?.advertiser, state.adTimeRemaining, state.canSkipAd, state.isPlaying, state.currentTime, state.duration, state.volume, state.playbackRate, state.quality, formatTime]
+  )
+
   if (state.error) {
     return (
       <div className={`relative bg-black rounded-lg overflow-hidden ${className}`}>
@@ -916,12 +924,7 @@ useEffect(() => {
     >
       {/* Hidden video description for screen readers */}
       <div id="video-description" className="sr-only">
-        {useMemo(() => 
-          state.isPlayingAd 
-            ? `Currently playing advertisement: ${state.currentAd?.advertiser || 'Unknown advertiser'}. Duration: ${Math.ceil(state.adTimeRemaining)} seconds remaining. ${state.canSkipAd ? 'Skip button available.' : ''}`
-            : `Video player. ${state.isPlaying ? 'Playing' : 'Paused'} at ${formatTime(state.currentTime)} of ${formatTime(state.duration)}. Volume: ${Math.round(state.volume * 100)}%. Playback rate: ${state.playbackRate}x. Quality: ${state.quality}.`,
-          [state.isPlayingAd, state.currentAd?.advertiser, state.adTimeRemaining, state.canSkipAd, state.isPlaying, state.currentTime, state.duration, state.volume, state.playbackRate, state.quality, formatTime]
-        )}
+        {videoDescription}
       </div>
 
       {/* Screen reader announcements */}

@@ -379,14 +379,14 @@ export default function VideoDetailPage() {
             <Card className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
               <CardContent className="p-0">
                 <div className="aspect-video bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
-                  {video.hls_master_url ? (
+                  {video?.hls_master_url ? (
                     <CustomVideoPlayer
-                      src={video.hls_master_url}
-                      hlsVariants={video.hls_playlist_url || []}
-                      poster={video.thumbnail_url || undefined}
+                      src={video?.hls_master_url}
+                      hlsVariants={video?.hls_playlist_url || []}
+                      poster={video?.thumbnail_url || undefined}
                       autoPlay={true}
-                      startTime={video.start_time_seconds || 0}
-                      endTime={video.end_time_seconds || undefined}
+                      startTime={video?.start_time_seconds || 0}
+                      endTime={video?.end_time_seconds || undefined}
                       watermark={{
                         src: "",
                         position: "bottom-right",
