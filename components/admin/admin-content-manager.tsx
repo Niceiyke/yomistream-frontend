@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+import { API_BASE_URL, apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Plus, Edit, Trash2, Search, Filter } from "lucide-react"
+import { Loader2, Plus, Edit, Trash2, Search, Filter, Mic } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
 interface Video {
@@ -22,6 +22,7 @@ interface Video {
   title: string
   description?: string
   youtube_id: string
+  video_url: string
   preacher?: { id: string; name: string }
   topic?: string
   duration?: number
@@ -60,7 +61,7 @@ export function AdminContentManager() {
     queryKey: ["admin", "videos"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/admin/videos", { headers })
+      return apiGet("/api/v1/admin/videos", { headers })
     },
   })
 
@@ -69,7 +70,7 @@ export function AdminContentManager() {
     queryKey: ["admin", "preachers"],
     queryFn: async () => {
       const headers = await authHeaders()
-      return apiGet("/api/admin/preachers", { headers })
+      return apiGet("/api/v1/admin/preachers", { headers })
     },
   })
 
@@ -108,7 +109,7 @@ export function AdminContentManager() {
   const confirmDelete = async () => {
     try {
       const headers = await authHeaders()
-      const endpoint = deleteType === "video" ? `/api/admin/videos/${deleteId}` : `/api/admin/preachers/${deleteId}`
+      const endpoint = deleteType === "video" ? `/api/v1/admin/videos/${deleteId}` : `/api/v1/admin/preachers/${deleteId}`
 
       await apiDelete(endpoint, { headers })
 
@@ -134,9 +135,9 @@ export function AdminContentManager() {
       const isEditing = selectedVideo !== null
 
       if (isEditing) {
-        await apiPut(`/api/admin/videos/${selectedVideo.id}`, videoData, { headers })
+        await apiPut(`/api/v1/admin/videos/${selectedVideo.id}`, videoData, { headers })
       } else {
-        await apiPost("/api/admin/videos", videoData, { headers })
+        await apiPost("/api/v1/admin/videos", videoData, { headers })
       }
 
       queryClient.invalidateQueries({ queryKey: ["admin", "videos"] })
@@ -156,15 +157,51 @@ export function AdminContentManager() {
     }
   }
 
+  const handleTranscribeVideo = async (video: Video) => {
+    try {
+      const headers = await authHeaders()
+      const youtubeUrl = video.video_url ? video.video_url : `https://www.youtube.com/watch?v=${video.youtube_id}`
+
+      // Send as form data since the backend expects Form parameters
+      const formData = new FormData()
+      formData.append('audio_url', youtubeUrl)
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/transcription/transcribe-url`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          // Don't set Content-Type, let browser set it for FormData
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: "Success",
+        description: "Video sent for transcription successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send video for transcription.",
+      })
+    }
+  }
+
   const handleSavePreacher = async (preacherData: any) => {
     try {
       const headers = await authHeaders()
       const isEditing = selectedPreacher !== null
 
       if (isEditing) {
-        await apiPut(`/api/admin/preachers/${selectedPreacher.id}`, preacherData, { headers })
+        await apiPut(`/api/v1/admin/preachers/${selectedPreacher.id}`, preacherData, { headers })
       } else {
-        await apiPost("/api/admin/preachers", preacherData, { headers })
+        await apiPost("/api/v1/admin/preachers", preacherData, { headers })
       }
 
       queryClient.invalidateQueries({ queryKey: ["admin", "preachers"] })
@@ -282,6 +319,14 @@ export function AdminContentManager() {
                               onClick={() => handleEditVideo(video)}
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTranscribeVideo(video)}
+                              title="Send for transcription"
+                            >
+                              <Mic className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
