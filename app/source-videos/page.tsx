@@ -283,7 +283,7 @@ export default function SourceVideosPage() {
   const isLoading = authLoading || (sourceVideosQuery.isLoading && videos.length === 0)
 
   // Check if user has admin permissions
-  const isAdmin = user?.is_superuser || user?.role === 'admin'
+  const isAdmin = user?.is_superuser || user?.user_type === 'admin'
 
   if (isLoading) {
     return (
