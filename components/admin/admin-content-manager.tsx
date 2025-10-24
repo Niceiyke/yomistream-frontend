@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Loader2, Plus, Edit, Trash2, Search, Filter, Mic, ChevronDown, ChevronUp, X, Tag } from "lucide-react"
+import { Loader2, Plus, Edit, Trash2, Search, Filter, Mic, ChevronDown, ChevronUp, X, Tag, Brain } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 interface Video {
@@ -267,6 +267,41 @@ export function AdminContentManager() {
       toast({
         title: "Error",
         description: "Failed to send video for transcription.",
+      })
+    }
+  }
+
+  const handleAIAnalysis = async (video: Video) => {
+    try {
+      const headers = await authHeaders()
+
+      console.log("Starting AI analysis for video:", video.id)
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/admin/videos/${video.id}/ai-analysis`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: "Success",
+        description: "AI analysis has been queued. The video will be analyzed for summary and scripture extraction.",
+      })
+
+      console.log("AI analysis queued:", result)
+    } catch (error) {
+      console.error("AI analysis error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start AI analysis.",
       })
     }
   }
@@ -571,6 +606,14 @@ export function AdminContentManager() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  onClick={() => handleAIAnalysis(video)}
+                                  title="Generate AI summary & extract scriptures"
+                                >
+                                  <Brain className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => handleDelete("video", video.id)}
                                   className="text-red-600 hover:text-red-700"
                                 >
@@ -615,6 +658,15 @@ export function AdminContentManager() {
                                 className="h-8 w-8 p-0"
                               >
                                 <Mic className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAIAnalysis(video)}
+                                title="Generate AI summary & extract scriptures"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Brain className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
