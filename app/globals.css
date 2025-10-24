@@ -5,7 +5,7 @@
 
 :root {
   /* WordLyte Color Palette - Light Mode */
-  --background: oklch(0.98 0.02 85); /* Soft White/Cream #FFF9F0 */
+  --background: oklch(1 0 0); /* Pure White */
   --foreground: oklch(0.15 0 0); /* Deep Charcoal #222222 */
   --card: oklch(0.93 0.04 85); /* Muted Beige/Sand #F5E9D4 */
   --card-foreground: oklch(0.15 0 0); /* Deep Charcoal */
@@ -42,7 +42,7 @@
 
 .dark {
   /* WordLyte Color Palette - Dark Mode (Inverted with warm accents) */
-  --background: oklch(0.15 0 0); /* Deep Charcoal #222222 */
+  --background: oklch(0.1 0 0); /* Dark Gray */
   --foreground: oklch(0.98 0.02 85); /* Soft White/Cream */
   --card: oklch(0.22 0 0); /* Slightly lighter charcoal for cards */
   --card-foreground: oklch(0.98 0.02 85); /* Soft White/Cream */
