@@ -279,29 +279,6 @@ export default function GospelPlatform() {
         showActions={true}
       />
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-16 md:py-24">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Discover Divine Content
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
-            Explore inspiring sermons, teachings, and gospel content from renowned preachers worldwide.
-            Find your spiritual nourishment in our curated collection.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <div className="text-primary font-semibold text-lg">
-              <Play className="w-6 h-6 inline mr-2" />
-              {videos.length} Sermons Available
-            </div>
-            <div className="text-secondary font-semibold text-lg">
-              <Users className="w-6 h-6 inline mr-2" />
-              {preachers.length} Preachers
-            </div>
-          </div>
-        </div>
-      </section>
-
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
