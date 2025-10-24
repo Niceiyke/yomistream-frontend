@@ -76,8 +76,8 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Mobile Menu Button */}
             <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
               <SheetTrigger asChild>
@@ -99,25 +99,28 @@ export default function AdminPage() {
               variant="ghost"
               size="sm"
               onClick={() => router.push("/")}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground text-sm"
             >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to Platform
+              <ChevronLeft className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Back to Platform</span>
+              <span className="sm:hidden">Back</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 hidden sm:flex">
               <Shield className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold text-foreground hidden md:block">Admin Portal</h1>
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground hidden md:block">Admin Portal</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               onClick={() => handleSectionChange("upload")}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm"
+              size="sm"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Upload Content
+              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Upload Content</span>
+              <span className="sm:hidden">Upload</span>
             </Button>
           </div>
         </div>

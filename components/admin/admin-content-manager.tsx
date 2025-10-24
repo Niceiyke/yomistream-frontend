@@ -14,9 +14,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Plus, Edit, Trash2, Search, Filter, Mic } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Loader2, Plus, Edit, Trash2, Search, Filter, Mic, ChevronDown, ChevronUp, X, Tag } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 interface Video {
   id: string
   title: string
@@ -47,6 +48,14 @@ export function AdminContentManager() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteType, setDeleteType] = useState<"video" | "preacher">("video")
   const [deleteId, setDeleteId] = useState<string>("")
+  
+  // Filter states
+  const [preacherFilter, setPreacherFilter] = useState<string>("all")
+  const [topicFilter, setTopicFilter] = useState<string>("all")
+  const [dateFilter, setDateFilter] = useState<string>("all")
+  const [durationFilter, setDurationFilter] = useState<string>("all")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [showFilters, setShowFilters] = useState(false)
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -77,12 +86,75 @@ export function AdminContentManager() {
   const videos = videosData || []
   const preachers = preachersData || []
 
-  // Filter videos based on search term
-  const filteredVideos = videos.filter((video: Video) =>
-    video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    video.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    video.preacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Extract unique topics and tags from videos
+  const uniqueTopics: string[] = Array.from(new Set(videos.map((v: Video) => v.topic).filter((topic: string | undefined): topic is string => Boolean(topic)))) as string[]
+  const allTags: string[] = videos.flatMap((v: Video) => v.tags || []).filter((tag: string): tag is string => Boolean(tag))
+  const uniqueTags: string[] = Array.from(new Set(allTags))
+
+  // Enhanced filtering logic
+  const filteredVideos = videos.filter((video: Video) => {
+    // Text search
+    const matchesSearch = searchTerm === "" ||
+      video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      video.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      video.preacher?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      video.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      video.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+
+    // Preacher filter
+    const matchesPreacher = preacherFilter === "all" || video.preacher?.id === preacherFilter
+
+    // Topic filter
+    const matchesTopic = topicFilter === "all" || video.topic === topicFilter
+
+    // Date filter
+    let matchesDate = true
+    if (dateFilter !== "all") {
+      const videoDate = new Date(video.created_at)
+      const now = new Date()
+      const daysDiff = Math.floor((now.getTime() - videoDate.getTime()) / (1000 * 3600 * 24))
+      
+      switch (dateFilter) {
+        case "today":
+          matchesDate = daysDiff === 0
+          break
+        case "week":
+          matchesDate = daysDiff <= 7
+          break
+        case "month":
+          matchesDate = daysDiff <= 30
+          break
+        case "quarter":
+          matchesDate = daysDiff <= 90
+          break
+        case "year":
+          matchesDate = daysDiff <= 365
+          break
+      }
+    }
+
+    // Duration filter
+    let matchesDuration = true
+    if (durationFilter !== "all" && video.duration) {
+      switch (durationFilter) {
+        case "short":
+          matchesDuration = video.duration < 300 // < 5 minutes
+          break
+        case "medium":
+          matchesDuration = video.duration >= 300 && video.duration < 1800 // 5-30 minutes
+          break
+        case "long":
+          matchesDuration = video.duration >= 1800 // >= 30 minutes
+          break
+      }
+    }
+
+    // Tags filter
+    const matchesTags = selectedTags.length === 0 || 
+      selectedTags.every(tag => video.tags?.includes(tag))
+
+    return matchesSearch && matchesPreacher && matchesTopic && matchesDate && matchesDuration && matchesTags
+  })
 
   // Filter preachers based on search term
   const filteredPreachers = preachers.filter((preacher: Preacher) =>
@@ -262,7 +334,7 @@ export function AdminContentManager() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -272,7 +344,166 @@ export function AdminContentManager() {
             className="pl-10"
           />
         </div>
+        <Button
+          variant="outline"
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2"
+        >
+          <Filter className="h-4 w-4" />
+          Filters
+          {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {(preacherFilter !== "all" || topicFilter !== "all" || dateFilter !== "all" || durationFilter !== "all" || selectedTags.length > 0) && (
+            <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+              {[
+                preacherFilter !== "all" ? 1 : 0,
+                topicFilter !== "all" ? 1 : 0,
+                dateFilter !== "all" ? 1 : 0,
+                durationFilter !== "all" ? 1 : 0,
+                selectedTags.length
+              ].reduce((a, b) => a + b, 0)}
+            </Badge>
+          )}
+        </Button>
       </div>
+
+      {/* Advanced Filters */}
+      <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+        <CollapsibleContent className="space-y-4">
+          <Card className="bg-card/50 border-border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Advanced Filters</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPreacherFilter("all")
+                    setTopicFilter("all")
+                    setDateFilter("all")
+                    setDurationFilter("all")
+                    setSelectedTags([])
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Preacher Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="preacher-filter" className="text-sm font-medium">Preacher</Label>
+                  <Select value={preacherFilter} onValueChange={setPreacherFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All preachers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Preachers</SelectItem>
+                      {preachers.map((preacher: Preacher) => (
+                        <SelectItem key={preacher.id} value={preacher.id}>
+                          {preacher.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Topic Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="topic-filter" className="text-sm font-medium">Topic</Label>
+                  <Select value={topicFilter} onValueChange={setTopicFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All topics" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Topics</SelectItem>
+                      {uniqueTopics.map((topic) => (
+                        <SelectItem key={topic} value={topic}>
+                          {topic}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="date-filter" className="text-sm font-medium">Date Added</Label>
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All dates" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Dates</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="week">This Week</SelectItem>
+                      <SelectItem value="month">This Month</SelectItem>
+                      <SelectItem value="quarter">This Quarter</SelectItem>
+                      <SelectItem value="year">This Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Duration Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="duration-filter" className="text-sm font-medium">Duration</Label>
+                  <Select value={durationFilter} onValueChange={setDurationFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All durations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Durations</SelectItem>
+                      <SelectItem value="short">Short (&lt; 5 min)</SelectItem>
+                      <SelectItem value="medium">Medium (5-30 min)</SelectItem>
+                      <SelectItem value="long">Long (&ge; 30 min)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Tags Filter */}
+              {uniqueTags.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Tags
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {uniqueTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant={selectedTags.includes(tag) ? "default" : "outline"}
+                        className="cursor-pointer hover:bg-primary/80"
+                        onClick={() => {
+                          setSelectedTags(prev =>
+                            prev.includes(tag)
+                              ? prev.filter(t => t !== tag)
+                              : [...prev, tag]
+                          )
+                        }}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                  {selectedTags.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedTags([])}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      Clear tags
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -300,54 +531,110 @@ export function AdminContentManager() {
                   Loading videos...
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead>Title</TableHead>
-                      <TableHead>Preacher</TableHead>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead>Title</TableHead>
+                          <TableHead>Preacher</TableHead>
+                          <TableHead>Topic</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="w-[100px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredVideos.map((video: Video) => (
+                          <TableRow key={video.id} className="border-border">
+                            <TableCell className="font-medium">{video.title}</TableCell>
+                            <TableCell>{video.preacher?.name || "Unknown"}</TableCell>
+                            <TableCell>{video.topic || "—"}</TableCell>
+                            <TableCell>{new Date(video.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditVideo(video)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleTranscribeVideo(video)}
+                                  title="Send for transcription"
+                                >
+                                  <Mic className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete("video", video.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden space-y-4">
                     {filteredVideos.map((video: Video) => (
-                      <TableRow key={video.id} className="border-border">
-                        <TableCell className="font-medium">{video.title}</TableCell>
-                        <TableCell>{video.preacher?.name || "Unknown"}</TableCell>
-                        <TableCell>{video.topic || "—"}</TableCell>
-                        <TableCell>{new Date(video.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditVideo(video)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleTranscribeVideo(video)}
-                              title="Send for transcription"
-                            >
-                              <Mic className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete("video", video.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                      <Card key={video.id} className="bg-card/50 border-border shadow-sm">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1 min-w-0 mr-2">
+                              <h3 className="font-semibold text-foreground line-clamp-2 mb-1">
+                                {video.title}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {video.preacher?.name || "Unknown"}
+                              </p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditVideo(video)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleTranscribeVideo(video)}
+                                title="Send for transcription"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Mic className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete("video", video.id)}
+                                className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                          <div className="flex justify-between items-center text-sm text-muted-foreground">
+                            <span>{video.topic || "No topic"}</span>
+                            <span>{new Date(video.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -368,42 +655,85 @@ export function AdminContentManager() {
                   Loading preachers...
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead>Name</TableHead>
-                      <TableHead>Bio</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead>Name</TableHead>
+                          <TableHead>Bio</TableHead>
+                          <TableHead className="w-[100px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPreachers.map((preacher: Preacher) => (
+                          <TableRow key={preacher.id} className="border-border">
+                            <TableCell className="font-medium">{preacher.name}</TableCell>
+                            <TableCell className="max-w-xs truncate">{preacher.bio || "—"}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditPreacher(preacher)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete("preacher", preacher.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden space-y-4">
                     {filteredPreachers.map((preacher: Preacher) => (
-                      <TableRow key={preacher.id} className="border-border">
-                        <TableCell className="font-medium">{preacher.name}</TableCell>
-                        <TableCell className="max-w-xs truncate">{preacher.bio || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditPreacher(preacher)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete("preacher", preacher.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                      <Card key={preacher.id} className="bg-card/50 border-border shadow-sm">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 min-w-0 mr-2">
+                              <h3 className="font-semibold text-foreground line-clamp-1 mb-2">
+                                {preacher.name}
+                              </h3>
+                              <p className="text-sm text-muted-foreground line-clamp-3">
+                                {preacher.bio || "No bio available"}
+                              </p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditPreacher(preacher)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete("preacher", preacher.id)}
+                                className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -435,6 +765,7 @@ export function AdminContentManager() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <VisuallyHidden>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
@@ -450,7 +781,9 @@ export function AdminContentManager() {
               Delete
             </Button>
           </DialogFooter>
+          
         </DialogContent>
+        </VisuallyHidden>
       </Dialog>
     </div>
   )
