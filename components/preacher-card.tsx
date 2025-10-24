@@ -51,13 +51,13 @@ export function PreacherCard({
               .join("")}
           </AvatarFallback>
         </Avatar>
-        <CardTitle className="text-foreground text-xl group-hover:text-primary transition-colors duration-300 font-bold">
+        <CardTitle className="text-foreground text-xl group-hover:text-primary transition-colors duration-300 font-bold line-clamp-2">
           {preacher.name}
         </CardTitle>
         <CardDescription className="text-muted-foreground group-hover:text-secondary/80 transition-colors duration-300">{preacher.church}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
-        <p className="text-sm text-muted-foreground">{preacher.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-3">{preacher.description}</p>
 
         <div className="flex items-center justify-center space-x-1 text-sm text-muted-foreground group-hover:text-secondary/80 transition-colors duration-300">
           <Play className="w-3 h-3 text-secondary/70 group-hover:text-secondary transition-colors" />

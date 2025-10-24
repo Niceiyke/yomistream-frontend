@@ -83,7 +83,7 @@ export function StudioSidebar({ activeSection, onSectionChange }: StudioSidebarP
                 )} />
                 <div className="flex-1 min-w-0">
                   <div className={cn(
-                    "font-medium text-sm",
+                    "font-medium text-sm truncate",
                     isActive ? "text-primary" : "text-foreground"
                   )}>
                     {item.label}
@@ -108,20 +108,20 @@ export function StudioSidebar({ activeSection, onSectionChange }: StudioSidebarP
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start"
+            className="w-full justify-start whitespace-nowrap overflow-hidden"
             onClick={() => onSectionChange("upload")}
           >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Image
+            <Upload className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">Upload Image</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start"
+            className="w-full justify-start whitespace-nowrap overflow-hidden"
             onClick={() => onSectionChange("content")}
           >
-            <Video className="h-4 w-4 mr-2" />
-            New Video
+            <Video className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">New Video</span>
           </Button>
         </div>
       </div>

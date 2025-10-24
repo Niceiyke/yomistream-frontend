@@ -522,9 +522,11 @@ export default function VideoDetailPage() {
                     </h2>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap text-base">
-                      {video.description}
-                    </p>
+                    <div className="max-h-60 overflow-y-auto">
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap text-base">
+                        {video.description}
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               )}

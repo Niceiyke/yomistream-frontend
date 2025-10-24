@@ -310,7 +310,7 @@ export default function CollectionsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {collection.description && <p className="text-muted-foreground text-sm mb-2">{collection.description}</p>}
+                    {collection.description && <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{collection.description}</p>}
                     <p className="text-muted-foreground text-xs">
                       {collection.video_count} video{collection.video_count !== 1 ? "s" : ""}
                     </p>
@@ -336,7 +336,7 @@ export default function CollectionsPage() {
               <>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-foreground mb-2">{selectedCollection.name}</h2>
-                  {selectedCollection.description && <p className="text-muted-foreground">{selectedCollection.description}</p>}
+                  {selectedCollection.description && <p className="text-muted-foreground line-clamp-3">{selectedCollection.description}</p>}
                   <p className="text-muted-foreground text-sm mt-2">
                     {collectionVideos.length} video{collectionVideos.length !== 1 ? "s" : ""}
                   </p>
@@ -348,7 +348,7 @@ export default function CollectionsPage() {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h3 className="text-foreground font-medium mb-1">{item.video.title}</h3>
+                            <h3 className="text-foreground font-medium mb-1 line-clamp-2">{item.video.title}</h3>
                             <p className="text-muted-foreground text-sm">
                               {item.video.preacher?.name} • {formatDuration(item.video.duration)}
                             </p>

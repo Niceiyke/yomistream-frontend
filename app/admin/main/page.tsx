@@ -33,9 +33,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Plus, Edit, Trash2, Users, BookOpen, BarChart3, Sparkles, FolderOpen } from "lucide-react"
+import { Plus, Edit, Trash2, Users, BookOpen, BarChart3, Sparkles, FolderOpen, Menu, ChevronLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { AdminSidebar } from "@/components/studio/admin-sidebar"
 
 interface AdminVideo {
   id: string
@@ -324,6 +326,8 @@ export default function AdminDashboard() {
   const [isPreacherDialogOpen, setIsPreacherDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isGeneratingContent, setIsGeneratingContent] = useState(false)
+  const [activeSection, setActiveSection] = useState("videos")
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -406,6 +410,11 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section)
+    setIsMobileSidebarOpen(false)
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -415,13 +424,31 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Main Channel Dashboard</h1>
-            <p className="text-muted-foreground">Manage the videos and metadata promoted to the platform</p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            {/* Mobile Menu Button */}
+            <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="md:hidden"
+                  aria-label="Open sidebar"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64 sm:w-72">
+                <AdminSidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
+              </SheetContent>
+            </Sheet>
+
+            <h1 className="text-xl font-semibold text-foreground hidden md:block">Main Channel Dashboard</h1>
           </div>
+
           <div className="flex items-center gap-3">
             <Button
               onClick={() => router.push("/admin")}
@@ -441,6 +468,23 @@ export default function AdminDashboard() {
             </Button>
           </div>
         </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar - Hidden on mobile, shown on md+ */}
+        <div className="hidden md:block">
+          <AdminSidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
+        </div>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground md:hidden">Main Channel Dashboard</h1>
+                <p className="text-muted-foreground">Manage the videos and metadata promoted to the platform</p>
+              </div>
+            </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -485,304 +529,283 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="videos" className="space-y-6">
-          <TabsList className="bg-card border-border shadow-sm">
-            <TabsTrigger value="videos" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Videos
-            </TabsTrigger>
-            <TabsTrigger value="preachers" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Preachers
-            </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Videos Tab */}
-          <TabsContent value="videos">
-            <Card className="bg-card border-border shadow-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-foreground">Video Management</CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                      Manage all videos, generate AI content, and organize your library
-                    </CardDescription>
-                  </div>
-                  <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Video
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Add New Video</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                          Add a new gospel video to your platform
-                        </DialogDescription>
-                      </DialogHeader>
-                      <VideoForm
-                        onClose={() => setIsVideoDialogOpen(false)}
-                        onSave={() => queryClient.invalidateQueries({ queryKey: ["admin", "videos"] })}
-                      />
-                    </DialogContent>
-                  </Dialog>
+        {/* Content based on active section */}
+        {activeSection === "videos" && (
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-foreground">Video Management</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Manage all videos, generate AI content, and organize your library
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-hidden">
-                  <Table className="w-full table-fixed">
-                    <TableHeader>
-                      <TableRow className="border-white/20">
-                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Title</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Preacher</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Topic</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Tags</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">AI Content</TableHead>
-                        <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {videos.map((video) => (
-                        <TableRow key={video.id} className="border-border hover:bg-accent/50">
-                          <TableCell className="text-foreground font-medium">{video.title}</TableCell>
-                          <TableCell className="text-muted-foreground">{(video as any).preachers?.name}</TableCell>
-                          <TableCell className="text-muted-foreground">{video.topic}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {video.tags?.slice(0, 2).map((tag, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="secondary"
-                                  className="bg-secondary/20 text-secondary-foreground text-xs"
-                                >
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {video.tags?.length > 2 && (
-                                <Badge variant="secondary" className="bg-primary/20 text-primary-foreground text-xs">
-                                  +{video.tags.length - 2} more
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
+                <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Video
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add New Video</DialogTitle>
+                      <DialogDescription className="text-muted-foreground">
+                        Add a new gospel video to your platform
+                      </DialogDescription>
+                    </DialogHeader>
+                    <VideoForm
+                      onClose={() => setIsVideoDialogOpen(false)}
+                      onSave={() => queryClient.invalidateQueries({ queryKey: ["admin", "videos"] })}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table className="w-full table-fixed">
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Title</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Preacher</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Topic</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Tags</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">AI Content</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {videos.map((video) => (
+                      <TableRow key={video.id} className="border-border hover:bg-accent/50">
+                        <TableCell className="text-foreground font-medium">{video.title}</TableCell>
+                        <TableCell className="text-muted-foreground">{(video as any).preachers?.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{video.topic}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {video.tags?.slice(0, 2).map((tag, index) => (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="bg-secondary/20 text-secondary-foreground text-xs"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                            {video.tags?.length > 2 && (
+                              <Badge variant="secondary" className="bg-primary/20 text-primary-foreground text-xs">
+                                +{video.tags.length - 2} more
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateAIContent(video.id)}
+                            disabled={isGeneratingContent}
+                            className="border-purple-500/30 text-purple-200 hover:bg-purple-500/10"
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            {isGeneratingContent ? "Generating..." : "Generate"}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => generateAIContent(video.id)}
-                              disabled={isGeneratingContent}
-                              className="border-purple-500/30 text-purple-200 hover:bg-purple-500/10"
+                              className="border-blue-500/40 text-blue-300 hover:bg-blue-600/20 hover:text-blue-100"
+                              onClick={() => {
+                                setSelectedVideo(video)
+                                setIsEditDialogOpen(true)
+                              }}
                             >
-                              <Sparkles className="w-3 h-3 mr-1" />
-                              {isGeneratingContent ? "Generating..." : "Generate"}
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
                             </Button>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-blue-500/40 text-blue-300 hover:bg-blue-600/20 hover:text-blue-100"
-                                onClick={() => {
-                                  setSelectedVideo(video)
-                                  setIsEditDialogOpen(true)
-                                }}
-                              >
-                                <Edit className="w-3 h-3 mr-1" />
-                                Edit
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/10">
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-foreground">Delete Video</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-muted-foreground">
-                                      Are you sure you want to delete "{video.title}"? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deleteVideo(video.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/10">
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-foreground">Delete Video</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    Are you sure you want to delete "{video.title}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteVideo(video.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Preachers Tab */}
-          <TabsContent value="preachers">
-            <Card className="bg-card border-border shadow-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-foreground">Preacher Management</CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                      Manage preacher profiles and information
-                    </CardDescription>
-                  </div>
-                  <Dialog open={isPreacherDialogOpen} onOpenChange={setIsPreacherDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Preacher
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Add New Preacher</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                          Add a new preacher to your platform
-                        </DialogDescription>
-                      </DialogHeader>
-                      <PreacherForm
-                        onClose={() => setIsPreacherDialogOpen(false)}
-                        onSave={() => queryClient.invalidateQueries({ queryKey: ["admin", "preachers"] })}
-                      />
-                    </DialogContent>
-                  </Dialog>
+        {activeSection === "preachers" && (
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-foreground">Preacher Management</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Manage preacher profiles and information
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {preachers.map((preacher) => (
-                    <Card key={preacher.id} className="bg-card border-border shadow-sm hover:bg-accent/20">
-                      <CardContent className="p-4">
-                        <div className="flex items-start space-x-4">
-                          <img
-                            src={preacher.image_url || "/placeholder.svg?height=60&width=60"}
-                            alt={preacher.name}
-                            className="w-15 h-15 rounded-full object-cover"
-                          />
-                          <div className="flex-1">
-                            <h3 className="text-foreground font-semibold">{preacher.name}</h3>
-                            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{preacher.bio}</p>
-                            <div className="flex space-x-2 mt-3">
-                              <Button size="sm" variant="ghost" className="text-secondary hover:bg-secondary/10">
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/10">
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-slate-800 border-slate-700">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-foreground">Delete Preacher</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-muted-foreground">
-                                      Are you sure you want to delete {preacher.name}? This will also affect all
-                                      associated videos.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deletePreacher(preacher.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
+                <Dialog open={isPreacherDialogOpen} onOpenChange={setIsPreacherDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Preacher
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add New Preacher</DialogTitle>
+                      <DialogDescription className="text-muted-foreground">
+                        Add a new preacher to your platform
+                      </DialogDescription>
+                    </DialogHeader>
+                    <PreacherForm
+                      onClose={() => setIsPreacherDialogOpen(false)}
+                      onSave={() => queryClient.invalidateQueries({ queryKey: ["admin", "preachers"] })}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {preachers.map((preacher) => (
+                  <Card key={preacher.id} className="bg-card border-border shadow-sm hover:bg-accent/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-4">
+                        <img
+                          src={preacher.image_url || "/placeholder.svg?height=60&width=60"}
+                          alt={preacher.name}
+                          className="w-15 h-15 rounded-full object-cover"
+                        />
+                        <div className="flex-1">
+                          <h3 className="text-foreground font-semibold line-clamp-1">{preacher.name}</h3>
+                          <p className="text-muted-foreground text-sm mt-1 line-clamp-1 sm:line-clamp-2">{preacher.bio}</p>
+                          <div className="flex space-x-2 mt-3">
+                            <Button size="sm" variant="ghost" className="text-secondary hover:bg-secondary/10">
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/10">
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-slate-800 border-slate-700">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-foreground">Delete Preacher</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    Are you sure you want to delete {preacher.name}? This will also affect all
+                                    associated videos.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deletePreacher(preacher.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Users Tab */}
-          <TabsContent value="users">
-            <Card className="bg-card border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-foreground">User Management</CardTitle>
-                <CardDescription className="text-muted-foreground">View and manage platform users</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table >
-                    <TableHeader>
-                      <TableRow className="border-white/20">
-                        <TableHead className="text-muted-foreground">Display Name</TableHead>
-                        <TableHead className="text-muted-foreground">User ID</TableHead>
-                        <TableHead className="text-muted-foreground">Joined</TableHead>
-                        <TableHead className="text-muted-foreground">Actions</TableHead>
+        {activeSection === "users" && (
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-foreground">User Management</CardTitle>
+              <CardDescription className="text-muted-foreground">View and manage platform users</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table className="w-full table-fixed">
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Display Name</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">User ID</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Joined</TableHead>
+                      <TableHead className="px-4 py-2 text-left text-muted-foreground truncate whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id} className="border-border">
+                        <TableCell className="text-foreground font-medium">{user.display_name}</TableCell>
+                        <TableCell className="text-gray-300 font-mono text-xs">{user.id}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" className="text-blue-400 hover:bg-blue-500/10">
+                            View Details
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id} className="border-white/20">
-                          <TableCell className="text-white font-medium">{user.display_name}</TableCell>
-                          <TableCell className="text-gray-300 font-mono text-xs">{user.id}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Button size="sm" variant="ghost" className="text-blue-400 hover:bg-blue-500/10">
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics">
-            <Card className="bg-card border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-foreground">Platform Analytics</CardTitle>
-                <CardDescription className="text-muted-foreground">View platform usage and engagement metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-white text-lg font-semibold mb-2">Analytics Coming Soon</h3>
-                  <p className="text-muted-foreground">
-                    Detailed analytics and reporting features will be available in a future update.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {activeSection === "analytics" && (
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-foreground">Platform Analytics</CardTitle>
+              <CardDescription className="text-muted-foreground">View platform usage and engagement metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-foreground text-lg font-semibold mb-2">Analytics Coming Soon</h3>
+                <p className="text-muted-foreground">
+                  Detailed analytics and reporting features will be available in a future update.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {/* Edit Video Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="bg-slate-800 border-slate-700 text-white sm:max-w-5xl w-[92vw] md:w-[75vw] max-h-[85vh] overflow-y-auto">
@@ -813,6 +836,8 @@ export default function AdminDashboard() {
             )}
           </DialogContent>
         </Dialog>
+          </div>
+        </main>
       </div>
     </div>
   )

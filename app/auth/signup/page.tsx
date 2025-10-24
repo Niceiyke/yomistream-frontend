@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { BookOpen } from "lucide-react"
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("")
@@ -56,6 +57,23 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+              <BookOpen className="w-7 h-7 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
+                WordLyte
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Divine Illumination
+              </p>
+            </div>
+          </Link>
+        </div>
+
         <Card className="bg-card border-border shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-foreground">Join Our Community</CardTitle>

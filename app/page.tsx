@@ -279,6 +279,29 @@ export default function GospelPlatform() {
         showActions={true}
       />
 
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 py-16 md:py-24">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
+            Discover Divine Content
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
+            Explore inspiring sermons, teachings, and gospel content from renowned preachers worldwide.
+            Find your spiritual nourishment in our curated collection.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="text-primary font-semibold text-lg">
+              <Play className="w-6 h-6 inline mr-2" />
+              {videos.length} Sermons Available
+            </div>
+            <div className="text-secondary font-semibold text-lg">
+              <Users className="w-6 h-6 inline mr-2" />
+              {preachers.length} Preachers
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -382,7 +405,7 @@ export default function GospelPlatform() {
                 </p>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredVideos.map((video) => (
                 <FixedVideoCard
                   key={video.id}
@@ -410,7 +433,7 @@ export default function GospelPlatform() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredPreachers.map((preacher) => (
               <PreacherCard
                 key={preacher.id}
@@ -433,12 +456,26 @@ export default function GospelPlatform() {
 
         {((activeTab === "videos" && filteredVideos.length === 0) ||
           (activeTab === "preachers" && filteredPreachers.length === 0)) && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-gray-400" />
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No results found</h3>
-            <p className="text-gray-400">Try adjusting your search or filter criteria</p>
+            <h3 className="text-2xl font-semibold text-foreground mb-3">No results found</h3>
+            <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed">
+              Try adjusting your search terms, filters, or browse our full collection.
+            </p>
+            <Button
+              onClick={() => {
+                setSearchQuery("")
+                setSelectedTopic("all")
+                setSelectedTags([])
+                setFilteredPreacherId(null)
+              }}
+              className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="lg"
+            >
+              Clear All Filters
+            </Button>
           </div>
         )}
       </div>
