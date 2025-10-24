@@ -29,7 +29,8 @@ import {
   Download,
   Calendar,
   MapPin,
-  Globe
+  Globe,
+  FileText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -524,6 +525,23 @@ export default function VideoDetailPage() {
                     <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap text-base">
                       {video.description}
                     </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Transcript */}
+              {video.transcript && (
+                <Card className="border-border/50 shadow-sm bg-gradient-to-br from-card to-card/50">
+                  <CardHeader className="pb-4">
+                    <h2 className="text-xl font-semibold text-foreground flex items-center">
+                      <FileText className="w-5 h-5 mr-3 text-primary" />
+                      Transcript
+                    </h2>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap text-base max-h-96 overflow-y-auto">
+                      {video.transcript}
+                    </div>
                   </CardContent>
                 </Card>
               )}
