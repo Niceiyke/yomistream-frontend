@@ -31,14 +31,13 @@ function makeCacheKey(path: string, init?: RequestInit) {
   return `${API_BASE_URL}${path}::${headers}`;
 }
 
+import { authenticatedFetch } from '@/lib/auth-utils'
+
 export async function apiGet(path: string, init?: RequestInit) {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
-  const res = await fetch(url, {
+  const res = await authenticatedFetch(url, {
     ...init,
     method: "GET",
-    headers: {
-      ...(init?.headers || {}),
-    },
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -68,7 +67,7 @@ export function clearGetCache(prefix?: string) {
 
 export async function apiPost(path: string, body: any, init?: RequestInit) {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
-  const res = await fetch(url, {
+  const res = await authenticatedFetch(url, {
     ...init,
     method: "POST",
     headers: {
@@ -83,7 +82,7 @@ export async function apiPost(path: string, body: any, init?: RequestInit) {
 
 export async function apiPut(path: string, body: any, init?: RequestInit) {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
-  const res = await fetch(url, {
+  const res = await authenticatedFetch(url, {
     ...init,
     method: "PUT",
     headers: {
@@ -98,12 +97,9 @@ export async function apiPut(path: string, body: any, init?: RequestInit) {
 
 export async function apiDelete(path: string, init?: RequestInit) {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
-  const res = await fetch(url, {
+  const res = await authenticatedFetch(url, {
     ...init,
     method: "DELETE",
-    headers: {
-      ...(init?.headers || {}),
-    },
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
