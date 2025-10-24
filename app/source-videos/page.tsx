@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Play, Filter, Globe, Calendar, Tag as TagIcon, ExternalLink } from "lucide-react"
+import { Search, Play, Filter, Globe, Calendar, Tag as TagIcon, ExternalLink, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -282,12 +282,35 @@ export default function SourceVideosPage() {
   // Show loading if auth is loading or if we're loading data and don't have any yet
   const isLoading = authLoading || (sourceVideosQuery.isLoading && videos.length === 0)
 
+  // Check if user has admin permissions
+  const isAdmin = user?.is_superuser || user?.role === 'admin'
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-foreground text-xl mb-4">Loading source videos...</div>
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Check for admin access
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-destructive text-xl mb-4">Access Denied</div>
+          <p className="text-muted-foreground mb-6">
+            You need administrator privileges to access this page.
+          </p>
+          <Button
+            onClick={() => router.push('/')}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            Go to Home
+          </Button>
         </div>
       </div>
     )
@@ -329,10 +352,17 @@ export default function SourceVideosPage() {
           <h1 className="text-4xl font-bold text-foreground mb-4">
             Source Videos
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
             Discover Christian sermons and teachings from YouTube sources.
             Browse our curated collection of gospel content.
           </p>
+          <Button
+            onClick={() => router.push('/source-videos/import')}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import Videos
+          </Button>
         </div>
 
         {/* Search and Filters */}
