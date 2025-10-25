@@ -63,7 +63,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       setExpandedSections(prev => ({
         ...prev,
         'sermon-notes': isDesktop, // Visible on desktop, hidden on mobile
-        'scripture-references': prev['scripture-references'] || false // Keep scripture collapsed by default
+        'scripture-references': prev['scripture-references'] || false, // Keep scripture collapsed by default
+        'key-points': prev['key-points'] || false // Keep key points collapsed by default
       }))
     }
 
@@ -458,6 +459,64 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         </div>
                         <p className="text-foreground leading-relaxed text-sm italic">
                           "{scripture.verse}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Key Points - Primary Focus */}
+            {video.key_points && video.key_points.length > 0 && (
+              <Card className="border-accent/20 shadow-lg bg-gradient-to-br from-accent/5 to-primary/5">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center">
+                      <FileText className="w-6 h-6 mr-3 text-accent" />
+                      Key Points
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      {video.key_points.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleSection('key-points')}
+                          className="h-8 w-8 p-0 hover:bg-accent/10"
+                        >
+                          {expandedSections['key-points'] ?
+                            <ChevronUp className="w-4 h-4" /> :
+                            <ChevronDown className="w-4 h-4" />
+                          }
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid gap-4 md:grid-cols-1">
+                    {(expandedSections['key-points'] ? video.key_points : []).map((keyPoint: string, index: number) => (
+                      <div key={index} className="bg-card/60 rounded-lg p-5 border border-accent/10 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-3 flex items-center justify-between">
+                          <Badge variant="outline" className="bg-accent/10 border-accent/30 text-accent font-semibold px-3 py-1">
+                            Key Point {index + 1}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(keyPoint, `key-point-${index}`)}
+                            className="h-6 w-6 p-0 hover:bg-accent/10 opacity-60 hover:opacity-100"
+                            title="Copy key point"
+                          >
+                            {copiedItems.has(`key-point-${index}`) ? (
+                              <Check className="w-3 h-3 text-green-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap">
+                          {keyPoint}
                         </p>
                       </div>
                     ))}
