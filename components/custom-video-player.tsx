@@ -10,7 +10,7 @@ import {
   Maximize, 
   Minimize, 
   Settings, 
-  SkipBack, 
+  SkipBack,
   SkipForward,
   Loader2,
   AlertCircle,
@@ -49,13 +49,6 @@ interface Watermark {
   clickUrl?: string
 }
 
-interface Logo {
-  src: string
-  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-  size: 'small' | 'medium' | 'large'
-  clickUrl?: string
-  showDuration?: number // seconds to show logo, 0 for always
-}
 
 interface Chapter {
   id: string
@@ -82,7 +75,6 @@ interface VideoPlayerProps {
   // New features
   ads?: Ad[]
   watermark?: Watermark
-  logo?: Logo
   chapters?: Chapter[]
   onChapterChange?: (chapter: Chapter) => void
   onAdStart?: (ad: Ad) => void
@@ -109,7 +101,6 @@ interface VideoState {
   isPlayingAd: boolean
   adTimeRemaining: number
   canSkipAd: boolean
-  showLogo: boolean
   playedAds: string[] // Track which ads have been played
   // Error recovery
   retryCount: number
@@ -118,6 +109,9 @@ interface VideoState {
   showThumbnailPreview: boolean
   thumbnailPreviewTime: number
   thumbnailPreviewPosition: number
+  // Double-click seeking
+  seekFeedback: 'backward' | 'forward' | null
+  seekFeedbackTimeout: NodeJS.Timeout | null
 }
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -154,7 +148,6 @@ const CustomVideoPlayer = ({
   className = "",
   ads = [],
   watermark,
-  logo,
   chapters = [],
   onChapterChange,
   onAdStart,
@@ -181,14 +174,13 @@ const CustomVideoPlayer = ({
     isLoading: true,
     error: null,
     buffered: 0,
-    quality: 'auto',
+    quality: '720',
     playbackRate: 1,
     // Ad state
     currentAd: null,
     isPlayingAd: false,
     adTimeRemaining: 0,
     canSkipAd: false,
-    showLogo: !logo?.showDuration || logo.showDuration === 0, // Show permanently if no duration or 0
     playedAds: [],
     // Error recovery
     retryCount: 0,
@@ -196,7 +188,10 @@ const CustomVideoPlayer = ({
     // Thumbnail preview
     showThumbnailPreview: false,
     thumbnailPreviewTime: 0,
-    thumbnailPreviewPosition: 0
+    thumbnailPreviewPosition: 0,
+    // Double-click seeking
+    seekFeedback: null,
+    seekFeedbackTimeout: null
   })
   
   const [announcements, setAnnouncements] = useState<Array<{id: string, text: string}>>([])
@@ -351,8 +346,13 @@ const CustomVideoPlayer = ({
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
               const levels = hls.levels
               if (levels.length > 0) {
-                // Set initial quality to auto
-                hls.currentLevel = -1
+                // Set initial quality to 720p if available, otherwise auto
+                const sevenTwentyLevel = levels.findIndex(level => level.height === 720)
+                if (sevenTwentyLevel !== -1) {
+                  hls.currentLevel = sevenTwentyLevel
+                } else {
+                  hls.currentLevel = -1
+                }
               }
             })
             
@@ -608,22 +608,10 @@ const CustomVideoPlayer = ({
     
     videoRef.current.addEventListener('canplay', handleCanPlay)
     
-    // Handle logo timing
-    if (logo?.showDuration && logo.showDuration > 0) {
-      const timer = setTimeout(() => {
-        setState(prev => ({ ...prev, showLogo: false }))
-      }, logo.showDuration * 1000)
-      
-      return () => {
-        clearTimeout(timer)
-        videoRef.current?.removeEventListener('canplay', handleCanPlay)
-      }
-    }
-    
     return () => {
       videoRef.current?.removeEventListener('canplay', handleCanPlay)
     }
-  }, [ads, autoPlay, state.isPlayingAd, state.playedAds, playAd, logo])
+  }, [ads, autoPlay, state.isPlayingAd, state.playedAds, playAd])
 
   // Auto-hide controls with proper cleanup
  // Auto-hide controls
@@ -842,7 +830,7 @@ useEffect(() => {
     if (hlsRef.current?.levels) {
       hlsRef.current.levels.forEach((level: any) => {
         if (level.height) {
-          qualities.push(`${level.height}p`)
+          qualities.push(`${level.height}`)
         }
       })
     }
@@ -905,15 +893,56 @@ useEffect(() => {
     if (state.isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
-      }, 6000) // Extended from 4000ms to 6000ms for better mobile UX
+      }, 8000) // Extended from 6000ms to 8000ms for better mobile UX
     }
   }
+
+  // Double-click seeking with visual feedback
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    // ... (rest of the code remains the same)
+    if (!containerRef.current) return
+    
+    const rect = containerRef.current.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const containerWidth = rect.width
+    
+    // Determine if click is on left or right side (left: backward, right: forward)
+    const isLeftSide = clickX < containerWidth / 2
+    
+    if (isLeftSide) {
+      // Seek backward
+      seek(Math.max(0, state.currentTime - SEEK_STEP))
+      announce(`Seeked backward ${SEEK_STEP} seconds`)
+    } else {
+      // Seek forward
+      seek(Math.min(state.duration, state.currentTime + SEEK_STEP))
+      announce(`Seeked forward ${SEEK_STEP} seconds`)
+    }
+    
+    // Show visual feedback
+    setState(prev => ({ ...prev, seekFeedback: isLeftSide ? 'backward' : 'forward' }))
+    
+    // Clear feedback after animation
+    if (state.seekFeedbackTimeout) {
+      clearTimeout(state.seekFeedbackTimeout)
+    }
+    
+    const timeout = setTimeout(() => {
+      setState(prev => ({ ...prev, seekFeedback: null, seekFeedbackTimeout: null }))
+    }, 600)
+    
+    setState(prev => ({ ...prev, seekFeedbackTimeout: timeout }))
+  }, [state.currentTime, state.duration, seek, announce])
 
   return (
     <div 
       ref={containerRef}
-      className={`relative bg-black rounded-lg overflow-hidden group ${className}`}
-      onDoubleClick={toggleFullscreen}
+      className={`relative bg-black rounded-lg overflow-hidden group w-full max-w-full mx-auto ${className}`}
+      style={{
+        aspectRatio: '16 / 9',
+        maxHeight: 'min(70vh, 100vw * 9 / 16)', // Responsive max height based on viewport
+      }}
+      onDoubleClick={handleDoubleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
@@ -940,42 +969,13 @@ useEffect(() => {
         poster={poster}
         playsInline
         preload="metadata"
-        onClick={state.isPlayingAd ? handleAdClick : togglePlay}
         aria-label={state.isPlayingAd ? "Advertisement video" : "Main video content"}
         aria-describedby="video-description"
         role="application"
         tabIndex={0}
       />
 
-      {/* Watermark Overlay */}
-      {watermark && !state.isPlayingAd && (
-        <div 
-          className={`absolute ${getPositionClasses(watermark.position, watermark.size)} pointer-events-none z-10`}
-          style={{ opacity: watermark.opacity }}
-        >
-          <img 
-            src={watermark.src} 
-            alt="Watermark"
-            className="w-full h-full object-contain"
-            onClick={watermark.clickUrl ? () => window.open(watermark.clickUrl, '_blank') : undefined}
-            style={{ pointerEvents: watermark.clickUrl ? 'auto' : 'none' }}
-          />
-        </div>
-      )}
 
-      {/* Logo Overlay */}
-      {logo && state.showLogo && !state.isPlayingAd && (
-        <div 
-          className={`absolute ${getPositionClasses(logo.position, logo.size)} z-10 cursor-pointer`}
-          onClick={logo.clickUrl ? () => window.open(logo.clickUrl, '_blank') : undefined}
-        >
-          <img 
-            src={logo.src} 
-            alt="Logo"
-            className="w-full h-full object-contain hover:opacity-80 transition-opacity"
-          />
-        </div>
-      )}
 
       {/* Ad Overlay */}
       {state.isPlayingAd && state.currentAd && (
@@ -1021,6 +1021,33 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Double-click Seek Feedback */}
+      {state.seekFeedback && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+          <div className={`flex items-center space-x-4 bg-black/70 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/20 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-300 ${
+            state.seekFeedback === 'backward' ? 'text-blue-400' : 'text-red-400'
+          }`}>
+            {state.seekFeedback === 'backward' ? (
+              <>
+                <SkipBack className="w-8 h-8" />
+                <div className="text-center">
+                  <div className="text-xl font-bold">10s</div>
+                  
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <div className="text-xl font-bold">10s</div>
+                  
+                </div>
+                <SkipForward className="w-8 h-8" />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Big Play Button */}
       {!state.isPlaying && !state.isLoading && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -1028,24 +1055,24 @@ useEffect(() => {
             variant="ghost"
             size="lg"
             onClick={togglePlay}
-            className="w-20 h-20 rounded-full bg-black/50 hover:bg-black/70 text-white border-2 border-white/20"
+            className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-black/60 hover:bg-black/80 text-white border-2 border-white/30 backdrop-blur-sm shadow-2xl hover:scale-110 transition-all duration-300 active:scale-95"
           >
-            <Play className="w-8 h-8 ml-1" />
+            <Play className="w-8 h-8 md:w-10 md:h-10 ml-1" />
           </Button>
         </div>
       )}
 
       {/* Controls */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 ${
-          showControls || !state.isPlaying ? 'opacity-100' : 'opacity-0'
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm transition-all duration-300 rounded-t-xl ${
+          showControls || !state.isPlaying ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}
       >
         {/* Progress Bar */}
-        <div className="px-4 py-2 relative">
+        <div className="px-3 md:px-6 py-2 md:py-3">
           <div 
             ref={progressRef}
-            className="relative h-1 bg-white/20 rounded-full cursor-pointer group/progress"
+            className="relative h-1.5 md:h-2 bg-white/20 rounded-full cursor-pointer group/progress hover:h-2 md:hover:h-3 transition-all duration-200"
             onClick={handleProgressClick}
             onMouseDown={handleProgressDrag}
             onMouseMove={handleProgressHover}
@@ -1053,28 +1080,28 @@ useEffect(() => {
           >
             {/* Buffer Progress */}
             <div 
-              className="absolute top-0 left-0 h-full bg-white/40 rounded-full"
+              className="absolute top-0 left-0 h-full bg-white/40 rounded-full transition-all duration-300"
               style={{ width: `${state.buffered}%` }}
             />
             
             {/* Play Progress */}
             <div 
-              className="absolute top-0 left-0 h-full bg-red-600 rounded-full"
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg transition-all duration-300"
               style={{ width: `${(state.currentTime / state.duration) * 100}%` }}
             />
             
             {/* Progress Handle */}
             <div 
-              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-red-600 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
-              style={{ left: `${(state.currentTime / state.duration) * 100}%`, marginLeft: '-6px' }}
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-all duration-200 shadow-lg border-2 border-red-500"
+              style={{ left: `${(state.currentTime / state.duration) * 100}%`, marginLeft: '-8px' }}
             />
             
             {/* Chapter Markers */}
             {chapters.map(chapter => (
               <div
                 key={chapter.id}
-                className="absolute top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-500 rounded-full opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
-                style={{ left: `${(chapter.startTime / state.duration) * 100}%`, marginLeft: '-2px' }}
+                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-400 rounded-full opacity-70 hover:opacity-100 cursor-pointer transition-all duration-200 hover:scale-125"
+                style={{ left: `${(chapter.startTime / state.duration) * 100}%`, marginLeft: '-3px' }}
                 onClick={(e) => {
                   e.stopPropagation()
                   seek(chapter.startTime)
@@ -1088,16 +1115,16 @@ useEffect(() => {
           {/* Thumbnail Preview */}
           {state.showThumbnailPreview && poster && (
             <div 
-              className="absolute bottom-8 left-0 transform -translate-x-1/2 pointer-events-none z-50"
+              className="absolute bottom-8 md:bottom-10 left-0 transform -translate-x-1/2 pointer-events-none z-50"
               style={{ left: `${state.thumbnailPreviewPosition}%` }}
             >
-              <div className="bg-black/90 rounded-lg p-2 shadow-lg border border-white/20">
+              <div className="bg-black/95 rounded-xl p-2 md:p-3 shadow-2xl border border-white/20 backdrop-blur-sm">
                 <img 
                   src={poster} 
                   alt="Video thumbnail"
-                  className="w-32 h-18 object-cover rounded"
+                  className="w-32 h-18 md:w-40 md:h-24 object-cover rounded-lg"
                 />
-                <div className="text-white text-xs text-center mt-1 font-mono">
+                <div className="text-white text-xs md:text-sm text-center mt-2 font-mono bg-black/50 rounded px-2 py-1">
                   {formatTime(state.thumbnailPreviewTime)}
                 </div>
               </div>
@@ -1106,116 +1133,102 @@ useEffect(() => {
         </div>
 
         {/* Control Bar */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center space-x-3">
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 md:px-6 py-1.5 md:py-3 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border-t border-white/10 rounded-t-2xl shadow-2xl z-10">
+          {/* Left Controls - Play, Volume */}
+          <div className="flex items-center space-x-0.5 md:space-x-2">
             {/* Play/Pause */}
             <Button
               variant="ghost"
               size="sm"
               onClick={togglePlay}
-              className="text-white hover:bg-white/20 p-2"
+              className="text-white/90 hover:text-white hover:bg-white/10 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[32px] min-h-[32px] md:min-w-[40px] md:min-h-[40px] group"
               aria-label={state.isPlaying ? "Pause video" : "Play video"}
               title={state.isPlaying ? "Pause (Space)" : "Play (Space)"}
             >
-              {state.isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            </Button>
-
-            {/* Skip Back */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => seek(state.currentTime - SEEK_STEP)}
-              className="text-white hover:bg-white/20 p-2"
-              aria-label={`Rewind ${SEEK_STEP} seconds (Left Arrow)`}
-              title={`Rewind ${SEEK_STEP}s (←)`}
-            >
-              <SkipBack className="w-4 h-4" />
-            </Button>
-
-            {/* Skip Forward */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => seek(state.currentTime + SEEK_STEP)}
-              className="text-white hover:bg-white/20 p-2"
-              aria-label={`Fast forward ${SEEK_STEP} seconds (Right Arrow)`}
-              title={`Fast forward ${SEEK_STEP}s (→)`}
-            >
-              <SkipForward className="w-4 h-4" />
+              <div className="relative">
+                {state.isPlaying ? 
+                  <Pause className="w-3.5 h-3.5 md:w-6 md:h-6 drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-300" /> : 
+                  <Play className="w-3.5 h-3.5 md:w-6 md:h-6 ml-0.5 drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-300" />
+                }
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </div>
             </Button>
 
             {/* Volume */}
-            <div className="flex items-center space-x-2 group/volume">
+            <div className="flex items-center space-x-0.5 md:space-x-3 group/volume ml-0.5 md:ml-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleMute}
-                className="text-white hover:bg-white/20 p-2"
+                className="text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-green-500/20 hover:to-blue-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group"
                 aria-label={state.isMuted || state.volume === 0 ? "Unmute (M)" : "Mute (M)"}
                 title={state.isMuted || state.volume === 0 ? "Unmute (M)" : "Mute (M)"}
               >
                 {state.isMuted || state.volume === 0 ? 
-                  <VolumeX className="w-4 h-4" /> : 
-                  <Volume2 className="w-4 h-4" />
+                  <VolumeX className="w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300" /> : 
+                  <Volume2 className="w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300" />
                 }
               </Button>
               
-              <div className="hidden md:block w-20 opacity-70 hover:opacity-100 transition-opacity">
+              <div className="hidden md:block w-20 opacity-70 hover:opacity-100 transition-opacity duration-300">
                 <Slider
                   value={[state.isMuted ? 0 : state.volume * 100]}
                   onValueChange={([value]: number[]) => setVolume(value / 100)}
                   max={100}
                   step={1}
-                  className="cursor-pointer"
+                  className="cursor-pointer [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-blue-400 [&_[role=slider]]:to-purple-400 [&_[role=slider]]:border-white/20 [&_[role=slider]]:shadow-lg [&_[role=slider]]:hover:shadow-xl"
                 />
               </div>
               
               {/* Mobile volume - show on tap */}
-              <div className="md:hidden w-20 opacity-0 group-hover/volume:opacity-100 transition-opacity">
+              <div className="md:hidden w-10 opacity-0 group-hover/volume:opacity-100 transition-opacity duration-500">
                 <Slider
                   value={[state.isMuted ? 0 : state.volume * 100]}
                   onValueChange={([value]: number[]) => setVolume(value / 100)}
                   max={100}
                   step={1}
-                  className="cursor-pointer"
+                  className="cursor-pointer [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-blue-400 [&_[role=slider]]:to-purple-400 [&_[role=slider]]:border-white/20 [&_[role=slider]]:shadow-lg"
                 />
               </div>
             </div>
-
-            {/* Time */}
-            <span className="text-white text-sm font-mono">
-              {formatTime(state.currentTime)} / {formatTime(state.duration)}
-            </span>
           </div>
 
-          <div className="flex items-center space-x-2">
+          {/* Right Controls - Settings, Fullscreen, Time */}
+          <div className="flex items-center space-x-0.5 md:space-x-2">
+            {/* Time - Mobile: Compact, hidden on very small screens */}
+            <div className="hidden xs:flex md:hidden px-1.5 py-0.5 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+              <span className="text-white/90 text-xs font-mono font-medium">
+                {formatTime(state.currentTime)}<span className="text-white/60">/</span>{formatTime(state.duration)}
+              </span>
+            </div>
+
             {/* Settings */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20 p-2"
+                  className="text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-purple-500/20 hover:to-pink-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group"
                   aria-label="Settings menu"
                   title="Settings"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-3 h-3 md:w-5 md:h-5 group-hover:rotate-90 transition-transform duration-300" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Playback Speed</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56 bg-slate-900/95 backdrop-blur-xl border-white/20 rounded-xl shadow-2xl">
+                <DropdownMenuLabel className="text-white font-semibold text-sm">Playback Speed</DropdownMenuLabel>
                 {PLAYBACK_RATES.map(rate => (
                   <DropdownMenuItem
                     key={rate}
                     onClick={() => setPlaybackRate(rate)}
-                    className={state.playbackRate === rate ? 'bg-accent' : ''}
+                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 rounded-lg mx-1 my-0.5 px-3 py-2 transition-all duration-200 ${state.playbackRate === rate ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-white/20' : ''}`}
                   >
-                    {rate}x {rate === 1 ? '(Normal)' : ''}
+                    <span className="font-medium">{rate}x</span> {rate === 1 ? <span className="text-white/60 ml-1">(Normal)</span> : ''}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-white/20 my-2" />
                 
-                <DropdownMenuLabel>Chapters</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-white font-semibold text-sm">Chapters</DropdownMenuLabel>
                 {chapters.map(chapter => (
                   <DropdownMenuItem
                     key={chapter.id}
@@ -1223,41 +1236,44 @@ useEffect(() => {
                       seek(chapter.startTime)
                       onChapterChange?.(chapter)
                     }}
-                    className={getCurrentChapter()?.id === chapter.id ? 'bg-accent' : ''}
+                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-green-500/20 hover:to-blue-500/20 rounded-lg mx-1 my-0.5 px-3 py-2 transition-all duration-200 ${getCurrentChapter()?.id === chapter.id ? 'bg-gradient-to-r from-green-500/30 to-blue-500/30 border border-white/20' : ''}`}
                   >
                     <div className="flex flex-col">
                       <span className="font-medium text-sm">{chapter.title}</span>
-                      <span className="text-xs text-muted-foreground">{formatTime(chapter.startTime)}</span>
+                      <span className="text-xs text-white/60">{formatTime(chapter.startTime)}</span>
                     </div>
                   </DropdownMenuItem>
                 ))}
                 
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-white/20 my-2" />
                 
-                <DropdownMenuLabel>Quality</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-white font-semibold text-sm">Quality</DropdownMenuLabel>
                 {getAvailableQualities().map(quality => (
                   <DropdownMenuItem
                     key={quality}
                     onClick={() => setQuality(quality)}
-                    className={state.quality === quality ? 'bg-accent' : ''}
+                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 rounded-lg mx-1 my-0.5 px-3 py-2 transition-all duration-200 ${state.quality === quality ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border border-white/20' : ''}`}
                   >
-                    {quality === 'auto' ? 'Auto' : quality}
+                    <span className="font-medium">{quality === 'auto' ? 'Auto' : `${quality}p`}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Picture-in-Picture */}
+            {/* Picture-in-Picture - Hidden on very small screens */}
             {typeof window !== 'undefined' && 'pictureInPictureEnabled' in document && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={togglePictureInPicture}
-                  className="text-white hover:bg-white/20 p-2"
+                  className="hidden sm:flex text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-cyan-500/20 hover:to-blue-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group"
                   title="Picture-in-Picture"
                   aria-label={state.isPictureInPicture ? "Exit picture-in-picture mode" : "Enter picture-in-picture mode"}
                 >
-                  {state.isPictureInPicture ? <PictureInPicture2 className="w-4 h-4" /> : <PictureInPicture className="w-4 h-4" />}
+                  {state.isPictureInPicture ? 
+                    <PictureInPicture2 className="w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300" /> : 
+                    <PictureInPicture className="w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300" />
+                  }
                 </Button>
             )}
 
@@ -1266,12 +1282,22 @@ useEffect(() => {
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              className="text-white hover:bg-white/20 p-2"
+              className="text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-orange-500/20 hover:to-red-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group"
               aria-label={state.isFullscreen ? "Exit fullscreen (F)" : "Enter fullscreen (F)"}
               title={state.isFullscreen ? "Exit fullscreen (F)" : "Enter fullscreen (F)"}
             >
-              {state.isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+              {state.isFullscreen ? 
+                <Minimize className="w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300" /> : 
+                <Maximize className="w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300" />
+              }
             </Button>
+
+            {/* Time - Desktop: Full display */}
+            <div className="hidden md:block ml-2 md:ml-4 px-3 md:px-4 py-1.5 md:py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+              <span className="text-white/90 text-sm font-mono font-medium tracking-wide">
+                {formatTime(state.currentTime)} <span className="text-white/60">/</span> {formatTime(state.duration)}
+              </span>
+            </div>
           </div>
         </div>
       </div>

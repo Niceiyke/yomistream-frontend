@@ -3,6 +3,9 @@ import VideoDetailClient from './video-detail-client'
 import { fetchVideo } from '@/lib/server-api'
 import { Video } from '@/lib/types'
 
+// Page-level cache control - revalidate every 5 minutes for video pages
+export const revalidate = 300
+
 // Loading component for Suspense fallback
 function VideoDetailLoading() {
   return (
@@ -27,7 +30,7 @@ function VideoDetailLoading() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 max-w-5xl lg:max-w-7xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main content skeleton */}
           <div className="lg:col-span-8 space-y-8">

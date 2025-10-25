@@ -1,7 +1,15 @@
 // Server-side API utilities for SSR
+// CACHING STRATEGY:
+// - Videos: Revalidate every 2 minutes (frequently updated content)
+// - Preachers: Revalidate every 15 minutes (relatively stable)
+// - Individual videos: Revalidate every 5 minutes (balance between freshness and performance)
+//
+// This prevents stale data while maintaining good performance.
+// Use cache invalidation utilities in cache-utils.ts for immediate updates.
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8002";
 
-export async function serverApiGet(path: string) {
+export async function serverApiGet(path: string, options?: { revalidate?: number }) {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
 
   console.log(`🔥 SERVER: Fetching ${path} from server-side`);
@@ -12,8 +20,10 @@ export async function serverApiGet(path: string) {
       headers: {
         "Content-Type": "application/json",
       },
-      // Don't cache in development for fresh data
-      cache: process.env.NODE_ENV === 'production' ? 'default' : 'no-store',
+      // Smart caching based on content type
+      next: options?.revalidate ? { revalidate: options.revalidate } : undefined,
+      // Fallback to no-cache in development
+      cache: process.env.NODE_ENV === 'production' ? undefined : 'no-store',
     });
 
     if (!res.ok) {
@@ -30,13 +40,16 @@ export async function serverApiGet(path: string) {
 }
 
 export async function fetchPublicVideos() {
-  return serverApiGet("/api/v1/public/videos");
+  // Videos change frequently - revalidate every 2 minutes
+  return serverApiGet("/api/v1/public/videos", { revalidate: 120 });
 }
 
 export async function fetchPublicPreachers() {
-  return serverApiGet("/api/v1/public/preachers");
+  // Preachers change less often - revalidate every 15 minutes
+  return serverApiGet("/api/v1/public/preachers", { revalidate: 900 });
 }
 
 export async function fetchVideo(videoId: string) {
-  return serverApiGet(`/api/v1/videos/${videoId}`);
+  // Individual videos might be updated - revalidate every 5 minutes
+  return serverApiGet(`/api/v1/videos/${videoId}`, { revalidate: 300 });
 }

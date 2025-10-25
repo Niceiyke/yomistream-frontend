@@ -3,6 +3,9 @@ import HomepageClient from './homepage-client'
 import { fetchPublicVideos, fetchPublicPreachers } from '@/lib/server-api'
 import { Video, Preacher } from '@/lib/types'
 
+// Page-level cache control - revalidate every 2 minutes for homepage
+export const revalidate = 120
+
 // Loading component for Suspense fallback
 function HomepageLoading() {
   return (

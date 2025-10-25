@@ -62,8 +62,10 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
       return apiGetCached("/api/v1/public/videos");
     },
     initialData: initialVideos,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes - matches server revalidation
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnMount: false, // Don't refetch if we have fresh server data
+    refetchOnWindowFocus: false, // Avoid unnecessary refetches
   })
   const preachersQuery = useQuery({
     queryKey: ["preachers"],
@@ -72,8 +74,10 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
       return apiGetCached("/api/v1/public/preachers");
     },
     initialData: initialPreachers,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - matches server revalidation
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnMount: false, // Don't refetch if we have fresh server data
+    refetchOnWindowFocus: false, // Avoid unnecessary refetches
   })
 
   useEffect(() => {
