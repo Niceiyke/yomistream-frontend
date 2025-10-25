@@ -1032,7 +1032,6 @@ useEffect(() => {
                 <SkipBack className="w-8 h-8" />
                 <div className="text-center">
                   <div className="text-xl font-bold">10s</div>
-                  
                 </div>
               </>
             ) : (
@@ -1215,13 +1214,13 @@ useEffect(() => {
                   <Settings className="w-3 h-3 md:w-5 md:h-5 group-hover:rotate-90 transition-transform duration-300" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-slate-900/95 backdrop-blur-xl border-white/20 rounded-xl shadow-2xl">
+              <DropdownMenuContent align="end" className="w-40 md:w-32 bg-slate-900/95 backdrop-blur-xl border-white/20 rounded-xl shadow-2xl max-h-80 overflow-y-auto">
                 <DropdownMenuLabel className="text-white font-semibold text-sm">Playback Speed</DropdownMenuLabel>
                 {PLAYBACK_RATES.map(rate => (
                   <DropdownMenuItem
                     key={rate}
                     onClick={() => setPlaybackRate(rate)}
-                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 rounded-lg mx-1 my-0.5 px-3 py-2 transition-all duration-200 ${state.playbackRate === rate ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-white/20' : ''}`}
+                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-purple-500/20 rounded-lg mx-1 my-0.5 px-2 md:px-3 py-1.5 md:py-2 transition-all duration-200 text-sm md:text-base ${state.playbackRate === rate ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-white/20' : ''}`}
                   >
                     <span className="font-medium">{rate}x</span> {rate === 1 ? <span className="text-white/60 ml-1">(Normal)</span> : ''}
                   </DropdownMenuItem>
@@ -1236,7 +1235,7 @@ useEffect(() => {
                       seek(chapter.startTime)
                       onChapterChange?.(chapter)
                     }}
-                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-green-500/20 hover:to-blue-500/20 rounded-lg mx-1 my-0.5 px-3 py-2 transition-all duration-200 ${getCurrentChapter()?.id === chapter.id ? 'bg-gradient-to-r from-green-500/30 to-blue-500/30 border border-white/20' : ''}`}
+                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-green-500/20 hover:to-blue-500/20 rounded-lg mx-1 my-0.5 px-2 md:px-3 py-1.5 md:py-2 transition-all duration-200 ${getCurrentChapter()?.id === chapter.id ? 'bg-gradient-to-r from-green-500/30 to-blue-500/30 border border-white/20' : ''}`}
                   >
                     <div className="flex flex-col">
                       <span className="font-medium text-sm">{chapter.title}</span>
@@ -1252,7 +1251,7 @@ useEffect(() => {
                   <DropdownMenuItem
                     key={quality}
                     onClick={() => setQuality(quality)}
-                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 rounded-lg mx-1 my-0.5 px-3 py-2 transition-all duration-200 ${state.quality === quality ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border border-white/20' : ''}`}
+                    className={`text-white/90 hover:text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 rounded-lg mx-1 my-0.5 px-2 md:px-3 py-1.5 md:py-2 transition-all duration-200 text-sm md:text-base ${state.quality === quality ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border border-white/20' : ''}`}
                   >
                     <span className="font-medium">{quality === 'auto' ? 'Auto' : `${quality}p`}</span>
                   </DropdownMenuItem>

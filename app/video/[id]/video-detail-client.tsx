@@ -15,7 +15,9 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  Globe
+  Globe,
+  Copy,
+  Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -48,10 +50,27 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
   const [favorites, setFavorites] = useState<string[]>([])
   const [aiModalOpen, setAiModalOpen] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({})
+  const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set())
 
   const videoId = params.id as string
+
+  // Set responsive defaults for sermon notes
+  useEffect(() => {
+    const handleResize = () => {
+      const isDesktop = window.innerWidth >= 768 // md breakpoint
+      setExpandedSections(prev => ({
+        ...prev,
+        'sermon-notes': isDesktop, // Visible on desktop, hidden on mobile
+        'scripture-references': prev['scripture-references'] || false // Keep scripture collapsed by default
+      }))
+    }
+
+    handleResize() // Set initial state
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Helper function to update action loading state
   const setActionLoadingState = (action: string, loading: boolean) => {
@@ -150,15 +169,27 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   }
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(section)) {
-        newSet.delete(section)
-      } else {
-        newSet.add(section)
-      }
-      return newSet
-    })
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const copyToClipboard = async (text: string, itemId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedItems(prev => new Set(prev).add(itemId))
+      // Remove the checkmark after 2 seconds
+      setTimeout(() => {
+        setCopiedItems(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(itemId)
+          return newSet
+        })
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+    }
   }
 
   // Show loading only if we don't have initial data and are fetching
@@ -270,7 +301,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
           <div>
             {/* Video Player */}
             <div className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-card to-card/80 backdrop-blur-sm rounded-lg">
-              <div className="aspect-video bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
+              <div className=" bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
                 {video?.hls_master_url ? (
                   <CustomVideoPlayer
                     src={video?.hls_master_url}
@@ -305,93 +336,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
               </div>
             </div>
 
-            {/* Action Bar - Moved below video player */}
-            <div className="bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 shadow-lg mt-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  <Badge variant="secondary" className="bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30 shadow-sm font-semibold px-4 py-2">
-                    <Globe className="w-4 h-4 mr-2" />
-                    {video.topic || "General"}
-                  </Badge>
-                  {user && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateAI}
-                      className="border-border/50 hover:bg-accent/80 hover:border-accent transition-all duration-200"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate AI
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push('/')}
-                    className="border-border/50 hover:bg-accent/80 hover:border-accent transition-all duration-200"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Home
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2 justify-center sm:justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleFavorite}
-                    disabled={actionLoading.favorite}
-                    className={cn(
-                      "border-border/50 hover:border-accent transition-all duration-200",
-                      isFavorite ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20" : "hover:bg-accent/80"
-                    )}
-                  >
-                    {actionLoading.favorite ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                    ) : (
-                      <Heart className={cn("w-4 h-4 mr-2 transition-all", isFavorite && "fill-current scale-110")} />
-                    )}
-                    <span className="hidden sm:inline">{isFavorite ? "Favorited" : "Favorite"}</span>
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={shareVideo}
-                    disabled={actionLoading.share}
-                    className="border-border/50 hover:bg-accent/80 hover:border-accent transition-all duration-200"
-                  >
-                    {actionLoading.share ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                    ) : (
-                      <Share2 className="w-4 h-4 mr-2" />
-                    )}
-                    <span className="hidden sm:inline">Share</span>
-                  </Button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="border-border/50 hover:bg-accent/80 hover:border-accent transition-all duration-200">
-                        <Bookmark className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem>
-                        <Bookmark className="w-4 h-4 mr-2" />
-                        Save for Later
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        Report Video
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </div>
-
             {/* Title and Preacher Info */}
-            <div className="text-center lg:text-left mt-6 md:mt-8">
+            <div className="text-center lg:text-left mt-6 md:mt-2">
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground leading-tight tracking-tight mb-4">
                 {video.title}
               </h1>
@@ -418,26 +364,41 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                       <BookOpen className="w-6 h-6 mr-3 text-primary" />
                       Sermon Notes
                     </h2>
-                    {video.sermon_notes.length > 1 && (
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleSection('sermon-notes')}
                         className="h-8 w-8 p-0 hover:bg-primary/10"
                       >
-                        {expandedSections.has('sermon-notes') ?
+                        {expandedSections['sermon-notes'] ?
                           <ChevronUp className="w-4 h-4" /> :
                           <ChevronDown className="w-4 h-4" />
                         }
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="space-y-4">
-                    {(expandedSections.has('sermon-notes') ? video.sermon_notes : video.sermon_notes.slice(0, 1)).map((note: string, index: number) => (
-                      <div key={index} className="bg-card/60 rounded-lg p-6 border border-primary/10 shadow-sm">
-                        <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap">
+                    {(expandedSections['sermon-notes'] ? video.sermon_notes : []).map((note: string, index: number) => (
+                      <div key={index} className="bg-card/60 rounded-lg p-6 border border-primary/10 shadow-sm relative group">
+                        <div className="absolute top-3 right-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(note, `sermon-note-${index}`)}
+                            className="h-6 w-6 p-0 hover:bg-primary/10 opacity-60 hover:opacity-100"
+                            title="Copy sermon note"
+                          >
+                            {copiedItems.has(`sermon-note-${index}`) ? (
+                              <Check className="w-3 h-3 text-green-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap pr-8">
                           {note}
                         </p>
                       </div>
@@ -451,19 +412,49 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
             {video.scripture_references && video.scripture_references.length > 0 && (
               <Card className="border-secondary/20 shadow-lg bg-gradient-to-br from-secondary/5 to-primary/5">
                 <CardHeader className="pb-4">
-                  <h2 className="text-2xl font-bold text-foreground flex items-center">
-                    <Quote className="w-6 h-6 mr-3 text-secondary" />
-                    Scripture References
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center">
+                      <Quote className="w-6 h-6 mr-3 text-secondary" />
+                      Scripture References
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      {video.scripture_references.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleSection('scripture-references')}
+                          className="h-8 w-8 p-0 hover:bg-secondary/10"
+                        >
+                          {expandedSections['scripture-references'] ?
+                            <ChevronUp className="w-4 h-4" /> :
+                            <ChevronDown className="w-4 h-4" />
+                          }
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="grid gap-4 md:grid-cols-2">
-                    {video.scripture_references.map((scripture: any, index: number) => (
+                    {(expandedSections['scripture-references'] ? video.scripture_references : []).map((scripture: {reference: string, verse: string}, index: number) => (
                       <div key={index} className="bg-card/60 rounded-lg p-5 border border-secondary/10 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="mb-3">
+                        <div className="mb-3 flex items-center justify-between">
                           <Badge variant="outline" className="bg-secondary/10 border-secondary/30 text-secondary font-semibold px-3 py-1">
                             {scripture.reference}
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(`${scripture.reference}\n"${scripture.verse}"`, `scripture-${index}`)}
+                            className="h-6 w-6 p-0 hover:bg-secondary/10 opacity-60 hover:opacity-100"
+                            title="Copy scripture"
+                          >
+                            {copiedItems.has(`scripture-${index}`) ? (
+                              <Check className="w-3 h-3 text-green-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </Button>
                         </div>
                         <p className="text-foreground leading-relaxed text-sm italic">
                           "{scripture.verse}"
