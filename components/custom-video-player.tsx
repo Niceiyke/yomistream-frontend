@@ -18,6 +18,7 @@ import {
   PictureInPicture2
 } from "lucide-react"
 import type Hls from 'hls.js'
+import type { Events } from 'hls.js'
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { 
@@ -197,6 +198,7 @@ const CustomVideoPlayer = ({
   const [announcements, setAnnouncements] = useState<Array<{id: string, text: string}>>([])
 
   const [showControls, setShowControls] = useState(true)
+  const [showProgressBar, setShowProgressBar] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
   // Screen reader announcements
@@ -318,7 +320,13 @@ const CustomVideoPlayer = ({
             const hls = new Hls({
               enableWorker: true,
               lowLatencyMode: true,
-              backBufferLength: 90
+              backBufferLength: 30, // Reduced from 90 for faster loading
+              maxBufferLength: 10, // Shorter max buffer
+              maxMaxBufferLength: 20, // Allow slightly more when needed
+              maxBufferSize: 60 * 1000 * 1000, // 60MB max buffer size
+              maxBufferHole: 0.5, // Allow small gaps
+              startLevel: -1, // Start with auto quality selection
+              abrEwmaDefaultEstimate: 5e5, // Faster bitrate estimation
             })
             
             hlsRef.current = hls
@@ -328,6 +336,15 @@ const CustomVideoPlayer = ({
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
               setState(prev => ({ ...prev, isLoading: false }))
               if (autoPlay) {
+                // Start playing immediately when manifest is parsed
+                video.play().catch(console.error)
+              }
+            })
+
+            // Start playing as soon as we have enough audio buffered
+            hls.on(Hls.Events.FRAG_BUFFERED, (event, data) => {
+              if (autoPlay && !state.isPlaying && data.stats.buffering.end > 5) {
+                // If we have 5+ seconds buffered and autoplay is enabled, start playing
                 video.play().catch(console.error)
               }
             })
@@ -626,6 +643,7 @@ useEffect(() => {
     if (state.isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
+        setShowProgressBar(false)
       }, 3000)
     }
   }
@@ -863,11 +881,13 @@ useEffect(() => {
   // Handle mouse events for controls visibility
   const handleMouseEnter = () => {
     setShowControls(true)
+    setShowProgressBar(true)
   }
 
   const handleMouseLeave = () => {
     if (state.isPlaying) {
       setShowControls(false)
+      setShowProgressBar(false)
     }
   }
 
@@ -880,6 +900,7 @@ useEffect(() => {
     if (state.isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
+        setShowProgressBar(false)
       }, 3000)
     }
   }
@@ -887,12 +908,14 @@ useEffect(() => {
   // Handle touch events for mobile
   const handleTouchStart = () => {
     setShowControls(true)
+    setShowProgressBar(true)
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current)
     }
     if (state.isPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false)
+        setShowProgressBar(false)
       }, 8000) // Extended from 6000ms to 8000ms for better mobile UX
     }
   }
@@ -968,7 +991,7 @@ useEffect(() => {
         className="w-full h-full object-contain"
         poster={poster}
         playsInline
-        preload="metadata"
+        preload="auto"
         aria-label={state.isPlayingAd ? "Advertisement video" : "Main video content"}
         aria-describedby="video-description"
         role="application"
@@ -1061,75 +1084,82 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Progress Bar - Shows on video container hover */}
+      <div className={`absolute bottom-10 md:bottom-15 left-0 right-0 px-3 md:px-6 pb-2 transition-opacity duration-300 ${showProgressBar ? 'opacity-100' : 'opacity-0'}`}>
+        <div
+          ref={progressRef}
+          className="relative h-1 md:h-1 bg-white/20 rounded-full cursor-pointer group/progress hover:h-1 md:hover:h-1.5 transition-all duration-200"
+          onClick={handleProgressClick}
+          onMouseDown={handleProgressDrag}
+          onMouseMove={handleProgressHover}
+          onMouseLeave={handleProgressLeave}
+          onTouchStart={() => setShowControls(true)}
+        >
+          {/* Buffer Progress */}
+          <div 
+            className="absolute top-0 left-0 h-full bg-white/40 rounded-full transition-all duration-300"
+            style={{ width: `${state.buffered}%` }}
+          />
+          
+          {/* Play Progress */}
+          <div 
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg transition-all duration-300"
+            style={{ width: `${(state.currentTime / state.duration) * 100}%` }}
+          />
+          
+          {/* Progress Handle */}
+          {state.duration > 0 && (
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-white rounded-full shadow-lg border-2 border-red-500 transition-all duration-200 hover:scale-110 z-10"
+              style={{
+                left: `${Math.min(100, Math.max(0, (state.currentTime / state.duration) * 100))}%`,
+                marginLeft: '-6px'
+              }}
+            />
+          )}
+          
+          {/* Chapter Markers */}
+          {chapters.map(chapter => (
+            <div
+              key={chapter.id}
+              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-400 rounded-full opacity-70 hover:opacity-100 cursor-pointer transition-all duration-200 hover:scale-125"
+              style={{ left: `${(chapter.startTime / state.duration) * 100}%`, marginLeft: '-3px' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                seek(chapter.startTime)
+                onChapterChange?.(chapter)
+              }}
+              title={`${chapter.title} (${formatTime(chapter.startTime)})`}
+            />
+          ))}
+        </div>
+        
+        {/* Thumbnail Preview */}
+        {state.showThumbnailPreview && poster && (
+          <div 
+            className="absolute bottom-8 md:bottom-10 left-0 transform -translate-x-1/2 pointer-events-none z-50"
+            style={{ left: `${state.thumbnailPreviewPosition}%` }}
+          >
+            <div className="bg-black/95 rounded-xl p-2 md:p-3 shadow-2xl border border-white/20 backdrop-blur-sm">
+              <img 
+                src={poster} 
+                alt="Video thumbnail"
+                className="w-32 h-18 md:w-40 md:h-24 object-cover rounded-lg"
+              />
+              <div className="text-white text-xs md:text-sm text-center mt-2 font-mono bg-black/50 rounded px-2 py-1">
+                {formatTime(state.thumbnailPreviewTime)}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Controls */}
       <div 
         className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm transition-all duration-300 rounded-t-xl ${
           showControls || !state.isPlaying ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}
       >
-        {/* Progress Bar */}
-        <div className="px-3 md:px-6 py-2 md:py-3">
-          <div 
-            ref={progressRef}
-            className="relative h-1.5 md:h-2 bg-white/20 rounded-full cursor-pointer group/progress hover:h-2 md:hover:h-3 transition-all duration-200"
-            onClick={handleProgressClick}
-            onMouseDown={handleProgressDrag}
-            onMouseMove={handleProgressHover}
-            onMouseLeave={handleProgressLeave}
-          >
-            {/* Buffer Progress */}
-            <div 
-              className="absolute top-0 left-0 h-full bg-white/40 rounded-full transition-all duration-300"
-              style={{ width: `${state.buffered}%` }}
-            />
-            
-            {/* Play Progress */}
-            <div 
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg transition-all duration-300"
-              style={{ width: `${(state.currentTime / state.duration) * 100}%` }}
-            />
-            
-            {/* Progress Handle */}
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-all duration-200 shadow-lg border-2 border-red-500"
-              style={{ left: `${(state.currentTime / state.duration) * 100}%`, marginLeft: '-8px' }}
-            />
-            
-            {/* Chapter Markers */}
-            {chapters.map(chapter => (
-              <div
-                key={chapter.id}
-                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-400 rounded-full opacity-70 hover:opacity-100 cursor-pointer transition-all duration-200 hover:scale-125"
-                style={{ left: `${(chapter.startTime / state.duration) * 100}%`, marginLeft: '-3px' }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  seek(chapter.startTime)
-                  onChapterChange?.(chapter)
-                }}
-                title={`${chapter.title} (${formatTime(chapter.startTime)})`}
-              />
-            ))}
-          </div>
-          
-          {/* Thumbnail Preview */}
-          {state.showThumbnailPreview && poster && (
-            <div 
-              className="absolute bottom-8 md:bottom-10 left-0 transform -translate-x-1/2 pointer-events-none z-50"
-              style={{ left: `${state.thumbnailPreviewPosition}%` }}
-            >
-              <div className="bg-black/95 rounded-xl p-2 md:p-3 shadow-2xl border border-white/20 backdrop-blur-sm">
-                <img 
-                  src={poster} 
-                  alt="Video thumbnail"
-                  className="w-32 h-18 md:w-40 md:h-24 object-cover rounded-lg"
-                />
-                <div className="text-white text-xs md:text-sm text-center mt-2 font-mono bg-black/50 rounded px-2 py-1">
-                  {formatTime(state.thumbnailPreviewTime)}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Control Bar */}
         <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 md:px-6 py-1.5 md:py-3 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border-t border-white/10 rounded-t-2xl shadow-2xl z-10">
@@ -1179,8 +1209,8 @@ useEffect(() => {
                 />
               </div>
               
-              {/* Mobile volume - show on tap */}
-              <div className="md:hidden w-10 opacity-0 group-hover/volume:opacity-100 transition-opacity duration-500">
+              {/* Mobile volume - visible by default */}
+              <div className="md:hidden w-10 opacity-70 transition-opacity duration-300">
                 <Slider
                   value={[state.isMuted ? 0 : state.volume * 100]}
                   onValueChange={([value]: number[]) => setVolume(value / 100)}
@@ -1194,8 +1224,8 @@ useEffect(() => {
 
           {/* Right Controls - Settings, Fullscreen, Time */}
           <div className="flex items-center space-x-0.5 md:space-x-2">
-            {/* Time - Mobile: Compact, hidden on very small screens */}
-            <div className="hidden xs:flex md:hidden px-1.5 py-0.5 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+            {/* Time - Mobile: Compact, visible on small screens */}
+            <div className="flex md:hidden px-1.5 py-0.5 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
               <span className="text-white/90 text-xs font-mono font-medium">
                 {formatTime(state.currentTime)}<span className="text-white/60">/</span>{formatTime(state.duration)}
               </span>
@@ -1265,7 +1295,7 @@ useEffect(() => {
                   variant="ghost"
                   size="sm"
                   onClick={togglePictureInPicture}
-                  className="hidden sm:flex text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-cyan-500/20 hover:to-blue-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group"
+                  className="flex text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-cyan-500/20 hover:to-blue-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group"
                   title="Picture-in-Picture"
                   aria-label={state.isPictureInPicture ? "Exit picture-in-picture mode" : "Enter picture-in-picture mode"}
                 >
