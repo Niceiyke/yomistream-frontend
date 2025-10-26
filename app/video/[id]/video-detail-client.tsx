@@ -17,7 +17,9 @@ import {
   FileText,
   Globe,
   Copy,
-  Check
+  Check,
+  Mic,
+  Brain
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +39,7 @@ import { Video } from "@/lib/types"
 import { formatDuration, getPreacherName } from "@/lib/utils/video-helpers"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 
 interface VideoDetailClientProps {
   initialVideo: Video | null
@@ -47,6 +50,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const { toast } = useToast()
 
   const [favorites, setFavorites] = useState<string[]>([])
   const [aiModalOpen, setAiModalOpen] = useState(false)
@@ -167,6 +171,97 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
   const handleAIContentGenerated = (content: any) => {
     queryClient.invalidateQueries({ queryKey: ["video", videoId] })
+  }
+
+  const handleTranscribeVideo = async () => {
+    if (!videoQuery.data) return
+
+    const actionKey = 'transcribe'
+    setActionLoadingState(actionKey, true)
+
+    try {
+      const accessToken = await getAccessTokenCached()
+      const youtubeUrl = videoQuery.data.video_url ? videoQuery.data.video_url : `https://www.youtube.com/watch?v=${videoQuery.data.youtube_id}`
+
+      console.log("Transcribing video:", videoQuery.data.id, "URL:", youtubeUrl)
+
+      // Send as form data since the backend expects Form parameters
+      const formData = new FormData()
+      formData.append('audio_url', youtubeUrl)
+      formData.append('video_id', videoQuery.data.id)
+
+      console.log("Video detail transcription - audio_url:", youtubeUrl, "video_id:", videoQuery.data.id)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/transcription/transcribe-url`, {
+        method: 'POST',
+        headers: {
+          ...accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          // Don't set Content-Type, let browser set it for FormData
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: "Success",
+        description: "Video sent for transcription successfully.",
+      })
+    } catch (error) {
+      console.error("Transcription error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to send video for transcription.",
+      })
+    } finally {
+      setActionLoadingState(actionKey, false)
+    }
+  }
+
+  const handleAIAnalysis = async () => {
+    if (!videoQuery.data) return
+
+    const actionKey = 'ai-analysis'
+    setActionLoadingState(actionKey, true)
+
+    try {
+      const accessToken = await getAccessTokenCached()
+
+      console.log("Starting AI analysis for video:", videoQuery.data.id)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/admin/videos/${videoQuery.data.id}/ai-analysis`, {
+        method: 'POST',
+        headers: {
+          ...accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: "Success",
+        description: "AI analysis has been queued. The video will be analyzed for summary and scripture extraction.",
+      })
+
+      console.log("AI analysis queued:", result)
+    } catch (error) {
+      console.error("AI analysis error:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start AI analysis.",
+      })
+    } finally {
+      setActionLoadingState(actionKey, false)
+    }
   }
 
   const toggleSection = (section: string) => {
@@ -355,6 +450,43 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                 </div>
               </div>
             </div>
+
+            {/* Admin Controls - Only visible to admin users */}
+            {user?.user_type === 'admin' && (
+              <Card className="border-destructive/20 shadow-lg bg-gradient-to-br from-destructive/5 to-destructive/10">
+                <CardHeader className="pb-4">
+                  <h2 className="text-xl font-bold text-foreground flex items-center">
+                    <Sparkles className="w-5 h-5 mr-3 text-destructive" />
+                    Admin Controls
+                  </h2>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={handleTranscribeVideo}
+                      disabled={actionLoading['transcribe']}
+                      variant="outline"
+                      className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
+                    >
+                      <Mic className="w-4 h-4" />
+                      {actionLoading['transcribe'] ? 'Transcribing...' : 'Transcribe Video'}
+                    </Button>
+                    <Button
+                      onClick={handleAIAnalysis}
+                      disabled={actionLoading['ai-analysis']}
+                      variant="outline"
+                      className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
+                    >
+                      <Brain className="w-4 h-4" />
+                      {actionLoading['ai-analysis'] ? 'Analyzing...' : 'Generate AI Summary'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Use these controls to generate transcriptions and AI-powered summaries for this video.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Sermon Notes - Primary Focus */}
             {video.sermon_notes && video.sermon_notes.length > 0 && (
