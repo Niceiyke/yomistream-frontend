@@ -174,16 +174,24 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   }
 
   const handleTranscribeVideo = async () => {
-    if (!videoQuery.data) return
+    if (!videoQuery.data || !videoQuery.data.id) return
 
     const actionKey = 'transcribe'
     setActionLoadingState(actionKey, true)
 
     try {
       const accessToken = await getAccessTokenCached()
-      const youtubeUrl = videoQuery.data.video_url ? videoQuery.data.video_url : `https://www.youtube.com/watch?v=${videoQuery.data.youtube_id}`
+      const youtubeUrl = videoQuery.data.audio_url ? videoQuery.data.audio_url : videoQuery.data.video_url
 
-      console.log("Transcribing video:", videoQuery.data.id, "URL:", youtubeUrl)
+      if (!youtubeUrl || youtubeUrl.includes('undefined')) {
+        toast({
+          title: "Error",
+          description: "Video URL is not available for transcription.",
+        })
+        return
+      }
+
+      console.log("Transcribing video:", videoQuery.data, "URL:", youtubeUrl)
 
       // Send as form data since the backend expects Form parameters
       const formData = new FormData()
@@ -223,7 +231,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   }
 
   const handleAIAnalysis = async () => {
-    if (!videoQuery.data) return
+    if (!videoQuery.data || !videoQuery.data.id) return
 
     const actionKey = 'ai-analysis'
     setActionLoadingState(actionKey, true)
@@ -464,7 +472,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                   <div className="flex flex-wrap gap-3">
                     <Button
                       onClick={handleTranscribeVideo}
-                      disabled={actionLoading['transcribe']}
+                      disabled={actionLoading['transcribe'] || !videoQuery.data}
                       variant="outline"
                       className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
                     >
@@ -473,7 +481,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                     </Button>
                     <Button
                       onClick={handleAIAnalysis}
-                      disabled={actionLoading['ai-analysis']}
+                      disabled={actionLoading['ai-analysis'] || !videoQuery.data}
                       variant="outline"
                       className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
                     >

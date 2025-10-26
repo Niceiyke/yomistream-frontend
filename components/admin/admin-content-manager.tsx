@@ -24,6 +24,7 @@ interface Video {
   description?: string
   youtube_id: string
   video_url: string
+  audio_url:string
   preacher?: { id: string; name: string }
   topic?: string
   duration?: number
@@ -232,7 +233,7 @@ export function AdminContentManager() {
   const handleTranscribeVideo = async (video: Video) => {
     try {
       const headers = await authHeaders()
-      const youtubeUrl = video.video_url ? video.video_url : `https://www.youtube.com/watch?v=${video.youtube_id}`
+      const youtubeUrl = video.audio_url ? video.audio_url : video.video_url
 
       console.log("Transcribing video:", video.id, "URL:", youtubeUrl)
 
