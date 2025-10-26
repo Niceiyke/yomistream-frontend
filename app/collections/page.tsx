@@ -21,6 +21,7 @@ import { AppHeader } from "@/components/app-header"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
 
 interface Collection {
   id: string
@@ -50,7 +51,6 @@ export default function CollectionsPage() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null)
   const [collectionVideos, setCollectionVideos] = useState<CollectionVideo[]>([])
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
-  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState("")
@@ -58,23 +58,18 @@ export default function CollectionsPage() {
 
   const supabase = createClient()
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
 
   useEffect(() => {
-    checkUserAndLoadCollections()
-  }, [])
-
-  const checkUserAndLoadCollections = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
+    if (!authLoading && !user) {
       router.push("/auth/login")
       return
     }
-    setUser(user)
-    await loadCollections(user.id)
-    setLoading(false)
-  }
+    if (!authLoading && user) {
+      loadCollections(user.id)
+      setLoading(false)
+    }
+  }, [user, authLoading, router])
 
   const loadCollections = async (userId: string) => {
     try {
@@ -190,7 +185,7 @@ export default function CollectionsPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-foreground text-xl">Loading your collections...</div>

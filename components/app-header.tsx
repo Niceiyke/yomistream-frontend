@@ -1,11 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BookOpen, LogIn, LogOut, FolderOpen, Heart, Menu, X, ExternalLink } from "lucide-react"
+import { BookOpen, LogIn, LogOut, FolderOpen, Heart, Menu, X, ExternalLink, User, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface AppHeaderProps {
   favorites?: string[]
@@ -25,7 +34,7 @@ export function AppHeader({
   backButton 
 }: AppHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user } = useAuth()
+  const { user, signOut: authSignOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -60,9 +69,17 @@ export function AppHeader({
 
   const handleSignOut = async () => {
     setMobileMenuOpen(false)
+    
+    // Call the auth context's signOut method
+    await authSignOut()
+    
+    // Call the optional onSignOut prop if provided
     if (onSignOut) {
       await onSignOut()
     }
+    
+    // Redirect to home page
+    router.push("/")
   }
 
   const handleNavClick = () => {
@@ -139,6 +156,67 @@ export function AppHeader({
                     <Heart className="w-4 h-4 mr-2" />
                     Favorites ({favorites.length})
                   </Button>
+
+                  {/* User Profile Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-border hover:bg-accent transition-all duration-300 flex items-center gap-2 px-3"
+                      >
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || user.email} />
+                          <AvatarFallback className="text-xs">
+                            {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="hidden lg:inline text-sm font-medium">
+                          {user.full_name || user.email.split('@')[0]}
+                        </span>
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            {user.full_name || 'User'}
+                          </p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.email}
+                          </p>
+                          {user.auth_provider && user.auth_provider !== 'local' && (
+                            <p className="text-xs leading-none text-muted-foreground capitalize">
+                              Signed in with {user.auth_provider}
+                            </p>
+                          )}
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile" className="cursor-pointer">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Profile Settings</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/collections" className="cursor-pointer">
+                          <FolderOpen className="mr-2 h-4 w-4" />
+                          <span>My Collections</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleSignOut}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Sign Out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -212,6 +290,29 @@ export function AppHeader({
               )}
               {user ? (
                 <>
+                  {/* User Profile Section in Mobile */}
+                  <div className="flex items-center space-x-3 p-3 bg-accent/50 rounded-lg mb-2">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || user.email} />
+                      <AvatarFallback>
+                        {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {user.full_name || 'User'}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {user.email}
+                      </p>
+                      {user.auth_provider && user.auth_provider !== 'local' && (
+                        <p className="text-xs text-muted-foreground capitalize">
+                          via {user.auth_provider}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <Button
                     asChild
                     variant="outline"
@@ -230,6 +331,17 @@ export function AppHeader({
                   >
                     <Heart className="w-4 h-4 mr-2" />
                     Favorites ({favorites.length})
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full border-border hover:bg-accent justify-start transition-all duration-300"
+                    onClick={handleNavClick}
+                  >
+                    <Link href="/profile">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile Settings
+                    </Link>
                   </Button>
                   <Button
                     variant="outline"
