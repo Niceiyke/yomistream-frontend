@@ -122,41 +122,21 @@ export function AppHeader({
           {/* Desktop Navigation */}
           {showActions && (
             <nav className="hidden md:flex items-center space-x-3">
-              {user && (
+              {user.user_type === "admin" && (
                 <Button
                   asChild
                   variant="outline"
                   size="sm"
                   className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 transition-all duration-300"
                 >
-                  <Link href="/source-videos">
+                  <Link href="/admin">
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Source Videos
+                    Admin
                   </Link>
                 </Button>
               )}
               {user ? (
                 <>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 transition-all duration-300"
-                  >
-                    <Link href="/collections">
-                      <FolderOpen className="w-4 h-4 mr-2" />
-                      Collections
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 transition-all duration-300"
-                  >
-                    <Heart className="w-4 h-4 mr-2" />
-                    Favorites ({favorites.length})
-                  </Button>
-
                   {/* User Profile Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -216,16 +196,6 @@ export function AppHeader({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSignOut}
-                    className="border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all duration-300"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
                 </>
               ) : (
                 <Button
@@ -275,16 +245,16 @@ export function AppHeader({
             aria-label="Mobile navigation"
           >
             <div className="flex flex-col space-y-2">
-              {user && (
+              {user.user_type === "admin" && (
                 <Button
                   asChild
                   variant="outline"
                   className="w-full border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
                   onClick={handleNavClick}
                 >
-                  <Link href="/source-videos">
+                  <Link href="/admin">
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Source Videos
+                    Admin
                   </Link>
                 </Button>
               )}
@@ -312,26 +282,6 @@ export function AppHeader({
                       )}
                     </div>
                   </div>
-
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                    onClick={handleNavClick}
-                  >
-                    <Link href="/collections">
-                      <FolderOpen className="w-4 h-4 mr-2" />
-                      My Collections
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-border hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50 justify-start transition-all duration-300"
-                    onClick={handleNavClick}
-                  >
-                    <Heart className="w-4 h-4 mr-2" />
-                    Favorites ({favorites.length})
-                  </Button>
                   <Button
                     asChild
                     variant="outline"
@@ -343,14 +293,7 @@ export function AppHeader({
                       Profile Settings
                     </Link>
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleSignOut}
-                    className="w-full border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 justify-start transition-all duration-300"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
+
                 </>
               ) : (
                 <Button
