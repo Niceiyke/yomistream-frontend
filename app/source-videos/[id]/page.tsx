@@ -29,11 +29,19 @@ export default function SourceVideoDetailPage() {
   const [trimmedVideoUrl, setTrimmedVideoUrl] = useState<string | null>(null)
   const [createdVideoId, setCreatedVideoId] = useState<string | null>(null)
 
-  const { user, loading: authLoading, signOut } = useAuth()
+  // Batch trimming state
+  const [batchMode, setBatchMode] = useState(false)
+  const [clips, setClips] = useState<Array<{start_time: number, end_time: number, description?: string}>>([])
+  const [batchJobId, setBatchJobId] = useState<string | null>(null)
+  const [batchStatus, setBatchStatus] = useState<string | null>(null)
+  const [batchProgress, setBatchProgress] = useState<number>(0)
+  const [batchResults, setBatchResults] = useState<any>(null)
   const router = useRouter()
   const params = useParams()
   const videoId = params.id as string
   const queryClient = useQueryClient()
+
+  const { user, loading: authLoading, signOut } = useAuth()
 
   const authHeaders = async (): Promise<Record<string, string>> => {
     const token = await getAccessTokenCached()
@@ -72,6 +80,27 @@ export default function SourceVideoDetailPage() {
     onError: (error) => {
       console.error("Trim video error:", error)
       setError("Failed to start video trimming")
+    },
+  })
+  const batchTrimMutation = useMutation({
+    mutationFn: async (clipsData: Array<{start_time: number, end_time: number, description?: string}>) => {
+      const headers = await authHeaders()
+      const response = await apiPost("/api/v1/admin/source-videos/batch-trim", {
+        source_video_id: videoId,
+        clips: clipsData,
+        webhook_url: `${BACKEND_VM}/api/v1/admin/webhooks/trimming`,
+      }, { headers })
+      return response
+    },
+    onSuccess: (data) => {
+      setBatchJobId(data.job_id)
+      setBatchStatus("processing")
+      // Start polling for status
+      pollBatchStatus(data.job_id)
+    },
+    onError: (error) => {
+      console.error("Batch trim error:", error)
+      setError("Failed to start batch video trimming")
     },
   })
 
@@ -124,6 +153,78 @@ export default function SourceVideoDetailPage() {
       console.error("Transcoding status check error:", error)
       setTrimStatus("ready")
     }
+  }
+
+  // Poll for batch status
+  const pollBatchStatus = async (jobId: string) => {
+    try {
+      const headers = await authHeaders()
+      const status = await apiGet(`/api/v1/admin/source-videos/trim/status/${jobId}`, { headers })
+      setBatchStatus(status.status)
+      setBatchProgress(status.progress || 0)
+
+      if (status.status === "completed" && status.created_videos) {
+        setBatchResults(status)
+        // All videos are being transcoded, redirect to videos list after a delay
+        setTimeout(() => {
+          router.push('/videos')
+        }, 3000)
+      } else if (status.status === "processing") {
+        // Continue polling
+        setTimeout(() => pollBatchStatus(jobId), 3000)
+      }
+    } catch (error) {
+      console.error("Batch status check error:", error)
+    }
+  }
+
+  // Batch trimming handlers
+  const addClip = () => {
+    if (!startTime || !endTime) return
+
+    const startSeconds = timeToSeconds(startTime)
+    const endSeconds = timeToSeconds(endTime)
+
+    if (startSeconds >= endSeconds) {
+      setError("End time must be greater than start time")
+      return
+    }
+
+    if (endSeconds > (video?.duration || 0)) {
+      setError("End time cannot exceed video duration")
+      return
+    }
+
+    // Check for overlapping clips
+    const hasOverlap = clips.some(clip =>
+      (startSeconds >= clip.start_time && startSeconds < clip.end_time) ||
+      (endSeconds > clip.start_time && endSeconds <= clip.end_time) ||
+      (startSeconds <= clip.start_time && endSeconds >= clip.end_time)
+    )
+
+    if (hasOverlap) {
+      setError("This time range overlaps with an existing clip")
+      return
+    }
+
+    setClips([...clips, { start_time: startSeconds, end_time: endSeconds }])
+    setStartTime("")
+    setEndTime("")
+    setError(null)
+  }
+
+  const removeClip = (index: number) => {
+    setClips(clips.filter((_, i) => i !== index))
+  }
+
+  const handleBatchTrim = () => {
+    if (clips.length === 0) {
+      setError("Please add at least one clip to trim")
+      return
+    }
+
+    setError(null)
+    batchTrimMutation.mutate(clips)
   }
 
   // Handle trim request
@@ -480,12 +581,36 @@ export default function SourceVideoDetailPage() {
 
               {/* Video Trimming */}
               <div className="bg-card rounded-lg p-6 border border-border">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Scissors className="w-4 h-4" />
-                  Trim Video
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Scissors className="w-4 h-4" />
+                    Trim Video
+                  </h3>
+                  <Button
+                    variant={batchMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setBatchMode(!batchMode)
+                      setClips([])
+                      setStartTime("")
+                      setEndTime("")
+                      setError(null)
+                    }}
+                  >
+                    {batchMode ? "Single Mode" : "Batch Mode"}
+                  </Button>
+                </div>
 
                 <div className="space-y-4">
+                  {/* Mode Description */}
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
+                    {batchMode ? (
+                      <p><strong>Batch Mode:</strong> Create multiple clips from this video in a single efficient operation. The video will be downloaded only once.</p>
+                    ) : (
+                      <p><strong>Single Mode:</strong> Create one clip at a time from this video.</p>
+                    )}
+                  </div>
+
                   {/* Time Inputs */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
@@ -516,36 +641,100 @@ export default function SourceVideoDetailPage() {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={handleTrimVideo}
-                    disabled={!startTime || !endTime || trimVideoMutation.isPending || trimStatus === "processing"}
-                    className="w-full"
-                  >
-                    {trimVideoMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Starting...
-                      </>
-                    ) : trimStatus === "processing" ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Trimming Video...
-                      </>
-                    ) : trimStatus === "transcoding" ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing Video...
-                      </>
-                    ) : (
-                      <>
+                  {batchMode ? (
+                    <>
+                      {/* Add Clip Button */}
+                      <Button
+                        onClick={addClip}
+                        disabled={!startTime || !endTime}
+                        variant="outline"
+                        className="w-full"
+                      >
                         <Scissors className="w-4 h-4 mr-2" />
-                        Trim Video
-                      </>
-                    )}
-                  </Button>
+                        Add Clip
+                      </Button>
 
-                  {/* Progress */}
-                  {trimStatus === "processing" && (
+                      {/* Clips List */}
+                      {clips.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Added Clips:</Label>
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {clips.map((clip, index) => (
+                              <div key={index} className="flex items-center justify-between bg-muted/50 p-2 rounded">
+                                <span className="text-sm">
+                                  Clip {index + 1}: {formatDuration(clip.start_time)} - {formatDuration(clip.end_time)}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeClip(index)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  ✕
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Batch Process Button */}
+                      <Button
+                        onClick={handleBatchTrim}
+                        disabled={clips.length === 0 || batchTrimMutation.isPending || batchStatus === "processing"}
+                        className="w-full"
+                      >
+                        {batchTrimMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Starting Batch...
+                          </>
+                        ) : batchStatus === "processing" ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing Clips...
+                          </>
+                        ) : (
+                          <>
+                            <Scissors className="w-4 h-4 mr-2" />
+                            Process {clips.length} Clips
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    /* Single Mode Button */
+                    <Button
+                      onClick={handleTrimVideo}
+                      disabled={!startTime || !endTime || trimVideoMutation.isPending || trimStatus === "processing"}
+                      className="w-full"
+                    >
+                      {trimVideoMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Starting...
+                        </>
+                      ) : trimStatus === "processing" ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Trimming Video...
+                        </>
+                      ) : trimStatus === "transcoding" ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing Video...
+                        </>
+                      ) : (
+                        <>
+                          <Scissors className="w-4 h-4 mr-2" />
+                          Trim Video
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Single Mode Progress */}
+                  {!batchMode && trimStatus === "processing" && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Trimming video...</span>
@@ -560,8 +749,24 @@ export default function SourceVideoDetailPage() {
                     </div>
                   )}
 
+                  {/* Batch Mode Progress */}
+                  {batchMode && batchStatus === "processing" && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Processing {clips.length} clips...</span>
+                        <span>{Math.round(batchProgress)}%</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${batchProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Transcoding Progress */}
-                  {trimStatus === "transcoding" && (
+                  {!batchMode && trimStatus === "transcoding" && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Creating video for platform...</span>
@@ -579,8 +784,8 @@ export default function SourceVideoDetailPage() {
                     </div>
                   )}
 
-                  {/* Success */}
-                  {trimStatus === "ready" && createdVideoId && (
+                  {/* Single Mode Success */}
+                  {!batchMode && trimStatus === "ready" && createdVideoId && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-green-600">
                         <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
@@ -602,8 +807,33 @@ export default function SourceVideoDetailPage() {
                     </div>
                   )}
 
-                  {/* Status Messages */}
-                  {trimStatus === "failed" && (
+                  {/* Batch Mode Success */}
+                  {batchMode && batchStatus === "completed" && batchResults && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-green-600">
+                        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                        <span className="text-sm font-medium">
+                          {batchResults.created_videos?.length || 0} clips processed successfully!
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Redirecting to your videos...
+                      </p>
+                      <Button
+                        asChild
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        <a href="/videos">
+                          View All Videos
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Error Messages */}
+                  {(trimStatus === "failed" || batchStatus === "failed") && (
                     <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
                       Video processing failed. Please try again.
                     </div>
@@ -613,7 +843,8 @@ export default function SourceVideoDetailPage() {
                   <div className="text-xs text-muted-foreground">
                     <p>• Use MM:SS format (e.g., 1:30 for 1 minute 30 seconds)</p>
                     <p>• Or HH:MM:SS format (e.g., 0:01:30)</p>
-                    <p>• Your trimmed video will be processed and added to the platform</p>
+                    {batchMode && <p>• In batch mode, the video is downloaded only once for all clips</p>}
+                    <p>• Your trimmed videos will be processed and added to the platform</p>
                   </div>
                 </div>
               </div>
