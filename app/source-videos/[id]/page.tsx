@@ -23,6 +23,7 @@ export default function SourceVideoDetailPage() {
   // Video trimming state
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
+  const [seekTime, setSeekTime] = useState("") // Seek time for thumbnail generation
   const [trimJobId, setTrimJobId] = useState<string | null>(null)
   const [trimStatus, setTrimStatus] = useState<string | null>(null)
   const [trimProgress, setTrimProgress] = useState<number>(0)
@@ -67,6 +68,7 @@ export default function SourceVideoDetailPage() {
         source_video_id: videoId,
         start_time: data.start_time,
         end_time: data.end_time,
+        seek_time: seekTime || undefined, // Include seek_time if provided
         webhook_url: `${BACKEND_VM}/api/v1/admin/webhooks/trimming`, // Use BACKEND_VM for webhooks
       }, { headers })
       return response
@@ -88,6 +90,7 @@ export default function SourceVideoDetailPage() {
       const response = await apiPost("/api/v1/admin/source-videos/batch-trim", {
         source_video_id: videoId,
         clips: clipsData,
+        seek_time: seekTime || undefined, // Include seek_time if provided
         webhook_url: `${BACKEND_VM}/api/v1/admin/webhooks/trimming`,
       }, { headers })
       return response
@@ -594,6 +597,7 @@ export default function SourceVideoDetailPage() {
                       setClips([])
                       setStartTime("")
                       setEndTime("")
+                      setSeekTime("") // Reset seek time when switching modes
                       setError(null)
                     }}
                   >
@@ -639,6 +643,25 @@ export default function SourceVideoDetailPage() {
                         className="text-sm"
                       />
                     </div>
+                  </div>
+
+                  {/* Seek Time Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="seekTime" className="text-sm font-medium flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Thumbnail Seek Time (Optional)
+                    </Label>
+                    <Input
+                      id="seekTime"
+                      type="text"
+                      placeholder="e.g., 00:01:30 or 10% (leave empty for auto)"
+                      value={seekTime}
+                      onChange={(e) => setSeekTime(e.target.value)}
+                      className="text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Specify where to extract the thumbnail from. Use format like "00:01:30" for 1 minute 30 seconds, or "10%" for 10% into the video. Leave empty for automatic selection.
+                    </p>
                   </div>
 
                   {batchMode ? (

@@ -23,7 +23,8 @@ import {
   Tv,
   ArrowLeft,
   FileVideo,
-  Info
+  Info,
+  Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -38,6 +39,7 @@ interface BasicVideoData {
   title: string
   description: string
   channel_id: string
+  seek_time?: string
 }
 
 interface UploadedVideo {
@@ -60,6 +62,7 @@ export function VideoUploadInterface() {
     title: "",
     description: "",
     channel_id: "",
+    seek_time: "",
   })
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -143,6 +146,10 @@ export function VideoUploadInterface() {
       formData.append('title', uploadedVideo.videoData!.title)
       formData.append('description', uploadedVideo.videoData!.description || '')
       formData.append('channel_id', uploadedVideo.videoData!.channel_id)
+      // Add seek_time if provided
+      if (uploadedVideo.videoData!.seek_time) {
+        formData.append('seek_time', uploadedVideo.videoData!.seek_time)
+      }
       // Tags can be empty for now
       formData.append('tags', '')
 
@@ -241,6 +248,7 @@ export function VideoUploadInterface() {
       title: "",
       description: "",
       channel_id: channels?.[0]?.id || "",
+      seek_time: "",
     })
   }
 
@@ -331,6 +339,22 @@ export function VideoUploadInterface() {
                 placeholder="Describe your video..."
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="seek_time" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Thumbnail Seek Time (Optional)
+              </Label>
+              <Input
+                id="seek_time"
+                value={videoData.seek_time || ""}
+                onChange={(e) => setVideoData(prev => ({ ...prev, seek_time: e.target.value }))}
+                placeholder="e.g., 00:01:30 or 10% (leave empty for auto)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Specify where to extract the thumbnail from. Use format like "00:01:30" for 1 minute 30 seconds, or "10%" for 10% into the video. Leave empty for automatic selection.
+              </p>
             </div>
 
             <div className="flex gap-2 pt-4">
