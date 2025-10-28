@@ -57,6 +57,14 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({})
   const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set())
+  const [userNotes, setUserNotes] = useState<Array<{
+    id: string
+    video_time: number
+    start_time: number
+    end_time: number
+    transcript_text: string
+    created_at: string
+  }>>([])
 
   const videoId = params.id as string
 
@@ -167,6 +175,20 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     if (videoQuery.data) {
       setAiModalOpen(true)
     }
+  }
+
+  const handleNoteTaken = (note: {
+    startTime: number
+    endTime: number
+    transcriptText: string
+    videoTime: number
+  }) => {
+    console.log('Note taken:', note)
+    toast({
+      title: "Note captured!",
+      description: `Captured transcript from ${formatDuration(note.startTime)} to ${formatDuration(note.endTime)}`,
+    })
+    // TODO: Save note to backend
   }
 
   const handleAIContentGenerated = (content: any) => {
@@ -414,6 +436,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                     autoPlay={true}
                     startTime={video?.start_time_seconds || 0}
                     endTime={video?.end_time_seconds || undefined}
+                    transcriptSegments={video?.transcript_segments || []}
+                    onNoteTaken={handleNoteTaken}
                     watermark={{
                       src: "",
                       position: "bottom-right",

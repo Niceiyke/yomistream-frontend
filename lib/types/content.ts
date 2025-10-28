@@ -99,6 +99,12 @@ export interface Video {
   // Transcription
   transcript: string | null
   transcript_language: string
+  transcript_segments: Array<{
+    start: number
+    end: number
+    text: string
+    confidence?: number
+  }> | null
   transcription_status: string // 'not_started', 'processing', 'completed', 'failed'
   
   // Status and visibility

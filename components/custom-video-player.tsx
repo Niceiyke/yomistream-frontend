@@ -15,7 +15,8 @@ import {
   Loader2,
   AlertCircle,
   PictureInPicture,
-  PictureInPicture2
+  PictureInPicture2,
+  StickyNote
 } from "lucide-react"
 import type Hls from 'hls.js'
 import type { Events } from 'hls.js'
@@ -82,6 +83,19 @@ interface VideoPlayerProps {
   onAdEnd?: (ad: Ad) => void
   onAdSkip?: (ad: Ad) => void
   onAdClick?: (ad: Ad) => void
+  // Note-taking feature
+  transcriptSegments?: Array<{
+    start: number
+    end: number
+    text: string
+    confidence?: number
+  }>
+  onNoteTaken?: (note: {
+    startTime: number
+    endTime: number
+    transcriptText: string
+    videoTime: number
+  }) => void
 }
 
 interface VideoState {
@@ -113,6 +127,10 @@ interface VideoState {
   // Double-click seeking
   seekFeedback: 'backward' | 'forward' | null
   seekFeedbackTimeout: NodeJS.Timeout | null
+  // Note-taking
+  isCapturingNote: boolean
+  noteCaptureStartTime: number
+  noteCaptureEndTime: number
 }
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -154,7 +172,9 @@ const CustomVideoPlayer = ({
   onAdStart,
   onAdEnd,
   onAdSkip,
-  onAdClick
+  onAdClick,
+  transcriptSegments = [],
+  onNoteTaken
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -192,7 +212,11 @@ const CustomVideoPlayer = ({
     thumbnailPreviewPosition: 0,
     // Double-click seeking
     seekFeedback: null,
-    seekFeedbackTimeout: null
+    seekFeedbackTimeout: null,
+    // Note-taking
+    isCapturingNote: false,
+    noteCaptureStartTime: 0,
+    noteCaptureEndTime: 0
   })
   
   const [announcements, setAnnouncements] = useState<Array<{id: string, text: string}>>([])
@@ -748,6 +772,64 @@ useEffect(() => {
     setState(prev => ({ ...prev, quality }))
   }, [])
 
+  // Memoized values to prevent unnecessary re-renders
+  const formatTime = useCallback((seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+  }, [])
+
+  // Note-taking function
+  const takeNote = useCallback(() => {
+    if (!videoRef.current || !transcriptSegments.length || !onNoteTaken) return
+
+    const currentTime = videoRef.current.currentTime
+    const captureDuration = 20 // 20 seconds of transcript
+    const startTime = Math.max(0, currentTime - 5) // Start 5 seconds before current time
+    const endTime = startTime + captureDuration
+
+    // Find transcript segments within the time range
+    const relevantSegments = transcriptSegments.filter(segment => 
+      segment.end > startTime && segment.start < endTime
+    )
+
+    // Extract transcript text for the time range
+    const transcriptText = relevantSegments
+      .map(segment => segment.text.trim())
+      .join(' ')
+      .substring(0, 500) // Limit to 500 characters
+
+    // Start note capture
+    setState(prev => ({ 
+      ...prev, 
+      isCapturingNote: true,
+      noteCaptureStartTime: startTime,
+      noteCaptureEndTime: endTime
+    }))
+
+    // Announce note taking started
+    announce(`Taking note from ${formatTime(startTime)} to ${formatTime(endTime)}`)
+
+    // Complete note capture after the duration
+    setTimeout(() => {
+      setState(prev => ({ ...prev, isCapturingNote: false }))
+      
+      onNoteTaken({
+        startTime,
+        endTime,
+        transcriptText: transcriptText || 'No transcript available for this time range',
+        videoTime: currentTime
+      })
+      
+      announce('Note captured successfully')
+    }, captureDuration * 1000)
+  }, [transcriptSegments, onNoteTaken, announce, formatTime])
+
   // Progress bar handlers
   const handleProgressClick = useCallback((e: React.MouseEvent) => {
     if (!progressRef.current || !state.duration) return
@@ -819,18 +901,6 @@ useEffect(() => {
         dragCleanupRef.current()
       }
     }
-  }, [])
-
-  // Memoized values to prevent unnecessary re-renders
-  const formatTime = useCallback((seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = Math.floor(seconds % 60)
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
   }, [])
 
   // Get current chapter
@@ -1288,6 +1358,25 @@ useEffect(() => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Note Taking */}
+            {transcriptSegments && transcriptSegments.length > 0 && onNoteTaken && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={takeNote}
+                disabled={state.isCapturingNote}
+                className={`text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-yellow-500/20 hover:to-orange-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group ${
+                  state.isCapturingNote ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border border-white/20' : ''
+                }`}
+                aria-label={state.isCapturingNote ? "Capturing note..." : "Take note (next 20 seconds)"}
+                title={state.isCapturingNote ? "Capturing note..." : "Take note (next 20 seconds)"}
+              >
+                <StickyNote className={`w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300 ${
+                  state.isCapturingNote ? 'animate-pulse' : ''
+                }`} />
+              </Button>
+            )}
 
             {/* Picture-in-Picture - Hidden on very small screens */}
             {typeof window !== 'undefined' && 'pictureInPictureEnabled' in document && (
