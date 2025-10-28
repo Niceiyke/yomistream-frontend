@@ -19,7 +19,10 @@ import {
   Copy,
   Check,
   Mic,
-  Brain
+  Brain,
+  StickyNote,
+  Play,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -105,22 +108,23 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     enabled: !!videoId,
   })
 
-  // Fetch user favorites
-  const favoritesQuery = useQuery({
-    queryKey: ["favorites", user?.id],
+  console.log('Video query data:', videoQuery.data)
+  // Fetch user notes for this video
+  const notesQuery = useQuery({
+    queryKey: ["video-notes", videoId],
     queryFn: async () => {
       const accessToken = await getAccessTokenCached()
-      const favs = await apiGet("/api/v1/favorites", {
+      const response = await apiGet(`/api/v1/notes/video/${videoId}`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       })
-      return favs?.video_ids || []
+      return response || []
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!videoId,
   })
 
   useEffect(() => {
-    if (favoritesQuery.data) setFavorites(favoritesQuery.data)
-  }, [favoritesQuery.data])
+    // Favorites are managed locally, no need to fetch from API
+  }, [])
 
   const toggleFavorite = async () => {
     if (!user) {
@@ -177,18 +181,60 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     }
   }
 
-  const handleNoteTaken = (note: {
+  const handleNoteTaken = async (note: {
     startTime: number
     endTime: number
     transcriptText: string
     videoTime: number
   }) => {
-    console.log('Note taken:', note)
-    toast({
-      title: "Note captured!",
-      description: `Captured transcript from ${formatDuration(note.startTime)} to ${formatDuration(note.endTime)}`,
-    })
-    // TODO: Save note to backend
+    try {
+      const accessToken = await getAccessTokenCached()
+
+      const noteData = {
+        video_id: videoId,
+        video_time: note.videoTime,
+        start_time: note.startTime,
+        end_time: note.endTime,
+        transcript_text: note.transcriptText,
+        device_info: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language,
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height,
+          timestamp: new Date().toISOString()
+        }
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        },
+        body: JSON.stringify(noteData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save note: ${response.status}`)
+      }
+
+      const savedNote = await response.json()
+
+      toast({
+        title: "Note saved!",
+        description: `Captured transcript from ${formatDuration(note.startTime)} to ${formatDuration(note.endTime)}`,
+      })
+
+      // Refresh notes data
+      queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+    } catch (error) {
+      console.error('Error saving note:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save note. Please try again.",
+      })
+    }
   }
 
   const handleAIContentGenerated = (content: any) => {
@@ -682,6 +728,95 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap">
                           {keyPoint}
                         </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* User Notes - Personal notes taken during viewing */}
+            {user && notesQuery.data && notesQuery.data.length > 0 && (
+              <Card className="border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center">
+                      <StickyNote className="w-6 h-6 mr-3 text-blue-600" />
+                      My Notes
+                      <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                        {notesQuery.data.length}
+                      </Badge>
+                    </h2>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    {notesQuery.data.map((note: any) => (
+                      <div key={note.id} className="bg-card/80 rounded-lg p-5 border border-blue-200/30 shadow-sm hover:shadow-md transition-all duration-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {formatDuration(note.video_time)}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {formatDuration(note.start_time)} - {formatDuration(note.end_time)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {note.note_category && (
+                              <Badge variant="secondary" className="text-xs">
+                                {note.note_category}
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Jump to note time in video
+                                const videoElement = document.querySelector('video') as HTMLVideoElement
+                                if (videoElement) {
+                                  videoElement.currentTime = note.video_time
+                                }
+                              }}
+                              className="h-6 w-6 p-0 hover:bg-blue-100"
+                              title="Jump to this time in video"
+                            >
+                              <Play className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-4 border-l-4 border-blue-400">
+                            <p className="text-sm text-blue-800 dark:text-blue-200 italic leading-relaxed">
+                              "{note.transcript_text}"
+                            </p>
+                          </div>
+
+                          {note.user_note && (
+                            <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-4 border-l-4 border-amber-400">
+                              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                                {note.user_note}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-3 text-xs text-muted-foreground flex items-center justify-between">
+                          <span>
+                            {new Date(note.created_at).toLocaleDateString()} at {new Date(note.created_at).toLocaleTimeString()}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs hover:bg-red-100 hover:text-red-700"
+                              title="Delete note"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
