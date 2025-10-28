@@ -1,81 +1,45 @@
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const supabase = await createClient()
-
-  // Check if user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
+    const authHeader = request.headers.get('authorization')
     const body = await request.json()
-    const { title, description, youtube_id, topic, preacher_id, tags, sermon_notes, scripture_references } = body
 
-    const updateData: any = {
-      title,
-      description,
-      topic,
-      preacher_id,
-    }
+    const response = await fetch(`${API_BASE_URL}/api/admin/videos/${params.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader && { 'Authorization': authHeader }),
+      },
+      body: JSON.stringify(body),
+    })
 
-    // Update YouTube ID and thumbnail if provided
-    if (youtube_id) {
-      updateData.youtube_id = youtube_id
-      updateData.thumbnail_url = `https://img.youtube.com/vi/${youtube_id}/maxresdefault.jpg`
-    }
-
-    // Update optional fields if provided
-    if (tags !== undefined) updateData.tags = tags
-    if (sermon_notes !== undefined) updateData.sermon_notes = sermon_notes
-    if (scripture_references !== undefined) updateData.scripture_references = scripture_references
-
-    const { data: video, error } = await supabase
-      .from("videos")
-      .update(updateData)
-      .eq("id", params.id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json({ video })
+    const data = await response.json()
+    return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error("Error updating video:", error)
+    console.error("Error proxying to backend:", error)
     return NextResponse.json({ error: "Failed to update video" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const supabase = await createClient()
-
-  // Check if user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
-    // First, delete related records
-    await supabase.from("user_favorites").delete().eq("video_id", params.id)
-    await supabase.from("collection_videos").delete().eq("video_id", params.id)
+    const authHeader = request.headers.get('authorization')
 
-    // Then delete the video
-    const { error } = await supabase.from("videos").delete().eq("id", params.id)
+    const response = await fetch(`${API_BASE_URL}/api/admin/videos/${params.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader && { 'Authorization': authHeader }),
+      },
+    })
 
-    if (error) throw error
-
-    return NextResponse.json({ success: true })
+    const data = await response.json()
+    return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error("Error deleting video:", error)
+    console.error("Error proxying to backend:", error)
     return NextResponse.json({ error: "Failed to delete video" }, { status: 500 })
   }
 }

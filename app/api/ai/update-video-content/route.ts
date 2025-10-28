@@ -1,36 +1,25 @@
-import { createClient } from "@/lib/supabase/server"
-import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 
-export async function POST(req: NextRequest) {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+
+export async function POST(request: Request) {
   try {
-    const { videoId, sermon_notes, scripture_references, tags } = await req.json()
+    const authHeader = request.headers.get('authorization')
+    const body = await request.json()
 
-    if (!videoId) {
-      return Response.json({ error: "Video ID is required" }, { status: 400 })
-    }
+    const response = await fetch(`${API_BASE_URL}/api/ai/update-video-content`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader && { 'Authorization': authHeader }),
+      },
+      body: JSON.stringify(body),
+    })
 
-    const supabase = createClient()
-
-    // Update the video with AI-generated content
-    const { data, error } = await supabase
-      .from("videos")
-      .update({
-        sermon_notes: sermon_notes || null,
-        scripture_references: scripture_references || null,
-        tags: tags || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", videoId)
-      .select()
-
-    if (error) {
-      console.error("Database error:", error)
-      return Response.json({ error: "Failed to update video" }, { status: 500 })
-    }
-
-    return Response.json({ success: true, data })
+    const data = await response.json()
+    return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error("Error updating video content:", error)
-    return Response.json({ error: "Failed to update video content" }, { status: 500 })
+    console.error("Error proxying to backend:", error)
+    return NextResponse.json({ error: "Failed to update video content" }, { status: 500 })
   }
 }
