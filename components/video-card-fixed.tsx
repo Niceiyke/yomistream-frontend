@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback, memo } from "react"
-import { Play, Heart, Clock, Plus, Sparkles, BookOpen, Quote } from "lucide-react"
+import { Play, Heart, Clock, Plus, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
+import { SermonNotesPreview } from "@/components/sermon-notes-preview"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { apiGet } from "@/lib/api"
@@ -21,8 +22,8 @@ interface Video {
   video_url: string
   topic: string
   description: string
-  sermonNotes?: string[]
-  scriptureReferences?: any[]
+  sermon_notes?: string[]
+  scripture_references?: any[]
   tags?: string[]
   thumbnail_url?: string
 }
@@ -351,25 +352,10 @@ export const FixedVideoCard = memo(function FixedVideoCard({
           <p className="text-sm text-muted-foreground mb-1">{video.preacher}</p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>{video.views} views</span>
-            {((video.sermonNotes?.length ?? 0) > 0 || (video.scriptureReferences?.length ?? 0) > 0) && (
-              <>
-                <span aria-hidden="true">•</span>
-                <div className="flex items-center gap-2">
-                  {(video.sermonNotes?.length ?? 0) > 0 && (
-                    <div className="flex items-center gap-1" title={`${video.sermonNotes?.length ?? 0} sermon notes`}>
-                      <BookOpen className="w-3 h-3" aria-hidden="true" />
-                      <span>{video.sermonNotes?.length ?? 0}</span>
-                    </div>
-                  )}
-                  {(video.scriptureReferences?.length ?? 0) > 0 && (
-                    <div className="flex items-center gap-1" title={`${video.scriptureReferences?.length ?? 0} scripture references`}>
-                      <Quote className="w-3 h-3" aria-hidden="true" />
-                      <span>{video.scriptureReferences?.length ?? 0}</span>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+            <SermonNotesPreview
+              notesCount={video.sermon_notes?.length ?? 0}
+              scriptureCount={video.scripture_references?.length ?? 0}
+            />
           </div>
 
           {/* Tags */}
