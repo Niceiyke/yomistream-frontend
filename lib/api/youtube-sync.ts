@@ -1,5 +1,5 @@
 import { StartSyncRequest, StartSyncResponse, SyncStatus, PaginatedVideos, VideoFilters, VideoItem } from '@/lib/types/youtube-sync'
-import { createClient } from '@/lib/supabase/client'
+import { getAccessTokenCached } from '@/lib/auth-cache'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
 
@@ -14,13 +14,11 @@ function toQuery(params: Record<string, any>): string {
 }
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  // Build headers with JSON type and Supabase auth token (if available)
+  // Build headers with JSON type and JWT auth token (if available)
   const headers = new Headers({ 'Content-Type': 'application/json' })
 
   try {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getAccessTokenCached()
     if (token) headers.set('Authorization', `Bearer ${token}`)
   } catch {
     // ignore token errors; request will proceed unauthenticated

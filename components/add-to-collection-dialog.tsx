@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { createClient } from "@/lib/supabase/client"
+
 
 interface Collection {
   id: string
@@ -33,7 +33,7 @@ export function AddToCollectionDialog({ videoId, children }: AddToCollectionDial
   const [loading, setLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
 
-  const supabase = createClient()
+  const supabase = null // Temporarily disabled - collections functionality needs backend API migration
 
   useEffect(() => {
     if (isOpen) {
@@ -42,90 +42,14 @@ export function AddToCollectionDialog({ videoId, children }: AddToCollectionDial
   }, [isOpen])
 
   const loadCollections = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Load user collections
-      const { data: collectionsData, error: collectionsError } = await supabase
-        .from("user_collections")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("name")
-
-      if (collectionsError) throw collectionsError
-
-      // Load which collections already contain this video
-      const { data: existingData, error: existingError } = await supabase
-        .from("collection_videos")
-        .select("collection_id")
-        .eq("video_id", videoId)
-
-      if (existingError) throw existingError
-
-      setCollections(collectionsData || [])
-      setSelectedCollections(existingData?.map((item) => item.collection_id) || [])
-    } catch (error) {
-      console.error("Error loading collections:", error)
-    }
+    // TODO: Implement collections API when backend is ready
+    setCollections([])
   }
 
   const handleSave = async () => {
-    setLoading(true)
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Get current collection videos for this video
-      const { data: currentData } = await supabase
-        .from("collection_videos")
-        .select("collection_id, id")
-        .eq("video_id", videoId)
-
-      const currentCollectionIds = currentData?.map((item) => item.collection_id) || []
-
-      // Find collections to add and remove
-      const toAdd = selectedCollections.filter((id) => !currentCollectionIds.includes(id))
-      const toRemove = currentCollectionIds.filter((id) => !selectedCollections.includes(id))
-
-      // Add to new collections
-      if (toAdd.length > 0) {
-        const { error: addError } = await supabase.from("collection_videos").insert(
-          toAdd.map((collectionId) => ({
-            collection_id: collectionId,
-            video_id: videoId,
-          })),
-        )
-
-        if (addError) throw addError
-      }
-
-      // Remove from collections
-      if (toRemove.length > 0) {
-        const itemsToRemove = currentData?.filter((item) => toRemove.includes(item.collection_id))
-        if (itemsToRemove) {
-          const { error: removeError } = await supabase
-            .from("collection_videos")
-            .delete()
-            .in(
-              "id",
-              itemsToRemove.map((item) => item.id),
-            )
-
-          if (removeError) throw removeError
-        }
-      }
-
-      setIsOpen(false)
-    } catch (error) {
-      console.error("Error updating collections:", error)
-    } finally {
-      setLoading(false)
-    }
+    // TODO: Implement collections API when backend is ready
+    console.log("Collections functionality temporarily disabled")
+    setIsOpen(false)
   }
 
   const toggleCollection = (collectionId: string) => {

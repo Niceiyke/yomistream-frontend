@@ -18,7 +18,6 @@ import {
 import { Label } from "@/components/ui/label"
 import { VideoPlayer } from "@/components/video-player"
 import { AppHeader } from "@/components/app-header"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -56,7 +55,7 @@ export default function CollectionsPage() {
   const [newCollectionName, setNewCollectionName] = useState("")
   const [newCollectionDescription, setNewCollectionDescription] = useState("")
 
-  const supabase = createClient()
+  const supabase = null // Temporarily disabled - collections functionality needs backend API migration
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
 
@@ -72,110 +71,29 @@ export default function CollectionsPage() {
   }, [user, authLoading, router])
 
   const loadCollections = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_collections")
-        .select(`
-          *,
-          collection_videos(count)
-        `)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
-
-      const collectionsWithCount =
-        data?.map((collection) => ({
-          ...collection,
-          video_count: collection.collection_videos?.[0]?.count || 0,
-        })) || []
-
-      setCollections(collectionsWithCount)
-    } catch (error) {
-      console.error("Error loading collections:", error)
-    }
+    // TODO: Implement collections API when backend is ready
+    setCollections([])
+    setLoading(false)
   }
 
   const loadCollectionVideos = async (collectionId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("collection_videos")
-        .select(`
-          *,
-          video:videos(
-            id,
-            title,
-            youtube_id,
-            duration,
-            preacher:preachers(name)
-          )
-        `)
-        .eq("collection_id", collectionId)
-        .order("added_at", { ascending: false })
-
-      if (error) throw error
-      setCollectionVideos(data || [])
-    } catch (error) {
-      console.error("Error loading collection videos:", error)
-    }
+    // TODO: Implement collections API when backend is ready
+    setCollectionVideos([])
   }
 
   const createCollection = async () => {
-    if (!user || !newCollectionName.trim()) return
-
-    try {
-      const { data, error } = await supabase
-        .from("user_collections")
-        .insert({
-          user_id: user.id,
-          name: newCollectionName.trim(),
-          description: newCollectionDescription.trim() || null,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      await loadCollections(user.id)
-      setIsCreateDialogOpen(false)
-      setNewCollectionName("")
-      setNewCollectionDescription("")
-    } catch (error) {
-      console.error("Error creating collection:", error)
-    }
+    // TODO: Implement collections API when backend is ready
+    console.log("Collections functionality temporarily disabled")
   }
 
   const deleteCollection = async (collectionId: string) => {
-    if (!user) return
-
-    try {
-      const { error } = await supabase.from("user_collections").delete().eq("id", collectionId).eq("user_id", user.id)
-
-      if (error) throw error
-
-      await loadCollections(user.id)
-      if (selectedCollection?.id === collectionId) {
-        setSelectedCollection(null)
-        setCollectionVideos([])
-      }
-    } catch (error) {
-      console.error("Error deleting collection:", error)
-    }
+    // TODO: Implement collections API when backend is ready
+    console.log("Collections functionality temporarily disabled")
   }
 
   const removeVideoFromCollection = async (collectionVideoId: string) => {
-    try {
-      const { error } = await supabase.from("collection_videos").delete().eq("id", collectionVideoId)
-
-      if (error) throw error
-
-      if (selectedCollection) {
-        await loadCollectionVideos(selectedCollection.id)
-        await loadCollections(user.id)
-      }
-    } catch (error) {
-      console.error("Error removing video from collection:", error)
-    }
+    // TODO: Implement collections API when backend is ready
+    console.log("Collections functionality temporarily disabled")
   }
 
   const formatDuration = (seconds: number | null) => {

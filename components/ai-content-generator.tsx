@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiPost } from "@/lib/api"
-import { createClient } from "@/lib/supabase/client"
+import { getAccessTokenCached } from "@/lib/auth-cache"
 
 interface AIContentGeneratorProps {
   videoId: string
@@ -38,9 +38,7 @@ export function AIContentGenerator({
       setGeneratedContent(content)
 
       // Update the video in the database
-      const supabase = createClient()
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData.session?.access_token
+      const accessToken = await getAccessTokenCached()
       await apiPost(
         "/api/ai/update-video-content",
         {

@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { apiGet, apiGetCached, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { Button } from "@/components/ui/button"
@@ -335,17 +334,17 @@ export default function AdminDashboard() {
   }, [])
 
   const checkAuth = async () => {
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    // Check if user is authenticated via JWT token
+    try {
+      const token = await getAccessTokenCached()
+      if (!token) {
+        router.push("/auth/login")
+        return
+      }
+      // User is authenticated, proceed
+    } catch (error) {
       router.push("/auth/login")
-      return
     }
-
-    setUser(user)
   }
 
   const queryClient = useQueryClient()
