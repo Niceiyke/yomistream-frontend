@@ -122,3 +122,23 @@ export function getPreacherId(video: Video): string | null {
   }
   return video.preacher_id
 }
+
+/**
+ * Get channel name from video (handles different naming conventions)
+ */
+export function getChannelName(video: Video): string | null {
+  if (video.channel) {
+    return video.channel.name
+  }
+  return null
+}
+
+/**
+ * Get channel ID from video
+ */
+export function getChannelId(video: Video): string | null {
+  if (video.channel) {
+    return video.channel.id
+  }
+  return video.channel_id
+}

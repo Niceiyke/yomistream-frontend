@@ -64,6 +64,10 @@ export interface Video {
   preacher_id: string | null
   preacher?: PreacherMinimal | Preacher
   
+  // Channel
+  channel_id: string
+  channel?: Channel
+  
   // Topic and categorization
   topic_id: string | null
   topic: string | null
@@ -214,6 +218,23 @@ export interface PreacherMinimal {
   slug: string | null
   image_url: string | null
   profile_image_url?: string | null // Legacy support
+}
+
+// ============================================================================
+// Channel Types
+// ============================================================================
+
+export interface Channel {
+  id: string
+  name: string
+  description: string | null
+  owner_id: string
+  owner?: any // User
+  video_count: number
+  view_count: number
+  created_at: string
+  updated_at: string | null
+  videos?: Video[]
 }
 
 // ============================================================================

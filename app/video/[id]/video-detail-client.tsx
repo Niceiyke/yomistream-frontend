@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   Heart,
   Sparkles,
-  Users,
+  Tv,
   Eye,
   BookOpen,
   Quote,
@@ -45,7 +45,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { debugLog } from "@/lib/utils/debug"
 import { Video } from "@/lib/types"
-import { formatDuration, getPreacherName } from "@/lib/utils/video-helpers"
+import { formatDuration, getPreacherName, getChannelName } from "@/lib/utils/video-helpers"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { ScriptureVerseCard } from "@/components/scripture-verse-card"
 import { ShareDialog } from "@/components/share-dialog"
@@ -1069,11 +1069,11 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                 <div className="flex flex-col lg:flex-row items-stretch gap-4">
                   {/* Single container for both info cards */}
                   <div className="flex flex-col lg:flex-row gap-4 flex-1">
-                    {/* Preacher and Views Info */}
+                    {/* Channel and Views Info */}
                     <div className="flex items-center justify-center lg:justify-start gap-4 md:gap-6 py-1 px-2 bg-card/30 rounded-xl shadow-lg border border-border/50 backdrop-blur-sm flex-1">
                       <div className="flex flex-col items-center gap-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium text-foreground">{getPreacherName(video) || "Unknown"}</span>
+                        <Tv className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-medium text-foreground">{getChannelName(video) || "Unknown"}</span>
                       </div>
 
                       <div className="flex flex-col items-center gap-1">
@@ -1329,7 +1329,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
           videoId={video.id}
           videoTitle={video.title}
           videoDescription={video.description || undefined}
-          preacherName={video.preachers?.name}
+          preacherName={getChannelName(video) || undefined}
           onContentGenerated={handleAIContentGenerated}
         />
       )}
