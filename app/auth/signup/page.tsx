@@ -47,6 +47,8 @@ export default function SignUpPage() {
           window.dispatchEvent(new Event('wordlyte-auth-changed'))
         }
       } catch {}
+      // For signup, we go to success page first for email verification
+      // Store redirect URL for after verification (if user gets automatically logged in)
       router.push("/auth/signup-success")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")

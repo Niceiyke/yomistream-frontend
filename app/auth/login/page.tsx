@@ -48,7 +48,10 @@ export default function LoginPage() {
           window.dispatchEvent(new Event("wordlyte-auth-changed"))
         }
       } catch {}
-      router.push("/")
+      // Redirect to stored URL or home page
+      const redirectUrl = localStorage.getItem('redirectAfterAuth') || '/'
+      localStorage.removeItem('redirectAfterAuth')
+      router.push(redirectUrl)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
     } finally {

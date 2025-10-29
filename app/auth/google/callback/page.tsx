@@ -37,8 +37,10 @@ export default function GoogleCallbackPage() {
           }
         } catch {}
 
-        // Redirect to home page
-        router.push("/")
+        // Redirect to stored URL or home page
+        const redirectUrl = localStorage.getItem('redirectAfterAuth') || '/'
+        localStorage.removeItem('redirectAfterAuth')
+        router.push(redirectUrl)
       } catch (error: unknown) {
         console.error("Google OAuth callback error:", error)
         setError(error instanceof Error ? error.message : "Authentication failed")

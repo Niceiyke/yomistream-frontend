@@ -17,6 +17,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
     if (!loading) {
       const isAuthPage = pathname.startsWith('/auth')
       if (!isAuthPage && !user) {
+        // Store current URL for redirect after login
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('redirectAfterAuth', window.location.href)
+        }
         router.push('/auth/login')
       }
     }
