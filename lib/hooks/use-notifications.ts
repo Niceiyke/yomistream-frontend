@@ -26,8 +26,9 @@ export function useNotifications({ enabled = true, onNotification }: UseNotifica
       const url = new URL(API_BASE_URL)
 
       // Get access token from localStorage
-      const token = localStorage.getItem('access_token')
-      const wsUrl = `${protocol}//${url.host}/api/v1/notifications/ws${token ? `?token=${token}` : ''}`
+      // const token = localStorage.getItem('access_token')
+      // const wsUrl = `${protocol}//${url.host}/api/v1/notifications/ws${token ? `?token=${token}` : ''}`
+      const wsUrl = `${protocol}//${url.host}/api/v1/notifications/ws`
 
       wsRef.current = new WebSocket(wsUrl)
 
