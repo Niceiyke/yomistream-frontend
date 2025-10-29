@@ -66,6 +66,17 @@ export interface NotificationStats {
 }
 
 // API Functions
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('access_token')
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  return headers
+}
+
 export const notificationApi = {
   // Get user notifications
   async getNotifications(params?: {
@@ -80,7 +91,9 @@ export const notificationApi = {
     if (params?.status) searchParams.set('status_filter', params.status)
     if (params?.unread_only) searchParams.set('unread_only', 'true')
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/notifications/?${searchParams}`)
+    const response = await fetch(`${API_BASE_URL}/api/v1/notifications/?${searchParams}`, {
+      headers: getAuthHeaders()
+    })
     if (!response.ok) throw new Error('Failed to fetch notifications')
     return response.json()
   },
@@ -88,7 +101,8 @@ export const notificationApi = {
   // Mark notification as read
   async markAsRead(notificationId: string): Promise<boolean> {
     const response = await fetch(`${API_BASE_URL}/api/v1/notifications/${notificationId}/read`, {
-      method: 'PUT'
+      method: 'PUT',
+      headers: getAuthHeaders()
     })
     if (!response.ok) throw new Error('Failed to mark notification as read')
     return response.json()
@@ -97,7 +111,8 @@ export const notificationApi = {
   // Mark all notifications as read
   async markAllAsRead(): Promise<number> {
     const response = await fetch(`${API_BASE_URL}/api/v1/notifications/read-all`, {
-      method: 'PUT'
+      method: 'PUT',
+      headers: getAuthHeaders()
     })
     if (!response.ok) throw new Error('Failed to mark all notifications as read')
     return response.json()
@@ -105,7 +120,9 @@ export const notificationApi = {
 
   // Get notification preferences
   async getPreferences(): Promise<NotificationPreferences> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/notifications/preferences`)
+    const response = await fetch(`${API_BASE_URL}/api/v1/notifications/preferences`, {
+      headers: getAuthHeaders()
+    })
     if (!response.ok) throw new Error('Failed to fetch notification preferences')
     return response.json()
   },
@@ -114,7 +131,7 @@ export const notificationApi = {
   async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
     const response = await fetch(`${API_BASE_URL}/api/v1/notifications/preferences`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(preferences)
     })
     if (!response.ok) throw new Error('Failed to update notification preferences')
@@ -125,7 +142,7 @@ export const notificationApi = {
   async sendNotification(request: SendNotificationRequest): Promise<Notification> {
     const response = await fetch(`${API_BASE_URL}/api/v1/notifications/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(request)
     })
     if (!response.ok) throw new Error('Failed to send notification')
@@ -136,7 +153,7 @@ export const notificationApi = {
   async sendBulkNotifications(request: BulkNotificationRequest): Promise<Notification[]> {
     const response = await fetch(`${API_BASE_URL}/api/v1/notifications/send-bulk`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(request)
     })
     if (!response.ok) throw new Error('Failed to send bulk notifications')
@@ -145,7 +162,9 @@ export const notificationApi = {
 
   // Get notification stats (admin only)
   async getStats(): Promise<NotificationStats> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/notifications/admin/stats`)
+    const response = await fetch(`${API_BASE_URL}/api/v1/notifications/admin/stats`, {
+      headers: getAuthHeaders()
+    })
     if (!response.ok) throw new Error('Failed to fetch notification stats')
     return response.json()
   }
