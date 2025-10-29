@@ -26,7 +26,8 @@ import {
   Edit,
   Save,
   X,
-  MessageSquare
+  MessageSquare,
+  Menu
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -62,7 +63,6 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   const { user } = useAuth()
   const { toast } = useToast()
 
-  const [favorites, setFavorites] = useState<string[]>([])
   const [aiModalOpen, setAiModalOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({})
@@ -82,6 +82,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   }>>([])
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editingCommentText, setEditingCommentText] = useState<string>("")
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
   const [editingNoteText, setEditingNoteText] = useState<string>("")
 
@@ -90,13 +91,18 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   // Set responsive defaults for sermon notes
   useEffect(() => {
     const handleResize = () => {
-      const isDesktop = window.innerWidth >= 768 // md breakpoint
+      const isDesktop = window.innerWidth >= 1024 // lg breakpoint
       setExpandedSections(prev => ({
         ...prev,
         'sermon-notes': isDesktop, // Visible on desktop, hidden on mobile
         'scripture-references': prev['scripture-references'] || false, // Keep scripture collapsed by default
-        'key-points': prev['key-points'] || false // Keep key points collapsed by default
+        'key-points': prev['key-points'] || false, // Keep key points collapsed by default
+        'user-notes': prev['user-notes'] || false // Keep user notes collapsed by default
       }))
+      // Close mobile sidebar when switching to desktop
+      if (isDesktop) {
+        setMobileSidebarOpen(false)
+      }
     }
 
     handleResize() // Set initial state
@@ -134,18 +140,29 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     },
     enabled: !!videoId,
   })
-
-  // Fetch user notes for this video
+  // Fetch user notes
   const notesQuery = useQuery({
-    queryKey: ["video-notes", videoId],
+    queryKey: ["notes", videoId],
     queryFn: async () => {
-      const accessToken = await getAccessTokenCached()
-      const response = await apiGet(`/api/v1/notes/video/${videoId}`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      })
+      const response = await apiGet(`/api/v1/notes/video/${videoId}`)
       return response || []
     },
-    enabled: !!user?.id && !!videoId,
+    enabled: !!videoId,
+  })
+
+
+  // Fetch user favorites
+  const favoritesQuery = useQuery({
+    queryKey: ["favorites", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return []
+      const accessToken = await getAccessTokenCached()
+      const favs = await apiGet("/api/v1/favorites", {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      })
+      return favs?.video_ids || []
+    },
+    enabled: !!user?.id,
   })
 
   // Combine notes with comments using useMemo
@@ -173,10 +190,6 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     }))
   }, [notesQuery.data, commentsQuery.data])
 
-  useEffect(() => {
-    // Favorites are managed locally, no need to fetch from API
-  }, [])
-
   const toggleFavorite = async () => {
     if (!user) {
       router.push("/auth/login")
@@ -187,7 +200,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     const actionKey = 'favorite'
     setActionLoadingState(actionKey, true)
 
-    const isFavorite = favorites.includes(videoId)
+    const currentFavorites = Array.isArray(favoritesQuery.data) ? favoritesQuery.data : []
+    const isFavorite = currentFavorites.includes(videoId)
     const accessToken = await getAccessTokenCached()
     const headers: Record<string, string> = accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
 
@@ -257,7 +271,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       })
 
       // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
     } catch (error) {
       console.error('Error saving note:', error)
       toast({
@@ -290,7 +304,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       })
 
       // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
       queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
 
       // Reset editing state
@@ -342,7 +356,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       })
 
       // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
       queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
 
       // Reset editing state
@@ -387,7 +401,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       })
 
       // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
       queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
     } catch (error: any) {
       console.error('Error deleting comment:', error)
@@ -400,7 +414,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
         })
 
         // Still refresh the data in case the UI needs updating
-        queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+        queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
         queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
 
         // Reset editing state
@@ -436,7 +450,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       })
 
       // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
     } catch (error) {
       console.error('Error deleting note:', error)
       toast({
@@ -639,6 +653,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   }
 
   const video = videoQuery.data
+  const favorites = Array.isArray(favoritesQuery.data) ? favoritesQuery.data : []
   const isFavorite = favorites.includes(videoId)
 
 
@@ -662,6 +677,10 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     )
   }
 
+  const handleGoBack = () => {
+    router.back()
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
       {/* App Header */}
@@ -670,18 +689,26 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
         showActions={false}
         backButton={{
           label: "← Back",
-          href: "/",
-          scroll: false
+          href: "#",
+          scroll: false,
+          onClick: handleGoBack
         }}
       />
 
       {/* Mobile-First Responsive Layout */}
       <div className="min-h-[calc(100vh-4rem)]">
-        {/* Desktop: 3-column grid, Mobile: Single column */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] xl:grid-cols-[320px_1fr_360px] gap-6 px-4 py-6 max-w-screen-2xl mx-auto">
+        {/* Desktop: 2-column grid, Mobile: Single column */}
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 px-4 py-6 max-w-screen-2xl mx-auto relative">
+          {/* Mobile overlay when sidebar is open */}
+          {mobileSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+          )}
 
           {/* Left Sidebar - Table of Contents / Navigation */}
-          <aside className="hidden lg:block space-y-6">
+          <aside className={cn("space-y-6 lg:block z-50", mobileSidebarOpen ? "block" : "hidden lg:block")}>
             {/* Sermon Outline / Table of Contents */}
             <Card className="sticky top-6 border-primary/20 shadow-lg bg-gradient-to-br from-primary/5 to-secondary/5">
               <CardHeader className="pb-4">
@@ -728,53 +755,267 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card className="sticky top-80 border-secondary/20 shadow-lg">
-              <CardHeader className="pb-3">
-                <h3 className="text-lg font-semibold text-foreground flex items-center">
-                  <Sparkles className="w-5 h-5 mr-2 text-secondary" />
-                  Quick Actions
-                </h3>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-3">
-                <Button
-                  onClick={handleGenerateAI}
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  AI Content
-                </Button>
-                <ShareDialog
-                  content={{
-                    title: video.title,
-                    text: `Check out this sermon: ${video.title}`,
-                    url: window.location.href,
-                    type: 'video'
-                  }}
-                >
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    size="sm"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                </ShareDialog>
-                <Button
-                  onClick={toggleFavorite}
-                  variant={isFavorite ? "default" : "outline"}
-                  className="w-full justify-start"
-                  size="sm"
-                  disabled={actionLoading['favorite']}
-                >
-                  <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
-                  {isFavorite ? 'Favorited' : 'Favorite'}
-                </Button>
-              </CardContent>
-            </Card>
+            {/* User Notes - Personal notes taken during viewing */}
+            {user && notesWithComments && notesWithComments.length > 0 && (
+              <section id="user-notes" className="scroll-mt-20">
+                <Card className="border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold text-foreground flex items-center">
+                        <StickyNote className="w-5 h-5 mr-2 text-blue-600" />
+                        My Notes
+                        <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+                          {notesWithComments.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments
+                        </Badge>
+                      </h2>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleSection('user-notes')}
+                          className="h-8 w-8 p-0 hover:bg-blue-100"
+                        >
+                          {expandedSections['user-notes'] ?
+                            <ChevronUp className="w-4 h-4" /> :
+                            <ChevronDown className="w-4 h-4" />
+                          }
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {expandedSections['user-notes'] && (
+                    <CardContent className="pt-0 max-h-[600px] overflow-y-auto">
+                      <div className="space-y-4">
+                        {notesWithComments.map((note: any) => (
+                          <div key={note.id} className="bg-card/80 rounded-lg p-4 border border-blue-200/30 shadow-sm hover:shadow-md transition-all duration-200">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                  {formatDuration(note.video_time)}
+                                </Badge>
+                                {note.note_category && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {note.note_category}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Jump to note time in video
+                                    const videoElement = document.querySelector('video') as HTMLVideoElement
+                                    if (videoElement) {
+                                      videoElement.currentTime = note.video_time
+                                    }
+                                  }}
+                                  className="h-6 w-6 p-0 hover:bg-blue-100"
+                                  title="Jump to this time in video"
+                                >
+                                  <Play className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 border-l-4 border-blue-400">
+                                <p className="text-xs text-blue-800 dark:text-blue-200 italic leading-relaxed line-clamp-3">
+                                  "{note.transcript_text}"
+                                </p>
+                              </div>
+
+                              {/* Display all comments */}
+                              {note.comments && note.comments.length > 0 && (
+                                <div className="space-y-2">
+                                  {note.comments.map((comment: any) => (
+                                    <div key={comment.id} className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-200/30 dark:border-amber-800/30">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(comment.created_at).toLocaleDateString()}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleEditComment(comment)}
+                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                            title="Edit comment"
+                                          >
+                                            <Edit className="w-3 h-3" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDeleteComment(comment.id)}
+                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                            title="Delete comment"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      {editingCommentId === comment.id ? (
+                                        <div className="space-y-2">
+                                          <Textarea
+                                            value={editingCommentText}
+                                            onChange={(e) => setEditingCommentText(e.target.value)}
+                                            className="bg-white dark:bg-gray-800 border-amber-200 resize-none text-xs"
+                                            rows={2}
+                                          />
+                                          <div className="flex items-center gap-2">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handleUpdateComment(comment.id)}
+                                              className="h-6 px-2 bg-amber-600 hover:bg-amber-700 text-xs"
+                                            >
+                                              <Save className="w-3 h-3 mr-1" />
+                                              Save
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                setEditingCommentId(null)
+                                                setEditingCommentText("")
+                                              }}
+                                              className="h-6 px-2 hover:bg-gray-100 text-xs"
+                                            >
+                                              <X className="w-3 h-3 mr-1" />
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                                          {comment.content}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditNote(note)}
+                                  className="h-6 px-2 text-xs hover:bg-blue-100"
+                                  title="Add a comment"
+                                >
+                                  <MessageSquare className="w-3 h-3 mr-1" />
+                                  Add Comment
+                                </Button>
+                              </div>
+
+                              {editingNoteId === note.id ? (
+                                <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 border-l-4 border-amber-400 space-y-3">
+                                  <Textarea
+                                    value={editingNoteText}
+                                    onChange={(e) => setEditingNoteText(e.target.value)}
+                                    placeholder="Add your thoughts, insights, or notes about this transcript segment..."
+                                    className="bg-white dark:bg-gray-800 border-amber-200 resize-none text-xs"
+                                    rows={2}
+                                  />
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleAddComment(note.id)}
+                                      className="h-6 px-2 bg-amber-600 hover:bg-amber-700 text-xs"
+                                    >
+                                      <Save className="w-3 h-3 mr-1" />
+                                      Add Comment
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={handleCancelEdit}
+                                      className="h-6 px-2 hover:bg-gray-100 text-xs"
+                                    >
+                                      <X className="w-3 h-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
+                              <span className="text-xs">
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-1 text-xs hover:bg-red-100 hover:text-red-700"
+                                  title="Delete note"
+                                  onClick={() => handleDeleteNote(note.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              </section>
+            )}
+
+            {/* Admin Controls - Only visible to admin users */}
+            {user?.user_type === 'admin' && (
+              <Card className="border-destructive/20 shadow-lg bg-gradient-to-br from-destructive/5 to-destructive/10">
+                <CardHeader className="pb-4">
+                  <h2 className="text-xl font-bold text-foreground flex items-center">
+                    <Sparkles className="w-5 h-5 mr-3 text-destructive" />
+                    Admin Controls
+                  </h2>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={handleTranscribeVideo}
+                      disabled={actionLoading['transcribe'] || !videoQuery.data}
+                      variant="outline"
+                      className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
+                    >
+                      <Mic className="w-4 h-4" />
+                      {actionLoading['transcribe'] ? 'Transcribing...' : 'Transcribe Video'}
+                    </Button>
+                    <Button
+                      onClick={handleAIAnalysis}
+                      disabled={actionLoading['ai-analysis'] || !videoQuery.data}
+                      variant="outline"
+                      className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
+                    >
+                      <Brain className="w-4 h-4" />
+                      {actionLoading['ai-analysis'] ? 'Analyzing...' : 'Generate AI Summary'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Use these controls to generate transcriptions and AI-powered summaries for this video.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </aside>
+
+          {/* Mobile Hamburger Menu Button */}
+          <div className="lg:hidden flex justify-start mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className="flex items-center gap-2"
+            >
+              <Menu className="w-4 h-4" />
+              {mobileSidebarOpen ? 'Hide Menu' : 'Show Menu'}
+            </Button>
+          </div>
 
           {/* Main Content Area */}
           <main className="space-y-8 lg:col-span-1">
@@ -825,55 +1066,64 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                   {video.title}
                 </h1>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 md:gap-4 text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                    <span className="font-medium text-foreground text-sm md:text-base">{getPreacherName(video) || "Unknown"}</span>
-                  </div>
+                <div className="flex flex-col lg:flex-row items-stretch gap-4">
+                  {/* Single container for both info cards */}
+                  <div className="flex flex-col lg:flex-row gap-4 flex-1">
+                    {/* Preacher and Views Info */}
+                    <div className="flex items-center justify-center lg:justify-start gap-4 md:gap-6 py-1 px-2 bg-card/30 rounded-xl shadow-lg border border-border/50 backdrop-blur-sm flex-1">
+                      <div className="flex flex-col items-center gap-1">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-medium text-foreground">{getPreacherName(video) || "Unknown"}</span>
+                      </div>
 
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    <span className="text-sm md:text-base">{video.view_count?.toLocaleString() || 'N/A'} views</span>
+                      <div className="flex flex-col items-center gap-1">
+                        <Eye className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">{video.view_count?.toLocaleString() || 'N/A'} views</span>
+                      </div>
+                    </div>
+
+                    {/* Quick Actions - YouTube-style horizontal buttons */}
+                    <div className="flex items-center justify-center gap-2 py-2 px-3 bg-card/30 rounded-xl shadow-lg border border-border/50 backdrop-blur-sm flex-1">
+                      <Button
+                        onClick={handleGenerateAI}
+                        variant="ghost"
+                        size="sm"
+                        className="flex flex-col items-center gap-1 h-auto py-2 px-3 hover:bg-primary/10 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-medium">AI Content</span>
+                      </Button>
+                      <ShareDialog
+                        content={{
+                          title: video.title,
+                          text: `Check out this sermon: ${video.title}`,
+                          url: window.location.href,
+                          type: 'video'
+                        }}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex flex-col items-center gap-1 h-auto py-2 px-3 hover:bg-secondary/10 transition-colors"
+                        >
+                          <Share2 className="w-4 h-4 text-secondary" />
+                          <span className="text-xs font-medium">Share</span>
+                        </Button>
+                      </ShareDialog>
+                      <Button
+                        onClick={toggleFavorite}
+                        variant="ghost"
+                        size="sm"
+                        className="flex flex-col items-center gap-1 h-auto py-2 px-3 hover:bg-accent/10 transition-colors"
+                        disabled={actionLoading['favorite']}
+                      >
+                        <Heart className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-muted-foreground'}`} />
+                        <span className="text-xs font-medium">{isFavorite ? 'Favorited' : 'Favorite'}</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* Admin Controls - Only visible to admin users */}
-              {user?.user_type === 'admin' && (
-                <Card className="border-destructive/20 shadow-lg bg-gradient-to-br from-destructive/5 to-destructive/10 mb-8">
-                  <CardHeader className="pb-4">
-                    <h2 className="text-xl font-bold text-foreground flex items-center">
-                      <Sparkles className="w-5 h-5 mr-3 text-destructive" />
-                      Admin Controls
-                    </h2>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        onClick={handleTranscribeVideo}
-                        disabled={actionLoading['transcribe'] || !videoQuery.data}
-                        variant="outline"
-                        className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
-                      >
-                        <Mic className="w-4 h-4" />
-                        {actionLoading['transcribe'] ? 'Transcribing...' : 'Transcribe Video'}
-                      </Button>
-                      <Button
-                        onClick={handleAIAnalysis}
-                        disabled={actionLoading['ai-analysis'] || !videoQuery.data}
-                        variant="outline"
-                        className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
-                      >
-                        <Brain className="w-4 h-4" />
-                        {actionLoading['ai-analysis'] ? 'Analyzing...' : 'Generate AI Summary'}
-                      </Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-3">
-                      Use these controls to generate transcriptions and AI-powered summaries for this video.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
 
             </section>
 
@@ -1068,254 +1318,6 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                 </section>
               )}
           </main>
-
-          {/* Right Sidebar - Notes and Comments */}
-          <aside className="space-y-6">
-            {/* User Notes - Personal notes taken during viewing */}
-            {user && notesWithComments && notesWithComments.length > 0 && (
-              <section id="user-notes" className="scroll-mt-20">
-                <Card className="border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 lg:sticky lg:top-6">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-bold text-foreground flex items-center">
-                        <StickyNote className="w-5 h-5 mr-2 text-blue-600" />
-                        My Notes
-                        <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                          {notesWithComments.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments
-                        </Badge>
-                      </h2>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 max-h-[600px] overflow-y-auto">
-                    <div className="space-y-4">
-                      {notesWithComments.map((note: any) => (
-                        <div key={note.id} className="bg-card/80 rounded-lg p-4 border border-blue-200/30 shadow-sm hover:shadow-md transition-all duration-200">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                                {formatDuration(note.video_time)}
-                              </Badge>
-                              {note.note_category && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {note.note_category}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  // Jump to note time in video
-                                  const videoElement = document.querySelector('video') as HTMLVideoElement
-                                  if (videoElement) {
-                                    videoElement.currentTime = note.video_time
-                                  }
-                                }}
-                                className="h-6 w-6 p-0 hover:bg-blue-100"
-                                title="Jump to this time in video"
-                              >
-                                <Play className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 border-l-4 border-blue-400">
-                              <p className="text-xs text-blue-800 dark:text-blue-200 italic leading-relaxed line-clamp-3">
-                                "{note.transcript_text}"
-                              </p>
-                            </div>
-
-                            {/* Display all comments */}
-                            {note.comments && note.comments.length > 0 && (
-                              <div className="space-y-2">
-                                {note.comments.map((comment: any) => (
-                                  <div key={comment.id} className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-200/30 dark:border-amber-800/30">
-                                    <div className="flex items-start justify-between mb-2">
-                                      <span className="text-xs text-muted-foreground">
-                                        {new Date(comment.created_at).toLocaleDateString()}
-                                      </span>
-                                      <div className="flex items-center gap-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleEditComment(comment)}
-                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                                          title="Edit comment"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleDeleteComment(comment.id)}
-                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                                          title="Delete comment"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    {editingCommentId === comment.id ? (
-                                      <div className="space-y-2">
-                                        <Textarea
-                                          value={editingCommentText}
-                                          onChange={(e) => setEditingCommentText(e.target.value)}
-                                          className="bg-white dark:bg-gray-800 border-amber-200 resize-none text-xs"
-                                          rows={2}
-                                        />
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleUpdateComment(comment.id)}
-                                            className="h-6 px-2 bg-amber-600 hover:bg-amber-700 text-xs"
-                                          >
-                                            <Save className="w-3 h-3 mr-1" />
-                                            Save
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => {
-                                              setEditingCommentId(null)
-                                              setEditingCommentText("")
-                                            }}
-                                            className="h-6 px-2 hover:bg-gray-100 text-xs"
-                                          >
-                                            <X className="w-3 h-3 mr-1" />
-                                            Cancel
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                                        {comment.content}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditNote(note)}
-                                className="h-6 px-2 text-xs hover:bg-blue-100"
-                                title="Add a comment"
-                              >
-                                <MessageSquare className="w-3 h-3 mr-1" />
-                                Add Comment
-                              </Button>
-                            </div>
-
-                            {editingNoteId === note.id ? (
-                              <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 border-l-4 border-amber-400 space-y-3">
-                                <Textarea
-                                  value={editingNoteText}
-                                  onChange={(e) => setEditingNoteText(e.target.value)}
-                                  placeholder="Add your thoughts, insights, or notes about this transcript segment..."
-                                  className="bg-white dark:bg-gray-800 border-amber-200 resize-none text-xs"
-                                  rows={2}
-                                />
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleAddComment(note.id)}
-                                    className="h-6 px-2 bg-amber-600 hover:bg-amber-700 text-xs"
-                                  >
-                                    <Save className="w-3 h-3 mr-1" />
-                                    Add Comment
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={handleCancelEdit}
-                                    className="h-6 px-2 hover:bg-gray-100 text-xs"
-                                  >
-                                    <X className="w-3 h-3 mr-1" />
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
-                            <span className="text-xs">
-                              {new Date(note.created_at).toLocaleDateString()}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 px-1 text-xs hover:bg-red-100 hover:text-red-700"
-                                title="Delete note"
-                                onClick={() => handleDeleteNote(note.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </section>
-            )}
-
-            {/* Mobile Actions - Show on mobile when sidebar is hidden */}
-            <div className="lg:hidden space-y-4">
-              <Card className="border-secondary/20 shadow-lg">
-                <CardHeader className="pb-3">
-                  <h3 className="text-lg font-semibold text-foreground flex items-center">
-                    <Sparkles className="w-5 h-5 mr-2 text-secondary" />
-                    Actions
-                  </h3>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3">
-                  <Button
-                    onClick={handleGenerateAI}
-                    className="w-full justify-start"
-                    size="sm"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Content
-                  </Button>
-                  <ShareDialog
-                    content={{
-                      title: video.title,
-                      text: `Check out this sermon: ${video.title}`,
-                      url: window.location.href,
-                      type: 'video'
-                    }}
-                  >
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      size="sm"
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share
-                    </Button>
-                  </ShareDialog>
-                  <Button
-                    onClick={toggleFavorite}
-                    variant={isFavorite ? "default" : "outline"}
-                    className="w-full justify-start"
-                    size="sm"
-                    disabled={actionLoading['favorite']}
-                  >
-                    <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
-                    {isFavorite ? 'Favorited' : 'Favorite'}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </aside>
         </div>
       </div>
 

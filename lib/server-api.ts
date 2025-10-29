@@ -49,7 +49,12 @@ export async function fetchPublicPreachers() {
   return serverApiGet("/api/v1/public/preachers", { revalidate: 900 });
 }
 
+export async function fetchPreacher(preacherId: string) {
+  // Preacher data is relatively stable - revalidate every 10 minutes
+  return serverApiGet(`/api/v1/preachers/${preacherId}`, { revalidate: 600 });
+}
+
 export async function fetchVideo(videoId: string) {
-  // Individual videos might be updated - revalidate every 5 minutes
+  // Individual videos change moderately - revalidate every 5 minutes
   return serverApiGet(`/api/v1/videos/${videoId}`, { revalidate: 300 });
 }

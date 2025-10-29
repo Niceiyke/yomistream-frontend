@@ -22,7 +22,6 @@ interface Video {
   id: string
   title: string
   description?: string
-  youtube_id: string
   youtube_url?: string
   original_url?: string
   video_url: string
@@ -84,7 +83,6 @@ export default function VideoEditPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    youtube_id: "",
     youtube_url: "",
     original_url: "",
     video_url: "",
@@ -154,7 +152,6 @@ export default function VideoEditPage() {
       setFormData({
         title: video.title || "",
         description: video.description || "",
-        youtube_id: video.youtube_id || "",
         youtube_url: video.youtube_url || "",
         original_url: video.original_url || "",
         video_url: video.video_url || "",
@@ -195,6 +192,8 @@ export default function VideoEditPage() {
     try {
       const submitData = {
         ...formData,
+        topic_id: formData.topic_id || null,
+        preacher_id: formData.preacher_id || null,
         tags: formData.tags ? formData.tags.split(",").map(tag => tag.trim()) : [],
         keywords: formData.keywords ? formData.keywords.split(",").map(keyword => keyword.trim()) : [],
         sermon_notes: formData.sermon_notes ? formData.sermon_notes.split("\n").map(note => note.trim()).filter(note => note.length > 0) : [],
@@ -217,7 +216,7 @@ export default function VideoEditPage() {
         description: "Video updated successfully.",
       })
 
-      router.push("/admin/content-manager")
+      router.push("/admin")
     } catch (error) {
       toast({
         title: "Error",
@@ -406,22 +405,13 @@ export default function VideoEditPage() {
                   <CardDescription>Core video details and content</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Title *</Label>
                       <Input
                         id="title"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="youtube_id">YouTube ID *</Label>
-                      <Input
-                        id="youtube_id"
-                        value={formData.youtube_id}
-                        onChange={(e) => setFormData({ ...formData, youtube_id: e.target.value })}
                         required
                       />
                     </div>

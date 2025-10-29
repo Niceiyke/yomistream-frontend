@@ -71,7 +71,7 @@ export function PreacherCard({
             onClick={handleViewSermons}
           >
             <Users className="w-4 h-4 mr-2" />
-            View Sermons
+            View Profile
           </Button>
 
           {user && onToggleFavorite && (

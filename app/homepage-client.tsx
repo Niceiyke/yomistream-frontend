@@ -206,9 +206,8 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
   }
 
   const handleViewPreacherSermons = (preacherId: string, preacherName: string) => {
-    setFilteredPreacherId(preacherId)
-    setActiveTab("videos")
-    setSearchQuery(preacherName)
+    // Navigate to the preacher detail page
+    router.push(`/preacher/${preacherId}`)
   }
 
   const handleSignOut = async () => {
@@ -249,7 +248,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
   })
 
   const filteredPreachers = preachers.filter((preacher) =>
-    preacher.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    !searchQuery.trim() || preacher.name.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
 
@@ -412,8 +411,8 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
                     video_url: video.video_url || "",
                     topic: video.topic || "",
                     description: video.description || "",
-                    sermonNotes: video.sermon_notes || [],
-                    scriptureReferences: video.scripture_references || [],
+                    sermon_notes: video.sermon_notes || [],
+                    scripture_references: video.scripture_references || [],
                     tags: normalizeVideoTags(video.tags),
                     thumbnail_url: video.thumbnail_url || "",
                   }}

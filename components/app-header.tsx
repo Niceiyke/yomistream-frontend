@@ -23,8 +23,9 @@ interface AppHeaderProps {
   showActions?: boolean
   backButton?: {
     label: string
-    href: string
+    href?: string
     scroll?: boolean
+    onClick?: () => void
   }
 }
 
@@ -95,14 +96,19 @@ export function AppHeader({
           <div className="flex items-center space-x-3">
             {backButton && (
               <Button
-                asChild
                 variant="ghost"
                 size="sm"
                 className="hover:bg-accent -ml-2"
+                onClick={backButton.onClick}
+                asChild={!!backButton.href && !backButton.onClick}
               >
-                <Link href={backButton.href} scroll={backButton.scroll !== false}>
-                  {backButton.label}
-                </Link>
+                {backButton.onClick ? (
+                  <span className="cursor-pointer">{backButton.label}</span>
+                ) : (
+                  <Link href={backButton.href!} scroll={backButton.scroll !== false}>
+                    {backButton.label}
+                  </Link>
+                )}
               </Button>
             )}
             <Link href="/" className="flex items-center space-x-3 group" scroll={false}>
