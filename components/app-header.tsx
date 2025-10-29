@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { NotificationCenter } from "@/components/notification-center"
 
 interface AppHeaderProps {
   favorites?: string[]
@@ -137,6 +138,9 @@ export function AppHeader({
               )}
               {user ? (
                 <>
+                  {/* Notification Center */}
+                  <NotificationCenter />
+
                   {/* User Profile Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

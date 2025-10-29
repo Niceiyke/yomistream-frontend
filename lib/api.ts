@@ -102,5 +102,7 @@ export async function apiDelete(path: string, init?: RequestInit) {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(await res.text());
+  // Handle 204 No Content responses (no body to parse)
+  if (res.status === 204) return null;
   return res.json();
 }

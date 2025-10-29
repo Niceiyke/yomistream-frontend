@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -142,31 +142,35 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       const response = await apiGet(`/api/v1/notes/video/${videoId}`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       })
-
-      // Transform the response to support both old and new formats
-      const notes = response || []
-      return notes.map((note: any) => ({
-        ...note,
-        comments: [
-          // Legacy comments from user_note
-          ...(note.user_note ? [{
-            id: `${note.id}-legacy`,
-            text: note.user_note,
-            content: note.user_note,
-            created_at: note.updated_at || note.created_at
-          }] : []),
-          // Real comments associated with this note
-          ...(commentsQuery.data?.filter((comment: any) => comment.note_id === note.id) || []).map((comment: any) => ({
-            id: comment.id,
-            text: comment.content,
-            content: comment.content,
-            created_at: comment.created_at
-          }))
-        ]
-      }))
+      return response || []
     },
-    enabled: !!user?.id && !!videoId && !!commentsQuery.data,
+    enabled: !!user?.id && !!videoId,
   })
+
+  // Combine notes with comments using useMemo
+  const notesWithComments = useMemo(() => {
+    if (!notesQuery.data) return []
+
+    return notesQuery.data.map((note: any) => ({
+      ...note,
+      comments: [
+        // Legacy comments from user_note
+        ...(note.user_note ? [{
+          id: `${note.id}-legacy`,
+          text: note.user_note,
+          content: note.user_note,
+          created_at: note.updated_at || note.created_at
+        }] : []),
+        // Real comments associated with this note
+        ...(commentsQuery.data?.filter((comment: any) => comment.note_id === note.id) || []).map((comment: any) => ({
+          id: comment.id,
+          text: comment.content,
+          content: comment.content,
+          created_at: comment.created_at
+        }))
+      ]
+    }))
+  }, [notesQuery.data, commentsQuery.data])
 
   useEffect(() => {
     // Favorites are managed locally, no need to fetch from API
@@ -345,7 +349,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
         })
       } else {
         // For real comments, update via comments endpoint
-        await apiPut(`/api/v1/comments/${commentId}`, {
+        await apiPut(`/api/v1/videos/comments/${commentId}`, {
           content: editingCommentText.trim()
         }, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
@@ -392,7 +396,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
         })
       } else {
         // For real comments, delete via comments endpoint
-        await apiDelete(`/api/v1/comments/${commentId}`, {
+        await apiDelete(`/api/v1/videos/comments/${commentId}`, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         })
       }
@@ -405,12 +409,29 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       // Refresh notes data
       queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
       queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting comment:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete comment. Please try again.",
-      })
+
+      // Check if it's a 404 (comment not found, possibly already deleted)
+      if (error?.message?.includes('404') || error?.message?.includes('Not Found')) {
+        toast({
+          title: "Comment deleted",
+          description: "Your comment has been removed.",
+        })
+
+        // Still refresh the data in case the UI needs updating
+        queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+        queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
+
+        // Reset editing state
+        setEditingCommentId(null)
+        setEditingCommentText("")
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete comment. Please try again.",
+        })
+      }
     }
   }
 
@@ -715,12 +736,12 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                       💡 Key Points
                     </button>
                   )}
-                  {user && notesQuery.data && notesQuery.data.length > 0 && (
+                  {user && notesWithComments && notesWithComments.length > 0 && (
                     <button
                       onClick={() => document.getElementById('user-notes')?.scrollIntoView({ behavior: 'smooth' })}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm"
                     >
-                      📝 My Notes ({notesQuery.data.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments)
+                      📝 My Notes ({notesWithComments.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments)
                     </button>
                   )}
                 </nav>
@@ -1044,7 +1065,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
           {/* Right Sidebar - Notes and Comments */}
           <aside className="space-y-6">
             {/* User Notes - Personal notes taken during viewing */}
-            {user && notesQuery.data && notesQuery.data.length > 0 && (
+            {user && notesWithComments && notesWithComments.length > 0 && (
               <section id="user-notes" className="scroll-mt-20">
                 <Card className="border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 lg:sticky lg:top-6">
                   <CardHeader className="pb-4">
@@ -1053,14 +1074,14 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         <StickyNote className="w-5 h-5 mr-2 text-blue-600" />
                         My Notes
                         <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                          {notesQuery.data.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments
+                          {notesWithComments.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments
                         </Badge>
                       </h2>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 max-h-[600px] overflow-y-auto">
                     <div className="space-y-4">
-                      {notesQuery.data.map((note: any) => (
+                      {notesWithComments.map((note: any) => (
                         <div key={note.id} className="bg-card/80 rounded-lg p-4 border border-blue-200/30 shadow-sm hover:shadow-md transition-all duration-200">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-2">
