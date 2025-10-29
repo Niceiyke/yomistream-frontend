@@ -124,6 +124,16 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   })
 
   console.log('Video query data:', videoQuery.data)
+  // Fetch video comments first
+  const commentsQuery = useQuery({
+    queryKey: ["video-comments", videoId],
+    queryFn: async () => {
+      const response = await apiGet(`/api/v1/videos/${videoId}/comments`)
+      return response || []
+    },
+    enabled: !!videoId,
+  })
+
   // Fetch user notes for this video
   const notesQuery = useQuery({
     queryKey: ["video-notes", videoId],
@@ -137,14 +147,25 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       const notes = response || []
       return notes.map((note: any) => ({
         ...note,
-        comments: note.comments || (note.user_note ? [{
-          id: `${note.id}-legacy`,
-          text: note.user_note,
-          created_at: note.updated_at || note.created_at
-        }] : [])
+        comments: [
+          // Legacy comments from user_note
+          ...(note.user_note ? [{
+            id: `${note.id}-legacy`,
+            text: note.user_note,
+            content: note.user_note,
+            created_at: note.updated_at || note.created_at
+          }] : []),
+          // Real comments associated with this note
+          ...(commentsQuery.data?.filter((comment: any) => comment.note_id === note.id) || []).map((comment: any) => ({
+            id: comment.id,
+            text: comment.content,
+            content: comment.content,
+            created_at: comment.created_at
+          }))
+        ]
       }))
     },
-    enabled: !!user?.id && !!videoId,
+    enabled: !!user?.id && !!videoId && !!commentsQuery.data,
   })
 
   useEffect(() => {
@@ -272,8 +293,9 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
     try {
       const accessToken = await getAccessTokenCached()
-      await apiPut(`/api/v1/notes/${noteId}`, {
-        comment_text: editingNoteText.trim()
+      await apiPost(`/api/v1/videos/${videoId}/comments`, {
+        content: editingNoteText.trim(),
+        note_id: noteId
       }, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       })
@@ -285,6 +307,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
       // Refresh notes data
       queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
 
       // Reset editing state
       setEditingNoteId(null)
@@ -300,7 +323,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
   const handleEditComment = (comment: any) => {
     setEditingCommentId(comment.id)
-    setEditingCommentText(comment.text)
+    setEditingCommentText(comment.content)
   }
 
   const handleUpdateComment = async (commentId: string) => {
@@ -309,8 +332,10 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     try {
       const accessToken = await getAccessTokenCached()
 
-      // Check if this is a legacy comment (ends with "-legacy")
-      if (commentId.endsWith('-legacy')) {
+      // Check if this is a legacy comment (contains "-legacy")
+      const isLegacyComment = commentId.includes('-legacy')
+
+      if (isLegacyComment) {
         // For legacy comments, update the note itself
         const noteId = commentId.replace('-legacy', '')
         await apiPut(`/api/v1/notes/${noteId}`, {
@@ -321,7 +346,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       } else {
         // For real comments, update via comments endpoint
         await apiPut(`/api/v1/comments/${commentId}`, {
-          text: editingCommentText.trim()
+          content: editingCommentText.trim()
         }, {
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         })
@@ -334,6 +359,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
       // Refresh notes data
       queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
 
       // Reset editing state
       setEditingCommentId(null)
@@ -353,8 +379,10 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     try {
       const accessToken = await getAccessTokenCached()
 
-      // Check if this is a legacy comment (ends with "-legacy")
-      if (commentId.endsWith('-legacy')) {
+      // Check if this is a legacy comment (contains "-legacy")
+      const isLegacyComment = commentId.includes('-legacy')
+
+      if (isLegacyComment) {
         // For legacy comments, clear the user_note field
         const noteId = commentId.replace('-legacy', '')
         await apiPut(`/api/v1/notes/${noteId}`, {
@@ -376,6 +404,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
       // Refresh notes data
       queryClient.invalidateQueries({ queryKey: ["video-notes", videoId] })
+      queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
     } catch (error) {
       console.error('Error deleting comment:', error)
       toast({
@@ -1133,7 +1162,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                                       </div>
                                     ) : (
                                       <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                                        {comment.text}
+                                        {comment.content}
                                       </p>
                                     )}
                                   </div>
