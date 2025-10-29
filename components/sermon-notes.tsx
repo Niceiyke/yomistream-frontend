@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ShareDialog } from "@/components/share-dialog"
 
 interface ScriptureReference {
   book: string
@@ -70,26 +71,14 @@ export function SermonNotes({ notes, scriptureReferences, className = "" }: Serm
     setBookmarkedVerses(newBookmarks)
   }
 
-  const shareNote = async (note: string, index: number) => {
-    try {
-      await navigator.share({
-        title: `Sermon Note ${index + 1}`,
-        text: note,
-      })
-    } catch (error) {
-      // Fallback to clipboard if share API not available
-      await navigator.clipboard.writeText(note)
-    }
+  const formatReference = (ref: ScriptureReference) => {
+    return `${ref.book} ${ref.chapter}:${ref.verse}`
   }
 
   const openBibleGateway = (ref: ScriptureReference) => {
     const reference = formatReference(ref)
     const url = `https://www.biblegateway.com/passage/?search=${encodeURIComponent(reference)}&version=NIV`
     window.open(url, "_blank")
-  }
-
-  const formatReference = (ref: ScriptureReference) => {
-    return `${ref.book} ${ref.chapter}:${ref.verse}`
   }
 
   return (
@@ -162,14 +151,22 @@ export function SermonNotes({ notes, scriptureReferences, className = "" }: Serm
 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => shareNote(note, index)}
-                                className="text-muted-foreground hover:text-secondary h-8 w-8 p-0"
+                              <ShareDialog
+                                content={{
+                                  title: `Sermon Note ${index + 1}`,
+                                  text: note,
+                                  url: window.location.href,
+                                  type: 'sermon-note'
+                                }}
                               >
-                                <Share2 className="w-4 h-4" />
-                              </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-secondary h-8 w-8 p-0"
+                                >
+                                  <Share2 className="w-4 h-4" />
+                                </Button>
+                              </ShareDialog>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Share note</p>

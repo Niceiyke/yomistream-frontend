@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Copy, Check, ExternalLink } from "lucide-react"
+import { Copy, Check, ExternalLink, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ShareDialog } from "@/components/share-dialog"
 
 interface ScriptureReference {
   book: string
@@ -58,6 +59,22 @@ export function ScriptureVerseCard({ reference, className = "", compact = false 
             >
               {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
             </Button>
+            <ShareDialog
+              content={{
+                title: formatReference(),
+                text: `"${reference.text}" - ${formatReference()}`,
+                url: window.location.href,
+                type: 'scripture'
+              }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+              >
+                <Share2 className="w-3 h-3" />
+              </Button>
+            </ShareDialog>
             <Button
               variant="ghost"
               size="sm"
@@ -92,6 +109,23 @@ export function ScriptureVerseCard({ reference, className = "", compact = false 
             >
               {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
             </Button>
+            <ShareDialog
+              content={{
+                title: formatReference(),
+                text: `"${reference.text}" - ${formatReference()}`,
+                url: window.location.href,
+                type: 'scripture'
+              }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+                title="Share verse"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </ShareDialog>
             <Button
               variant="ghost"
               size="sm"

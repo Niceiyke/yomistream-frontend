@@ -47,6 +47,7 @@ import { Video } from "@/lib/types"
 import { formatDuration, getPreacherName } from "@/lib/utils/video-helpers"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { ScriptureVerseCard } from "@/components/scripture-verse-card"
+import { ShareDialog } from "@/components/share-dialog"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -199,27 +200,6 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       await queryClient.invalidateQueries({ queryKey: ["favorites", user.id] })
     } catch (error) {
       console.error("Error toggling favorite:", error)
-    } finally {
-      setActionLoadingState(actionKey, false)
-    }
-  }
-
-  const shareVideo = async () => {
-    const actionKey = 'share'
-    setActionLoadingState(actionKey, true)
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: videoQuery.data?.title,
-          text: `Check out this sermon: ${videoQuery.data?.title}`,
-          url: window.location.href,
-        })
-      } else {
-        await navigator.clipboard.writeText(window.location.href)
-      }
-    } catch (error) {
-      console.log('Share cancelled or failed')
     } finally {
       setActionLoadingState(actionKey, false)
     }
@@ -765,15 +745,23 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                   <Sparkles className="w-4 h-4 mr-2" />
                   AI Content
                 </Button>
-                <Button
-                  onClick={shareVideo}
-                  variant="outline"
-                  className="w-full justify-start"
-                  size="sm"
+                <ShareDialog
+                  content={{
+                    title: video.title,
+                    text: `Check out this sermon: ${video.title}`,
+                    url: window.location.href,
+                    type: 'video'
+                  }}
                 >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    size="sm"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                </ShareDialog>
                 <Button
                   onClick={toggleFavorite}
                   variant={isFavorite ? "default" : "outline"}
@@ -1036,19 +1024,38 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                               <Badge variant="outline" className="bg-secondary/10 border-secondary/30 text-secondary font-semibold px-3 py-1">
                                 Key Point {index + 1}
                               </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyToClipboard(keyPoint, `key-point-${index}`)}
-                                className="h-6 w-6 p-0 hover:bg-secondary/10 opacity-60 hover:opacity-100"
-                                title="Copy key point"
-                              >
-                                {copiedItems.has(`key-point-${index}`) ? (
-                                  <Check className="w-3 h-3 text-green-600" />
-                                ) : (
-                                  <Copy className="w-3 h-3" />
-                                )}
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(keyPoint, `key-point-${index}`)}
+                                  className="h-6 w-6 p-0 hover:bg-secondary/10 opacity-60 hover:opacity-100"
+                                  title="Copy key point"
+                                >
+                                  {copiedItems.has(`key-point-${index}`) ? (
+                                    <Check className="w-3 h-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                </Button>
+                                <ShareDialog
+                                  content={{
+                                    title: `Key Point ${index + 1} from ${video.title}`,
+                                    text: keyPoint,
+                                    url: window.location.href,
+                                    type: 'key-point'
+                                  }}
+                                >
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 hover:bg-secondary/10 opacity-60 hover:opacity-100"
+                                    title="Share key point"
+                                  >
+                                    <Share2 className="w-3 h-3" />
+                                  </Button>
+                                </ShareDialog>
+                              </div>
                             </div>
                             <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap">
                               {keyPoint}
@@ -1278,15 +1285,23 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                     <Sparkles className="w-4 h-4 mr-2" />
                     AI Content
                   </Button>
-                  <Button
-                    onClick={shareVideo}
-                    variant="outline"
-                    className="w-full justify-start"
-                    size="sm"
+                  <ShareDialog
+                    content={{
+                      title: video.title,
+                      text: `Check out this sermon: ${video.title}`,
+                      url: window.location.href,
+                      type: 'video'
+                    }}
                   >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      size="sm"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                  </ShareDialog>
                   <Button
                     onClick={toggleFavorite}
                     variant={isFavorite ? "default" : "outline"}
