@@ -91,14 +91,7 @@ export interface Video {
   
   // Transcoding info (Netflix-style)
   hls_master_url: string | null
-  dash_manifest_url: string | null
-  provider_asset_id: string | null
-  transcoding_provider: string | null // 'mux', 'bunny', 'cloudflare', 'internal'
-  transcoding_status: string // 'not_started', 'processing', 'completed', 'failed'
-  transcoding_started_at: string | null
-  transcoding_completed_at: string | null
-  transcoding_error: string | null
-  transcoding_progress: number // 0-100
+
   
   // Transcription
   transcript: string | null

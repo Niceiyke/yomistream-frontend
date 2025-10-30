@@ -96,6 +96,14 @@ interface VideoPlayerProps {
     transcriptText: string
     videoTime: number
   }) => void
+  // View tracking
+  videoId?: string
+  onViewTracked?: (viewData: {
+    video_id: string
+    session_id: string
+    device_type: string
+    quality_watched: string
+  }) => void
 }
 
 interface VideoState {
@@ -131,6 +139,10 @@ interface VideoState {
   isCapturingNote: boolean
   noteCaptureStartTime: number
   noteCaptureEndTime: number
+  // View tracking
+  hasTrackedView: boolean
+  viewStartTime: number
+  watchTime: number
 }
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -174,7 +186,10 @@ const CustomVideoPlayer = ({
   onAdSkip,
   onAdClick,
   transcriptSegments = [],
-  onNoteTaken
+  onNoteTaken,
+  // View tracking
+  videoId,
+  onViewTracked
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -216,7 +231,11 @@ const CustomVideoPlayer = ({
     // Note-taking
     isCapturingNote: false,
     noteCaptureStartTime: 0,
-    noteCaptureEndTime: 0
+    noteCaptureEndTime: 0,
+    // View tracking
+    hasTrackedView: false,
+    viewStartTime: 0,
+    watchTime: 0
   })
   
   const [announcements, setAnnouncements] = useState<Array<{id: string, text: string}>>([])
@@ -225,7 +244,6 @@ const CustomVideoPlayer = ({
   const [showProgressBar, setShowProgressBar] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
-  // Screen reader announcements
   const announce = useCallback((message: string) => {
     const id = `announcement-${Date.now()}-${Math.random()}`
     setAnnouncements(prev => [...prev, { id, text: message }])
@@ -235,6 +253,77 @@ const CustomVideoPlayer = ({
       setAnnouncements(prev => prev.filter(a => a.id !== id))
     }, 1000)
   }, [])
+
+  const trackView = useCallback(async () => {
+    if (!videoId || state.hasTrackedView || !videoRef.current) return
+
+    try {
+      // Generate session ID if not exists
+      let sessionId = localStorage.getItem('video_session_id')
+      if (!sessionId) {
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        localStorage.setItem('video_session_id', sessionId)
+      }
+
+      // Detect device type
+      const userAgent = navigator.userAgent
+      let deviceType = 'desktop'
+      if (/Mobi|Android/i.test(userAgent)) {
+        deviceType = 'mobile'
+      } else if (/Tablet|iPad/i.test(userAgent)) {
+        deviceType = 'tablet'
+      }
+
+      const viewData = {
+        video_id: videoId,
+        session_id: sessionId,
+        device_type: deviceType,
+        quality_watched: state.quality
+      }
+
+      // Call the view tracking callback or API directly
+      if (onViewTracked) {
+        onViewTracked(viewData)
+      } else {
+        // Fallback: call API directly
+        try {
+          const response = await fetch(`/api/v1/videos/${videoId}/view`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(viewData)
+          })
+
+          if (!response.ok) {
+            console.warn('Failed to track view:', response.status)
+          }
+        } catch (error) {
+          console.warn('Error tracking view:', error)
+        }
+      }
+
+      // Mark as tracked
+      setState(prev => ({ ...prev, hasTrackedView: true }))
+    } catch (error) {
+      console.error('Error in trackView:', error)
+    }
+  }, [videoId, state.hasTrackedView, state.quality, onViewTracked])
+
+  // Check if view should be tracked based on watch time
+  const checkViewThreshold = useCallback(() => {
+    if (!videoRef.current || state.hasTrackedView) return
+
+    const duration = videoRef.current.duration
+    if (!duration || duration === 0) return
+
+    // View threshold: 30 seconds OR 50% of video duration (whichever is shorter)
+    const timeThreshold = Math.min(30, duration * 0.5)
+
+    if (state.watchTime >= timeThreshold) {
+      trackView()
+    }
+  }, [state.hasTrackedView, state.watchTime, trackView])
 
   // Ad management functions (declared early to avoid reference errors)
   const endCurrentAd = useCallback(() => {
@@ -499,17 +588,39 @@ const CustomVideoPlayer = ({
           announce("Video ended")
           onEnded?.()
         }
+
+        // Check view tracking threshold
+        if (state.isPlaying && !state.hasTrackedView) {
+          checkViewThreshold()
+        }
       }
     }
 
-    const handlePlay = () => {
-      setState(prev => ({ ...prev, isPlaying: true }))
-      announce(state.isPlayingAd ? "Advertisement playing" : "Video playing")
-    }
-    const handlePause = () => {
-      setState(prev => ({ ...prev, isPlaying: false }))
-      announce(state.isPlayingAd ? "Advertisement paused" : "Video paused")
-    }
+  const handlePlay = () => {
+    setState(prev => {
+      const newState = { ...prev, isPlaying: true }
+      // Start tracking view time if not already tracked
+      if (!prev.hasTrackedView) {
+        newState.viewStartTime = Date.now() / 1000 // Convert to seconds
+      }
+      return newState
+    })
+    announce(state.isPlayingAd ? "Advertisement playing" : "Video playing")
+  }
+
+  const handlePause = () => {
+    setState(prev => {
+      const newState = { ...prev, isPlaying: false }
+      // Update watch time
+      if (prev.viewStartTime > 0) {
+        const currentTime = Date.now() / 1000
+        newState.watchTime = prev.watchTime + (currentTime - prev.viewStartTime)
+        newState.viewStartTime = 0
+      }
+      return newState
+    })
+    announce(state.isPlayingAd ? "Advertisement paused" : "Video paused")
+  }
     const handleEnded = () => {
       if (state.isPlayingAd) {
         endCurrentAd()
@@ -583,7 +694,7 @@ const CustomVideoPlayer = ({
       video.removeEventListener('leavepictureinpicture', handleLeavePiP)
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
-  }, [startTime, endTime, onTimeUpdate, onEnded, state.isPlayingAd, state.currentAd, state.playedAds, ads, playAd, endCurrentAd])
+  }, [startTime, endTime, onTimeUpdate, onEnded, state.isPlayingAd, state.currentAd, state.playedAds, ads, playAd, endCurrentAd, checkViewThreshold])
 
   // Keyboard shortcuts
   useEffect(() => {

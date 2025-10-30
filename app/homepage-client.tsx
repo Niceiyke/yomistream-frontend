@@ -59,7 +59,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
     queryKey: ["videos"],
     queryFn: () => {
       console.log(`🌐 CLIENT: Fetching videos from client-side`);
-      return apiGetCached("/api/v1/public/videos");
+      return apiGetCached("/api/v1/videos");
     },
     initialData: initialVideos,
     staleTime: 2 * 60 * 1000, // 2 minutes - matches server revalidation
@@ -89,6 +89,9 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
     }
   }, [videosQuery.data, preachersQuery.data, videosQuery.isError, preachersQuery.isError])
 
+
+  console.log("videos", videos)
+  
   // React Query: favorites (dependent on user)
   const favoritesQuery = useQuery({
     queryKey: ["favorites", user?.id],
@@ -402,20 +405,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
               {filteredVideos.map((video) => (
                 <FixedVideoCard
                   key={video.id}
-                  video={{
-                    id: video.id,
-                    title: video.title,
-                    preacher: getPreacherName(video) || "Unknown",
-                    duration: formatDuration(video.duration),
-                    views: `${video.view_count || 0} views`,
-                    video_url: video.video_url || "",
-                    topic: video.topic || "",
-                    description: video.description || "",
-                    sermon_notes: video.sermon_notes || [],
-                    scripture_references: video.scripture_references || [],
-                    tags: normalizeVideoTags(video.tags),
-                    thumbnail_url: video.thumbnail_url || "",
-                  }}
+                  video={video}
                   isFavorite={favorites.includes(video.id)}
                   onPlay={() => handleVideoClick(video.id)}
                   onToggleFavorite={() => toggleFavorite(video.id)}
@@ -486,23 +476,6 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
           preacherName={selectedVideoForAI!.preachers?.name}
           onContentGenerated={handleAIContentGenerated}
         />
-      )}
-
-      {/* Performance Dashboard - Development Only */}
-      {process.env.NODE_ENV === 'development' && (
-        <>
-          <button
-            onClick={() => setShowPerformanceDashboard(true)}
-            className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors z-40"
-            title="Open Performance Dashboard"
-          >
-            📊
-          </button>
-          <SimplePerformanceDashboard
-            isOpen={showPerformanceDashboard}
-            onClose={() => setShowPerformanceDashboard(false)}
-          />
-        </>
       )}
     </div>
   )

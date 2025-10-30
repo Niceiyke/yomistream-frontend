@@ -32,11 +32,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { AddToCollectionDialog } from "@/components/add-to-collection-dialog"
 import { AppHeader } from "@/components/app-header"
 import { CustomVideoPlayer } from '@/components/custom-video-player'
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
@@ -1034,6 +1032,18 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                       endTime={video?.end_time_seconds || undefined}
                       transcriptSegments={video?.transcript_segments || []}
                       onNoteTaken={handleNoteTaken}
+                      videoId={videoId}
+                      onViewTracked={async (viewData) => {
+                        try {
+                          const accessToken = await getAccessTokenCached()
+                          await apiPost(`/api/v1/videos/${videoId}/view`, viewData, {
+                            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+                          })
+                          debugLog.video('View tracked successfully', viewData)
+                        } catch (error) {
+                          console.error('Failed to track view:', error)
+                        }
+                      }}
                       watermark={{
                         src: "",
                         position: "bottom-right",

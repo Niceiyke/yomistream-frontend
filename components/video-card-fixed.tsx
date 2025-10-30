@@ -11,22 +11,9 @@ import { useQueryClient } from "@tanstack/react-query"
 import { apiGet } from "@/lib/api"
 import { useConnectionQuality } from "@/lib/hooks/use-connection-quality"
 import { User } from "@/lib/types/user"
+import { Video } from "@/lib/types"
+import { getChannelName, formatDuration, normalizeVideoTags } from "@/lib/utils/video-helpers"
 import Image from "next/image"
-
-interface Video {
-  id: string
-  title: string
-  preacher: string
-  duration: string
-  views: string
-  video_url: string
-  topic: string
-  description: string
-  sermon_notes?: string[]
-  scripture_references?: any[]
-  tags?: string[]
-  thumbnail_url?: string
-}
 
 interface VideoCardProps {
   video: Video
@@ -220,7 +207,7 @@ export const FixedVideoCard = memo(function FixedVideoCard({
       }`}
       role="article"
       tabIndex={0}
-      aria-label={`${video.title} by ${video.preacher}, duration ${video.duration}`}
+      aria-label={`${video.title} by ${getChannelName(video) || "Unknown"}, duration ${video.duration}`}
       onMouseEnter={handleInteractionStart}
       onMouseLeave={handleInteractionEnd}
       onFocus={handleFocus}
@@ -283,7 +270,7 @@ export const FixedVideoCard = memo(function FixedVideoCard({
         {/* Duration Badge */}
         <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs font-semibold px-2 py-1 rounded">
           <Clock className="w-3 h-3 inline mr-1" aria-hidden="true" />
-          <span>{video.duration}</span>
+          <span>{formatDuration(video.duration || 0)}</span>
         </div>
 
         {/* Topic Badge */}
@@ -335,11 +322,11 @@ export const FixedVideoCard = memo(function FixedVideoCard({
 
       {/* Video Info */}
       <div className="flex gap-3">
-        {/* Preacher Avatar */}
+        {/* Channel Avatar */}
         <div className="flex-shrink-0">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
             <span className="text-sm font-semibold text-foreground" aria-hidden="true">
-              {video.preacher.charAt(0).toUpperCase()}
+              {(getChannelName(video) || "U").charAt(0).toUpperCase()}
             </span>
           </div>
         </div>
@@ -349,39 +336,39 @@ export const FixedVideoCard = memo(function FixedVideoCard({
           <h3 className="font-semibold text-foreground line-clamp-2 mb-1 group-hover:text-primary transition-colors">
             {video.title}
           </h3>
-          <p className="text-sm text-muted-foreground mb-1">{video.preacher}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{video.views} views</span>
-            <SermonNotesPreview
-              notesCount={video.sermon_notes?.length ?? 0}
-              scriptureCount={video.scripture_references?.length ?? 0}
-            />
+          
+          <div className="flex justify-between items-center gap-2 text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-1">{getChannelName(video) || "Unknown"}</p>
+            <span>{video.view_count || 0} views</span>
           </div>
 
           {/* Tags */}
-          {video.tags && video.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2" role="list" aria-label="Video tags">
-              {video.tags.slice(0, 2).map((tag, index) => (
-                <Badge
-                  key={index}
-                  variant="outline"
-                  className="text-xs bg-muted/50 border-border/50 text-muted-foreground"
-                  role="listitem"
-                >
-                  {tag}
-                </Badge>
-              ))}
-              {video.tags.length > 2 && (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-muted/50 border-border/50 text-muted-foreground"
-                  title={`${video.tags.length - 2} more tags`}
-                >
-                  +{video.tags.length - 2}
-                </Badge>
-              )}
-            </div>
-          )}
+          {video.tags && video.tags.length > 0 && (() => {
+            const normalizedTags = normalizeVideoTags(video.tags)
+            return normalizedTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2" role="list" aria-label="Video tags">
+                {normalizedTags.slice(0, 2).map((tag, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-xs bg-muted/50 border-border/50 text-muted-foreground"
+                    role="listitem"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {normalizedTags.length > 2 && (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs bg-muted/50 border-border/50 text-muted-foreground"
+                    title={`${normalizedTags.length - 2} more tags`}
+                  >
+                    +{normalizedTags.length - 2}
+                  </Badge>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* AI Generation Button */}
