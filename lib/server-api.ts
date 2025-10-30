@@ -40,8 +40,8 @@ export async function serverApiGet(path: string, options?: { revalidate?: number
 }
 
 export async function fetchPublicVideos() {
-  // Videos change frequently - revalidate every 2 minutes
-  return serverApiGet("/api/v1/public/videos", { revalidate: 120 });
+  // Videos with view counts change frequently - revalidate every 30 seconds
+  return serverApiGet("/api/v1/public/videos", { revalidate: 30 });
 }
 
 export async function fetchPublicPreachers() {
@@ -55,6 +55,6 @@ export async function fetchPreacher(preacherId: string) {
 }
 
 export async function fetchVideo(videoId: string) {
-  // Individual videos change moderately - revalidate every 5 minutes
-  return serverApiGet(`/api/v1/videos/${videoId}`, { revalidate: 300 });
+  // Video view counts change frequently - revalidate every 30 seconds
+  return serverApiGet(`/api/v1/videos/${videoId}`, { revalidate: 30 });
 }

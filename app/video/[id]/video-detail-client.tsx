@@ -121,7 +121,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       return apiGet(`/api/v1/videos/${videoId}`)
     },
     initialData: initialVideo,
-    staleTime: 30 * 1000, // 30 seconds - more responsive for view counts
+    staleTime: 15 * 1000, // 15 seconds - very responsive for view counts
     gcTime: 15 * 60 * 1000, // 15 minutes
     refetchOnMount: false, // Don't refetch if we have fresh server data
     refetchOnWindowFocus: true, // Refetch when window regains focus to show updated view counts

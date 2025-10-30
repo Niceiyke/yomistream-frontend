@@ -62,10 +62,10 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
       return apiGetCached("/api/v1/videos");
     },
     initialData: initialVideos,
-    staleTime: 2 * 60 * 1000, // 2 minutes - matches server revalidation
+    staleTime: 30 * 1000, // 30 seconds - responsive to view count changes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnMount: false, // Don't refetch if we have fresh server data
-    refetchOnWindowFocus: false, // Avoid unnecessary refetches
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   })
   const preachersQuery = useQuery({
     queryKey: ["preachers"],
