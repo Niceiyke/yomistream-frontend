@@ -121,10 +121,10 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       return apiGet(`/api/v1/videos/${videoId}`)
     },
     initialData: initialVideo,
-    staleTime: 5 * 60 * 1000, // 5 minutes - matches server revalidation
+    staleTime: 30 * 1000, // 30 seconds - more responsive for view counts
     gcTime: 15 * 60 * 1000, // 15 minutes
     refetchOnMount: false, // Don't refetch if we have fresh server data
-    refetchOnWindowFocus: false, // Avoid unnecessary refetches
+    refetchOnWindowFocus: true, // Refetch when window regains focus to show updated view counts
     enabled: !!videoId,
   })
 
@@ -1040,6 +1040,9 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                             headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
                           })
                           debugLog.video('View tracked successfully', viewData)
+                          
+                          // Invalidate and refetch the video query to update the view count in the UI
+                          queryClient.invalidateQueries({ queryKey: ["video", videoId] })
                         } catch (error) {
                           console.error('Failed to track view:', error)
                         }
