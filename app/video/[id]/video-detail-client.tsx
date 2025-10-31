@@ -36,7 +36,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AppHeader } from "@/components/app-header"
-import { CustomVideoPlayer } from '@/components/custom-video-player'
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
 import { useAuth } from "@/lib/auth-context"
@@ -49,6 +48,7 @@ import { ScriptureVerseCard } from "@/components/scripture-verse-card"
 import { ShareDialog } from "@/components/share-dialog"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
+import { CustomVideoPlayerV2 as CustomVideoPlayer } from '@/components/custom-video-player-v2'
 
 interface VideoDetailClientProps {
   initialVideo: Video | null

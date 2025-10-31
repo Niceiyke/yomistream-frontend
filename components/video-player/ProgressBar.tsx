@@ -23,16 +23,16 @@ interface ProgressBarProps {
   
   onSeek: (time: number) => void
   onChapterChange?: (chapter: Chapter) => void
-  onProgressHover: (e: React.MouseEvent) => void
+  onProgressHover: (e: React.MouseEvent, progressBarElement?: HTMLDivElement | null) => void
   onProgressLeave: () => void
-  onProgressClick: (e: React.MouseEvent) => void
-  onProgressDrag: (e: React.MouseEvent) => void
+  onProgressClick: (e: React.MouseEvent, progressBarElement?: HTMLDivElement | null) => void
+  onProgressDrag: (e: React.MouseEvent, progressBarElement?: HTMLDivElement | null) => void
   onShowControls: () => void
   
   formatTime: (seconds: number) => string
 }
 
-export const ProgressBar = React.memo(({
+export const ProgressBar = React.memo(React.forwardRef<HTMLDivElement, ProgressBarProps>(({
   currentTime,
   duration,
   buffered,
@@ -50,17 +50,20 @@ export const ProgressBar = React.memo(({
   onProgressDrag,
   onShowControls,
   formatTime
-}: ProgressBarProps) => {
+}: ProgressBarProps, ref) => {
   const progressRef = useRef<HTMLDivElement>(null)
+
+  // Use forwarded ref or internal ref
+  React.useImperativeHandle(ref, () => progressRef.current!, [])
 
   return (
     <div className={`absolute bottom-10 md:bottom-15 left-0 right-0 px-3 md:px-6 pb-2 transition-opacity duration-300 ${showProgressBar ? 'opacity-100' : 'opacity-0'}`}>
       <div
         ref={progressRef}
         className="relative h-1 md:h-1 bg-white/20 rounded-full cursor-pointer group/progress hover:h-1 md:hover:h-1.5 transition-all duration-200"
-        onClick={onProgressClick}
-        onMouseDown={onProgressDrag}
-        onMouseMove={onProgressHover}
+        onClick={(e) => progressRef.current && onProgressClick(e, progressRef.current)}
+        onMouseDown={(e) => progressRef.current && onProgressDrag(e, progressRef.current)}
+        onMouseMove={(e) => progressRef.current && onProgressHover(e, progressRef.current)}
         onMouseLeave={onProgressLeave}
         onTouchStart={onShowControls}
       >
@@ -123,6 +126,6 @@ export const ProgressBar = React.memo(({
       )}
     </div>
   )
-})
+}))
 
 ProgressBar.displayName = 'ProgressBar'

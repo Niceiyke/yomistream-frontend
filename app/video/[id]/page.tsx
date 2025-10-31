@@ -3,6 +3,7 @@ import VideoDetailClient from './video-detail-client'
 import { fetchVideo } from '@/lib/server-api'
 
 
+
 // Page-level cache control - revalidate every 5 minutes for video pages
 export const revalidate = 300
 
