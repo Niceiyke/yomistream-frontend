@@ -59,7 +59,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
     queryKey: ["videos"],
     queryFn: () => {
       console.log(`🌐 CLIENT: Fetching videos from client-side`);
-      return apiGetCached("/api/v1/videos");
+      return apiGetCached("/api/v1/videos/");
     },
     initialData: initialVideos,
     staleTime: 30 * 1000, // 30 seconds - responsive to view count changes
