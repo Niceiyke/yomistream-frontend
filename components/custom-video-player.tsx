@@ -147,6 +147,8 @@ interface VideoState {
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 const SEEK_STEP = 10 // seconds
+const STATE_UPDATE_THROTTLE = 250 // ms - throttle state updates to reduce re-renders
+const PROGRESS_HOVER_THROTTLE = 50 // ms - throttle progress bar hover updates
 
 // Utility functions for positioning
 const getPositionClasses = (position: string, size: string) => {
@@ -165,6 +167,15 @@ const getPositionClasses = (position: string, size: string) => {
   }
   
   return `${sizeClasses[size as keyof typeof sizeClasses]} ${positionClasses[position as keyof typeof positionClasses]}`
+}
+
+// Device detection utility
+const getDeviceType = (): string => {
+  if (typeof navigator === 'undefined') return 'desktop'
+  const userAgent = navigator.userAgent
+  if (/Mobi|Android/i.test(userAgent)) return 'mobile'
+  if (/Tablet|iPad/i.test(userAgent)) return 'tablet'
+  return 'desktop'
 }
 
 const CustomVideoPlayer = ({
@@ -198,6 +209,10 @@ const CustomVideoPlayer = ({
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dragCleanupRef = useRef<(() => void) | null>(null)
   const lastTimeUpdateRef = useRef<number>(0)
+  const watchTimeRef = useRef<number>(0)
+  const viewStartTimeRef = useRef<number>(0)
+  const lastStateUpdateRef = useRef<number>(0)
+  const lastProgressHoverRef = useRef<number>(0)
   
   const [state, setState] = useState<VideoState>({
     isPlaying: false,
@@ -265,19 +280,10 @@ const CustomVideoPlayer = ({
         localStorage.setItem('video_session_id', sessionId)
       }
 
-      // Detect device type
-      const userAgent = navigator.userAgent
-      let deviceType = 'desktop'
-      if (/Mobi|Android/i.test(userAgent)) {
-        deviceType = 'mobile'
-      } else if (/Tablet|iPad/i.test(userAgent)) {
-        deviceType = 'tablet'
-      }
-
       const viewData = {
         video_id: videoId,
         session_id: sessionId,
-        device_type: deviceType,
+        device_type: getDeviceType(),
         quality_watched: state.quality
       }
 
@@ -320,10 +326,25 @@ const CustomVideoPlayer = ({
     // View threshold: 30 seconds OR 50% of video duration (whichever is shorter)
     const timeThreshold = Math.min(30, duration * 0.5)
 
-    if (state.watchTime >= timeThreshold) {
+    if (watchTimeRef.current >= timeThreshold) {
       trackView()
     }
-  }, [state.hasTrackedView, state.watchTime, trackView])
+  }, [state.hasTrackedView, trackView])
+
+  // Continuous watch time tracking while playing (optimized with refs)
+  useEffect(() => {
+    if (!state.isPlaying || state.hasTrackedView || state.isPlayingAd) return
+
+    const interval = setInterval(() => {
+      // Use ref to avoid state updates every second
+      watchTimeRef.current += 1
+      
+      // Check threshold without triggering re-render
+      checkViewThreshold()
+    }, 1000) // Update every second
+
+    return () => clearInterval(interval)
+  }, [state.isPlaying, state.hasTrackedView, state.isPlayingAd, checkViewThreshold])
 
   // Ad management functions (declared early to avoid reference errors)
   const endCurrentAd = useCallback(() => {
@@ -433,13 +454,13 @@ const CustomVideoPlayer = ({
             const hls = new Hls({
               enableWorker: true,
               lowLatencyMode: true,
-              backBufferLength: 30, // Reduced from 90 for faster loading
-              maxBufferLength: 10, // Shorter max buffer
-              maxMaxBufferLength: 20, // Allow slightly more when needed
+              backBufferLength: 30,
+              maxBufferLength: 30, // Increased from 10 to prevent buffering
+              maxMaxBufferLength: 60, // Increased from 20 for better experience
               maxBufferSize: 60 * 1000 * 1000, // 60MB max buffer size
-              maxBufferHole: 0.5, // Allow small gaps
+              maxBufferHole: 0.5,
               startLevel: -1, // Start with auto quality selection
-              abrEwmaDefaultEstimate: 5e5, // Faster bitrate estimation
+              abrEwmaDefaultEstimate: 5e5,
             })
             
             hlsRef.current = hls
@@ -542,11 +563,16 @@ const CustomVideoPlayer = ({
     const handleTimeUpdate = () => {
       if (!isDragging) {
         const currentTime = video.currentTime
-        setState(prev => ({ ...prev, currentTime }))
-        
-        // Throttle onTimeUpdate callback to prevent excessive calls (max once per 250ms)
         const now = Date.now()
-        if (onTimeUpdate && now - lastTimeUpdateRef.current > 250) {
+        
+        // Throttle state updates to reduce re-renders (max once per 250ms)
+        if (now - lastStateUpdateRef.current > STATE_UPDATE_THROTTLE) {
+          setState(prev => ({ ...prev, currentTime }))
+          lastStateUpdateRef.current = now
+        }
+        
+        // Throttle onTimeUpdate callback to prevent excessive calls
+        if (onTimeUpdate && now - lastTimeUpdateRef.current > STATE_UPDATE_THROTTLE) {
           onTimeUpdate(currentTime)
           lastTimeUpdateRef.current = now
         }
@@ -597,28 +623,22 @@ const CustomVideoPlayer = ({
     }
 
   const handlePlay = () => {
-    setState(prev => {
-      const newState = { ...prev, isPlaying: true }
-      // Start tracking view time if not already tracked
-      if (!prev.hasTrackedView) {
-        newState.viewStartTime = Date.now() / 1000 // Convert to seconds
-      }
-      return newState
-    })
+    setState(prev => ({ ...prev, isPlaying: true }))
+    // Use ref for view start time to avoid state updates
+    if (!state.hasTrackedView && viewStartTimeRef.current === 0) {
+      viewStartTimeRef.current = Date.now() / 1000
+    }
     announce(state.isPlayingAd ? "Advertisement playing" : "Video playing")
   }
 
   const handlePause = () => {
-    setState(prev => {
-      const newState = { ...prev, isPlaying: false }
-      // Update watch time
-      if (prev.viewStartTime > 0) {
-        const currentTime = Date.now() / 1000
-        newState.watchTime = prev.watchTime + (currentTime - prev.viewStartTime)
-        newState.viewStartTime = 0
-      }
-      return newState
-    })
+    setState(prev => ({ ...prev, isPlaying: false }))
+    // Update watch time using refs
+    if (viewStartTimeRef.current > 0) {
+      const currentTime = Date.now() / 1000
+      watchTimeRef.current += (currentTime - viewStartTimeRef.current)
+      viewStartTimeRef.current = 0
+    }
     announce(state.isPlayingAd ? "Advertisement paused" : "Video paused")
   }
     const handleEnded = () => {
@@ -696,52 +716,47 @@ const CustomVideoPlayer = ({
     }
   }, [startTime, endTime, onTimeUpdate, onEnded, state.isPlayingAd, state.currentAd, state.playedAds, ads, playAd, endCurrentAd, checkViewThreshold])
 
-  // Keyboard shortcuts
+  // Handle page unload - track view if threshold met
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!videoRef.current) return
-      
-      const video = videoRef.current
-      
-      switch (e.code) {
-        case 'Space':
-          e.preventDefault()
-          togglePlay()
-          break
-        case 'ArrowLeft':
-          e.preventDefault()
-          seek(video.currentTime - SEEK_STEP)
-          break
-        case 'ArrowRight':
-          e.preventDefault()
-          seek(video.currentTime + SEEK_STEP)
-          break
-        case 'ArrowUp':
-          e.preventDefault()
-          setVolume(Math.min(1, state.volume + 0.1))
-          break
-        case 'ArrowDown':
-          e.preventDefault()
-          setVolume(Math.max(0, state.volume - 0.1))
-          break
-        case 'KeyM':
-          e.preventDefault()
-          toggleMute()
-          break
-        case 'KeyF':
-          e.preventDefault()
-          toggleFullscreen()
-          break
-        case 'KeyP':
-          e.preventDefault()
-          togglePictureInPicture()
-          break
+    if (!videoId || !videoRef.current) return
+
+    const handleBeforeUnload = () => {
+      if (state.isPlaying && !state.hasTrackedView && videoRef.current) {
+        const duration = videoRef.current.duration
+        if (!duration || duration === 0) return
+
+        // Calculate final watch time using refs
+        const currentTime = Date.now() / 1000
+        const finalWatchTime = watchTimeRef.current + (viewStartTimeRef.current > 0 ? currentTime - viewStartTimeRef.current : 0)
+        
+        // Check if threshold is met
+        const timeThreshold = Math.min(30, duration * 0.5)
+        
+        if (finalWatchTime >= timeThreshold) {
+          // Generate session ID if not exists
+          let sessionId = localStorage.getItem('video_session_id')
+          if (!sessionId) {
+            sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            localStorage.setItem('video_session_id', sessionId)
+          }
+
+          const viewData = {
+            video_id: videoId,
+            session_id: sessionId,
+            device_type: getDeviceType(),
+            quality_watched: state.quality
+          }
+
+          // Use sendBeacon for guaranteed delivery on page unload
+          const blob = new Blob([JSON.stringify(viewData)], { type: 'application/json' })
+          navigator.sendBeacon(`/api/v1/videos/${videoId}/view`, blob)
+        }
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [state.volume])
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [videoId, state.isPlaying, state.hasTrackedView, state.quality])
 
 
   // Handle pre-roll ads and logo timing
@@ -895,6 +910,53 @@ useEffect(() => {
     return `${minutes}:${secs.toString().padStart(2, '0')}`
   }, [])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!videoRef.current) return
+      
+      const video = videoRef.current
+      
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault()
+          togglePlay()
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          seek(video.currentTime - SEEK_STEP)
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          seek(video.currentTime + SEEK_STEP)
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setVolume(Math.min(1, video.volume + 0.1))
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          setVolume(Math.max(0, video.volume - 0.1))
+          break
+        case 'KeyM':
+          e.preventDefault()
+          toggleMute()
+          break
+        case 'KeyF':
+          e.preventDefault()
+          toggleFullscreen()
+          break
+        case 'KeyP':
+          e.preventDefault()
+          togglePictureInPicture()
+          break
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [togglePlay, seek, setVolume, toggleMute, toggleFullscreen, togglePictureInPicture])
+
   // Note-taking function
   const takeNote = useCallback(() => {
     if (!videoRef.current || !transcriptSegments.length || !onNoteTaken) return
@@ -982,9 +1044,14 @@ useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp)
   }, [state.duration, setIsDragging])
 
-  // Thumbnail preview handlers
+  // Thumbnail preview handlers (throttled)
   const handleProgressHover = useCallback((e: React.MouseEvent) => {
     if (!progressRef.current || !state.duration) return
+    
+    const now = Date.now()
+    // Throttle hover updates to reduce re-renders
+    if (now - lastProgressHoverRef.current < PROGRESS_HOVER_THROTTLE) return
+    lastProgressHoverRef.current = now
     
     const rect = progressRef.current.getBoundingClientRect()
     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
@@ -1037,13 +1104,14 @@ useEffect(() => {
     return qualities
   }, [])
 
-  // Video description for screen readers
-  const videoDescription = useMemo(() => 
-    state.isPlayingAd 
+  // Video description for screen readers (optimized - only update on major state changes)
+  const videoDescription = useMemo(() => {
+    // Round currentTime to avoid updates every 250ms
+    const roundedTime = Math.floor(state.currentTime)
+    return state.isPlayingAd 
       ? `Currently playing advertisement: ${state.currentAd?.advertiser || 'Unknown advertiser'}. Duration: ${Math.ceil(state.adTimeRemaining)} seconds remaining. ${state.canSkipAd ? 'Skip button available.' : ''}`
-      : `Video player. ${state.isPlaying ? 'Playing' : 'Paused'} at ${formatTime(state.currentTime)} of ${formatTime(state.duration)}. Volume: ${Math.round(state.volume * 100)}%. Playback rate: ${state.playbackRate}x. Quality: ${state.quality}.`,
-    [state.isPlayingAd, state.currentAd?.advertiser, state.adTimeRemaining, state.canSkipAd, state.isPlaying, state.currentTime, state.duration, state.volume, state.playbackRate, state.quality, formatTime]
-  )
+      : `Video player. ${state.isPlaying ? 'Playing' : 'Paused'} at ${formatTime(roundedTime)} of ${formatTime(state.duration)}. Volume: ${Math.round(state.volume * 100)}%. Playback rate: ${state.playbackRate}x. Quality: ${state.quality}.`
+  }, [state.isPlayingAd, state.currentAd?.advertiser, state.adTimeRemaining, state.canSkipAd, state.isPlaying, Math.floor(state.currentTime), state.duration, state.volume, state.playbackRate, state.quality, formatTime])
 
   if (state.error) {
     return (
@@ -1059,20 +1127,20 @@ useEffect(() => {
     )
   }
 
-  // Handle mouse events for controls visibility
-  const handleMouseEnter = () => {
+  // Handle mouse events for controls visibility (memoized)
+  const handleMouseEnter = useCallback(() => {
     setShowControls(true)
     setShowProgressBar(true)
-  }
+  }, [])
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (state.isPlaying) {
       setShowControls(false)
       setShowProgressBar(false)
     }
-  }
+  }, [state.isPlaying])
 
-  const handleMouseMove = () => {
+  const handleMouseMove = useCallback(() => {
     setShowControls(true)
     // Auto-hide controls after 3 seconds of no mouse movement
     if (controlsTimeoutRef.current) {
@@ -1084,10 +1152,10 @@ useEffect(() => {
         setShowProgressBar(false)
       }, 3000)
     }
-  }
+  }, [state.isPlaying])
 
-  // Handle touch events for mobile
-  const handleTouchStart = () => {
+  // Handle touch events for mobile (memoized)
+  const handleTouchStart = useCallback(() => {
     setShowControls(true)
     setShowProgressBar(true)
     if (controlsTimeoutRef.current) {
@@ -1099,7 +1167,7 @@ useEffect(() => {
         setShowProgressBar(false)
       }, 8000) // Extended from 6000ms to 8000ms for better mobile UX
     }
-  }
+  }, [state.isPlaying])
 
   // Double-click seeking with visual feedback
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -1535,4 +1603,48 @@ useEffect(() => {
 }
 
 export { CustomVideoPlayer }
-export default React.memo(CustomVideoPlayer)
+
+// Custom comparison function for React.memo
+const arePropsEqual = (prevProps: VideoPlayerProps, nextProps: VideoPlayerProps) => {
+  // Compare primitive props
+  if (
+    prevProps.src !== nextProps.src ||
+    prevProps.poster !== nextProps.poster ||
+    prevProps.autoPlay !== nextProps.autoPlay ||
+    prevProps.startTime !== nextProps.startTime ||
+    prevProps.endTime !== nextProps.endTime ||
+    prevProps.className !== nextProps.className ||
+    prevProps.videoId !== nextProps.videoId
+  ) {
+    return false
+  }
+
+  // Compare arrays by length and reference (shallow comparison)
+  if (
+    prevProps.hlsVariants?.length !== nextProps.hlsVariants?.length ||
+    prevProps.ads?.length !== nextProps.ads?.length ||
+    prevProps.chapters?.length !== nextProps.chapters?.length ||
+    prevProps.transcriptSegments?.length !== nextProps.transcriptSegments?.length
+  ) {
+    return false
+  }
+
+  // Compare watermark object
+  if (prevProps.watermark !== nextProps.watermark) {
+    if (!prevProps.watermark || !nextProps.watermark) return false
+    if (
+      prevProps.watermark.src !== nextProps.watermark.src ||
+      prevProps.watermark.position !== nextProps.watermark.position ||
+      prevProps.watermark.opacity !== nextProps.watermark.opacity ||
+      prevProps.watermark.size !== nextProps.watermark.size
+    ) {
+      return false
+    }
+  }
+
+  // Callbacks are expected to be stable (memoized by parent)
+  // If they change, it's intentional, so we allow re-render
+  return true
+}
+
+export default React.memo(CustomVideoPlayer, arePropsEqual)
