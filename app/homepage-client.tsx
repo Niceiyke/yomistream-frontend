@@ -57,9 +57,11 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
   // React Query: videos & preachers - use initial data if available
   const videosQuery = useQuery({
     queryKey: ["videos"],
-    queryFn: () => {
+    queryFn: async () => {
       console.log(`🌐 CLIENT: Fetching videos from client-side`);
-      return apiGetCached("/api/v1/videos/");
+      const response = await apiGetCached("/api/v1/videos/");
+      // Extract items array from paginated response
+      return response.items || [];
     },
     initialData: initialVideos,
     staleTime: 30 * 1000, // 30 seconds - responsive to view count changes
@@ -127,7 +129,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
     // Check if we're returning from a navigation
     const savedScrollPosition = sessionStorage.getItem('mainPageScrollPosition')
 
-    if (savedScrollPosition && !hasRestoredScroll.current && videos.length > 0) {
+    if (savedScrollPosition && !hasRestoredScroll.current && videos && videos.length > 0) {
       hasRestoredScroll.current = true
 
       // Wait for images and content to load
@@ -141,7 +143,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
       // Try multiple times to ensure content is rendered
       setTimeout(restoreScroll, 100)
     }
-  }, [videos.length])
+  }, [videos?.length])
 
   // Also listen for browser back button
   useEffect(() => {
@@ -222,7 +224,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
   }
 
   const handleGenerateAI = (videoId: string) => {
-    const video = videos.find((v) => v.id === videoId)
+    const video = (videos || []).find((v) => v.id === videoId)
     if (video) {
       setSelectedVideoForAI(video)
       setAiModalOpen(true)
@@ -234,10 +236,10 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
     queryClient.invalidateQueries({ queryKey: ["videos"] })
   }
 
-  // Get all unique tags from videos
-  const allTags = getAllUniqueTags(videos)
+  // Get all unique tags from videos - ensure videos is an array
+  const allTags = getAllUniqueTags(videos || [])
 
-  const filteredVideos = videos.filter((video) => {
+  const filteredVideos = (videos || []).filter((video) => {
     const preacherName = getPreacherName(video)
     const preacherId = getPreacherId(video)
 
@@ -425,7 +427,7 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
                   name: preacher.name,
                   church: "Ministry",
                   description: preacher.bio || "Gospel preacher and teacher",
-                  videoCount: videos.filter((v) => getPreacherId(v) === preacher.id).length,
+                  videoCount: (videos || []).filter((v) => getPreacherId(v) === preacher.id).length,
                   image: preacher.image_url || preacher.profile_image_url || "/preacher.jpg",
                 }}
                 isFavorite={preacherFavorites.includes(preacher.id)}
