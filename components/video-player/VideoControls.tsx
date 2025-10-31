@@ -10,8 +10,7 @@ import {
   Minimize, 
   Settings, 
   PictureInPicture,
-  PictureInPicture2,
-  StickyNote
+  PictureInPicture2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -60,16 +59,6 @@ interface VideoControlsProps {
   onChapterChange?: (chapter: Chapter) => void
   availableQualities?: string[]
   
-  // Note-taking
-  transcriptSegments?: Array<{
-    start: number
-    end: number
-    text: string
-    confidence?: number
-  }>
-  onNoteTaken?: () => void
-  isCapturingNote?: boolean
-  
   // Utility
   formatTime: (seconds: number) => string
   showControls: boolean
@@ -99,9 +88,6 @@ export const VideoControls = React.memo(({
   currentChapter,
   onChapterChange,
   availableQualities = ['auto'],
-  transcriptSegments = [],
-  onNoteTaken,
-  isCapturingNote = false,
   formatTime,
   showControls
 }: VideoControlsProps) => {
@@ -242,25 +228,6 @@ export const VideoControls = React.memo(({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Note Taking */}
-          {transcriptSegments && transcriptSegments.length > 0 && onNoteTaken && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onNoteTaken}
-              disabled={isCapturingNote}
-              className={`text-white/80 hover:text-white hover:bg-gradient-to-br hover:from-yellow-500/20 hover:to-orange-500/20 hover:scale-105 p-1 md:p-2.5 rounded-xl transition-all duration-300 active:scale-95 min-w-[28px] min-h-[28px] md:min-w-[36px] md:min-h-[36px] group ${
-                isCapturingNote ? 'bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border border-white/20' : ''
-              }`}
-              aria-label={isCapturingNote ? "Capturing note..." : "Take note (next 20 seconds)"}
-              title={isCapturingNote ? "Capturing note..." : "Take note (next 20 seconds)"}
-            >
-              <StickyNote className={`w-3 h-3 md:w-5 md:h-5 group-hover:scale-110 transition-transform duration-300 ${
-                isCapturingNote ? 'animate-pulse' : ''
-              }`} />
-            </Button>
-          )}
 
           {/* Picture-in-Picture - Hidden on very small screens */}
           {typeof window !== 'undefined' && 'pictureInPictureEnabled' in document && (

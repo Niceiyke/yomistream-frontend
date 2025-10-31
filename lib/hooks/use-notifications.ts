@@ -39,6 +39,16 @@ export function useNotifications({ enabled = true, onNotification }: UseNotifica
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
+          
+          // Handle heartbeat ping from server
+          if (data.type === 'ping') {
+            console.log('Received heartbeat ping, sending pong')
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }))
+            }
+            return
+          }
+          
           console.log('Received notification:', data)
 
           // Invalidate and refetch notifications
@@ -190,29 +200,39 @@ export function useNotificationsSSE({ enabled = true, onNotification }: UseNotif
 
 // Toast notification hook for showing temporary notifications
 export function useToastNotifications() {
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-    // This would integrate with your existing toast system
-    // For now, we'll use a simple console.log and browser notification
+  const permissionRequested = useRef(false)
 
-    console.log(`[${type.toUpperCase()}] ${message}`)
-
-    // Check if browser notifications are supported and permitted
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(message, {
-        icon: '/favicon.ico',
-        tag: `wordlyte-${type}`
-      })
-    } else if ('Notification' in window && Notification.permission !== 'denied') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          new Notification(message, {
-            icon: '/favicon.ico',
-            tag: `wordlyte-${type}`
-          })
-        }
-      })
+  const requestNotificationPermission = useCallback(async () => {
+    if ('Notification' in window && 
+        Notification.permission === 'default' && 
+        !permissionRequested.current) {
+      permissionRequested.current = true
+      await Notification.requestPermission()
     }
   }, [])
 
-  return { showToast }
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    // Log to console for debugging
+    console.log(`[${type.toUpperCase()}] ${message}`)
+
+    // Show browser notification if permitted
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification('Wordlyte', {
+        body: message,
+        icon: '/favicon.ico',
+        tag: `wordlyte-${type}`,
+        badge: '/favicon.ico',
+        requireInteraction: false,
+        silent: type === 'info' // Don't make sound for info notifications
+      })
+
+      // Auto-close after 5 seconds
+      setTimeout(() => notification.close(), 5000)
+    }
+
+    // TODO: Integrate with your toast/snackbar UI component here
+    // Example: toast.show({ message, type })
+  }, [])
+
+  return { showToast, requestNotificationPermission }
 }

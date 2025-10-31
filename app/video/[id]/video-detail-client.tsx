@@ -49,6 +49,7 @@ import { ShareDialog } from "@/components/share-dialog"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { CustomVideoPlayerV2 as CustomVideoPlayer } from '@/components/custom-video-player-v2'
+import { NoteQuickAdd, NoteCard } from '@/components/notes'
 
 interface VideoDetailClientProps {
   initialVideo: Video | null
@@ -78,11 +79,14 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       created_at: string
     }>
   }>>([])
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [editingCommentText, setEditingCommentText] = useState<string>("")
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
-  const [editingNoteText, setEditingNoteText] = useState<string>("")
+  const [showQuickNote, setShowQuickNote] = useState(false)
+  const [quickNoteData, setQuickNoteData] = useState<{
+    videoTime: number
+    transcriptText: string
+    startTime: number
+    endTime: number
+  } | null>(null)
 
   const videoId = params.id as string
 
@@ -169,15 +173,10 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
     return notesQuery.data.map((note: any) => ({
       ...note,
+      // Keep user_note as a separate field for the NoteCard component
+      user_note: note.user_note,
       comments: [
-        // Legacy comments from user_note
-        ...(note.user_note ? [{
-          id: `${note.id}-legacy`,
-          text: note.user_note,
-          content: note.user_note,
-          created_at: note.updated_at || note.created_at
-        }] : []),
-        // Real comments associated with this note
+        // Real comments associated with this note (not including user_note)
         ...(commentsQuery.data?.filter((comment: any) => comment.note_id === note.id) || []).map((comment: any) => ({
           id: comment.id,
           text: comment.content,
@@ -228,6 +227,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     endTime: number
     transcriptText: string
     videoTime: number
+    userNote?: string
+    templateType?: string
   }) => {
     try {
       const accessToken = await getAccessTokenCached()
@@ -238,6 +239,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
         start_time: note.startTime,
         end_time: note.endTime,
         transcript_text: note.transcriptText,
+        user_note: note.userNote,
+        template_type: note.templateType,
         device_info: {
           userAgent: navigator.userAgent,
           platform: navigator.platform,
@@ -277,161 +280,6 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
         description: "Failed to save note. Please try again.",
       })
     }
-  }
-
-  const handleEditNote = (note: any) => {
-    setEditingNoteId(note.id)
-    setEditingNoteText("")
-  }
-
-  const handleAddComment = async (noteId: number) => {
-    if (!editingNoteText.trim()) return
-
-    try {
-      const accessToken = await getAccessTokenCached()
-      await apiPost(`/api/v1/videos/${videoId}/comments`, {
-        content: editingNoteText.trim(),
-        note_id: noteId
-      }, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      })
-
-      toast({
-        title: "Comment added!",
-        description: "Your comment has been saved.",
-      })
-
-      // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
-      queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
-
-      // Reset editing state
-      setEditingNoteId(null)
-      setEditingNoteText("")
-    } catch (error) {
-      console.error('Error adding comment:', error)
-      toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
-      })
-    }
-  }
-
-  const handleEditComment = (comment: any) => {
-    setEditingCommentId(comment.id)
-    setEditingCommentText(comment.content)
-  }
-
-  const handleUpdateComment = async (commentId: string) => {
-    if (!editingCommentText.trim()) return
-
-    try {
-      const accessToken = await getAccessTokenCached()
-
-      // Check if this is a legacy comment (contains "-legacy")
-      const isLegacyComment = commentId.includes('-legacy')
-
-      if (isLegacyComment) {
-        // For legacy comments, update the note itself
-        const noteId = commentId.replace('-legacy', '')
-        await apiPut(`/api/v1/notes/${noteId}`, {
-          user_note: editingCommentText.trim()
-        }, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        })
-      } else {
-        // For real comments, update via comments endpoint
-        await apiPut(`/api/v1/videos/comments/${commentId}`, {
-          content: editingCommentText.trim()
-        }, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        })
-      }
-
-      toast({
-        title: "Comment updated!",
-        description: "Your comment has been updated.",
-      })
-
-      // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
-      queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
-
-      // Reset editing state
-      setEditingCommentId(null)
-      setEditingCommentText("")
-    } catch (error) {
-      console.error('Error updating comment:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update comment. Please try again.",
-      })
-    }
-  }
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return
-
-    try {
-      const accessToken = await getAccessTokenCached()
-
-      // Check if this is a legacy comment (contains "-legacy")
-      const isLegacyComment = commentId.includes('-legacy')
-
-      if (isLegacyComment) {
-        // For legacy comments, clear the user_note field
-        const noteId = commentId.replace('-legacy', '')
-        await apiPut(`/api/v1/notes/${noteId}`, {
-          user_note: null // Clear the user_note field
-        }, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        })
-      } else {
-        // For real comments, delete via comments endpoint
-        await apiDelete(`/api/v1/videos/comments/${commentId}`, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        })
-      }
-
-      toast({
-        title: "Comment deleted",
-        description: "Your comment has been removed.",
-      })
-
-      // Refresh notes data
-      queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
-      queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
-    } catch (error: any) {
-      console.error('Error deleting comment:', error)
-
-      // Check if it's a 404 (comment not found, possibly already deleted)
-      if (error?.message?.includes('404') || error?.message?.includes('Not Found')) {
-        toast({
-          title: "Comment deleted",
-          description: "Your comment has been removed.",
-        })
-
-        // Still refresh the data in case the UI needs updating
-        queryClient.invalidateQueries({ queryKey: ["notes", videoId] })
-        queryClient.invalidateQueries({ queryKey: ["video-comments", videoId] })
-
-        // Reset editing state
-        setEditingCommentId(null)
-        setEditingCommentText("")
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to delete comment. Please try again.",
-        })
-      }
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingNoteId(null)
-    setEditingNoteText("")
-    setEditingCommentId(null)
-    setEditingCommentText("")
   }
 
   const handleDeleteNote = async (noteId: number) => {
@@ -587,42 +435,36 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
   // Show loading only if we don't have initial data and are fetching
   if (videoQuery.isLoading && !initialVideo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20">
         {/* Header skeleton */}
-        <div className="h-16 bg-background/80 backdrop-blur-lg border-b border-border/50" />
+        <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800" />
 
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="space-y-8">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1600px] py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 lg:gap-8">
+            {/* Sidebar skeleton */}
+            <div className="hidden lg:block space-y-6">
+              <Skeleton className="h-64 w-full rounded-2xl" />
+            </div>
+            
             {/* Main content skeleton */}
-            <div>
+            <div className="space-y-8">
               {/* Video player skeleton */}
-              <div className="aspect-video w-full bg-muted animate-pulse rounded-lg"></div>
+              <div className="aspect-video w-full bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl shadow-2xl"></div>
+
+              {/* Title skeleton */}
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-3/4 rounded-xl" />
+                <Skeleton className="h-12 w-1/2 rounded-xl" />
+              </div>
 
               {/* Action bar skeleton */}
-              <div className="bg-card/30 rounded-xl p-4 md:p-6 mt-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                    <Skeleton className="h-9 w-32" />
-                    <Skeleton className="h-9 w-24" />
-                    <Skeleton className="h-9 w-20" />
-                  </div>
-                  <div className="flex items-center gap-2 justify-center sm:justify-end">
-                    <Skeleton className="h-9 w-20" />
-                    <Skeleton className="h-9 w-16" />
-                    <Skeleton className="h-9 w-9" />
-                  </div>
-                </div>
+              <div className="flex gap-4">
+                <Skeleton className="h-24 flex-1 rounded-2xl" />
+                <Skeleton className="h-24 flex-1 rounded-2xl" />
               </div>
 
-              {/* Info skeleton */}
-              <div className="space-y-6 mt-6 md:mt-8">
-                <Skeleton className="h-6 md:h-8 w-48" />
-                <Skeleton className="h-10 md:h-12 w-full" />
-                <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              </div>
+              {/* Content sections skeleton */}
+              <Skeleton className="h-96 w-full rounded-2xl" />
             </div>
           </div>
         </div>
@@ -632,16 +474,16 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
   if (videoQuery.isError || !videoQuery.data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-        <Card className="max-w-md w-full text-center border-destructive/20 bg-gradient-to-br from-destructive/5 to-destructive/10 shadow-xl">
-          <CardContent className="pt-8 pb-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center border-red-200 dark:border-red-800 bg-gradient-to-br from-white via-red-50/50 to-orange-50/30 dark:from-slate-900 dark:via-red-950/50 dark:to-orange-950/30 shadow-2xl">
+          <CardContent className="pt-12 pb-10 px-8">
             <div className="text-7xl mb-6 animate-bounce">😔</div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Video Not Found</h2>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Video Not Found</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed text-lg">
               The video you're looking for doesn't exist or has been removed.
             </p>
-            <Button onClick={() => router.push("/")} className="w-full">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button onClick={() => router.push("/")} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+              <ArrowLeft className="w-5 h-5 mr-2" />
               Back to Home
             </Button>
           </CardContent>
@@ -657,16 +499,16 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
   if (!video) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-        <Card className="max-w-md w-full text-center border-destructive/20 bg-gradient-to-br from-destructive/5 to-destructive/10 shadow-xl">
-          <CardContent className="pt-8 pb-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center border-red-200 dark:border-red-800 bg-gradient-to-br from-white via-red-50/50 to-orange-50/30 dark:from-slate-900 dark:via-red-950/50 dark:to-orange-950/30 shadow-2xl">
+          <CardContent className="pt-12 pb-10 px-8">
             <div className="text-7xl mb-6 animate-bounce">😔</div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Video Not Found</h2>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Video Not Found</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed text-lg">
               The video you're looking for doesn't exist or has been removed.
             </p>
-            <Button onClick={() => router.push("/")} className="w-full">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button onClick={() => router.push("/")} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+              <ArrowLeft className="w-5 h-5 mr-2" />
               Back to Home
             </Button>
           </CardContent>
@@ -679,8 +521,48 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     router.back()
   }
 
+  // Keyboard shortcut for quick note (N key)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only trigger if not in an input/textarea and not using modifiers
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault()
+        // Get current video time and transcript
+        const videoElement = document.querySelector('video') as HTMLVideoElement
+        if (videoElement && videoQuery.data?.transcript_segments) {
+          const currentTime = videoElement.currentTime
+          const segments = videoQuery.data.transcript_segments
+          
+          // Find current transcript segment
+          const segment = segments.find((seg: any) => 
+            currentTime >= seg.start && currentTime <= seg.end
+          )
+          
+          setQuickNoteData({
+            videoTime: currentTime,
+            transcriptText: segment?.text || '',
+            startTime: segment?.start || currentTime,
+            endTime: segment?.end || currentTime
+          })
+          setShowQuickNote(true)
+          
+          // Optionally pause video
+          if (!videoElement.paused) {
+            videoElement.pause()
+          }
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [videoQuery.data])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20">
       {/* App Header */}
       <AppHeader
         favorites={favorites}
@@ -696,7 +578,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       {/* Mobile-First Responsive Layout */}
       <div className="min-h-[calc(100vh-4rem)]">
         {/* Desktop: 2-column grid, Mobile: Single column */}
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 px-4 py-6 max-w-screen-2xl mx-auto relative">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 lg:gap-8 px-4 lg:px-6 py-6 lg:py-8 max-w-[1600px] mx-auto relative">
           {/* Mobile overlay when sidebar is open */}
           {mobileSidebarOpen && (
             <div
@@ -706,47 +588,53 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
           )}
 
           {/* Left Sidebar - Table of Contents / Navigation */}
-          <aside className={cn("space-y-6 lg:block z-50", mobileSidebarOpen ? "block" : "hidden lg:block")}>
+          <aside className={cn("space-y-6 lg:block z-50 lg:sticky lg:top-6 lg:self-start", mobileSidebarOpen ? "fixed inset-y-0 left-0 w-80 bg-background shadow-2xl p-6 overflow-y-auto" : "hidden lg:block")}>
             {/* Sermon Outline / Table of Contents */}
-            <Card className="sticky top-6 border-primary/20 shadow-lg bg-gradient-to-br from-primary/5 to-secondary/5">
-              <CardHeader className="pb-4">
-                <h3 className="text-lg font-semibold text-foreground flex items-center">
-                  <FileText className="w-5 h-5 mr-2 text-primary" />
-                  Content Guide
+            <Card className="border-blue-200/60 dark:border-blue-800/40 shadow-xl bg-gradient-to-br from-white via-blue-50/50 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/50 dark:to-purple-950/30 backdrop-blur-sm">
+              <CardHeader className="pb-4 border-b border-blue-100 dark:border-blue-900/50">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span>Content Guide</span>
                 </h3>
               </CardHeader>
-              <CardContent className="pt-0">
-                <nav className="space-y-2">
+              <CardContent className="pt-4">
+                <nav className="space-y-1.5">
                   {video?.sermon_notes?.length > 0 && (
                     <button
                       onClick={() => document.getElementById('sermon-notes')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm"
+                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 hover:shadow-sm flex items-center gap-3 group"
                     >
-                      📖 Sermon Notes
+                      <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                      <span>Sermon Notes</span>
                     </button>
                   )}
                   {video?.scripture_references?.length > 0 && (
                     <button
                       onClick={() => document.getElementById('scripture-references')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm"
+                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-purple-700 dark:hover:text-purple-300 hover:shadow-sm flex items-center gap-3 group"
                     >
-                      📜 Scripture References
+                      <Quote className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
+                      <span>Scripture References</span>
                     </button>
                   )}
                   {video?.key_points?.length > 0 && (
                     <button
                       onClick={() => document.getElementById('key-points')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm"
+                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all duration-200 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-amber-700 dark:hover:text-amber-300 hover:shadow-sm flex items-center gap-3 group"
                     >
-                      💡 Key Points
+                      <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>Key Points</span>
                     </button>
                   )}
                   {user && notesWithComments && notesWithComments.length > 0 && (
                     <button
                       onClick={() => document.getElementById('user-notes')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm"
+                      className="w-full text-left px-4 py-3 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-green-700 dark:hover:text-green-300 hover:shadow-sm flex items-center gap-3 group"
                     >
-                      📝 My Notes ({notesWithComments.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments)
+                      <StickyNote className="w-4 h-4 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform" />
+                      <span>My Notes ({notesWithComments.length})</span>
                     </button>
                   )}
                 </nav>
@@ -763,7 +651,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         <StickyNote className="w-5 h-5 mr-2 text-blue-600" />
                         My Notes
                         <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
-                          {notesWithComments.reduce((total: number, note: any) => total + (note.comments?.length || 0), 0)} comments
+                          {notesWithComments.length} notes
                         </Badge>
                       </h2>
                       <div className="flex items-center gap-2">
@@ -785,177 +673,17 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                     <CardContent className="pt-0 max-h-[600px] overflow-y-auto">
                       <div className="space-y-4">
                         {notesWithComments.map((note: any) => (
-                          <div key={note.id} className="bg-card/80 rounded-lg p-4 border border-blue-200/30 shadow-sm hover:shadow-md transition-all duration-200">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                                  {formatDuration(note.video_time)}
-                                </Badge>
-                                {note.note_category && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {note.note_category}
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    // Jump to note time in video
-                                    const videoElement = document.querySelector('video') as HTMLVideoElement
-                                    if (videoElement) {
-                                      videoElement.currentTime = note.video_time
-                                    }
-                                  }}
-                                  className="h-6 w-6 p-0 hover:bg-blue-100"
-                                  title="Jump to this time in video"
-                                >
-                                  <Play className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="space-y-3">
-                              <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-3 border-l-4 border-blue-400">
-                                <p className="text-xs text-blue-800 dark:text-blue-200 italic leading-relaxed line-clamp-3">
-                                  "{note.transcript_text}"
-                                </p>
-                              </div>
-
-                              {/* Display all comments */}
-                              {note.comments && note.comments.length > 0 && (
-                                <div className="space-y-2">
-                                  {note.comments.map((comment: any) => (
-                                    <div key={comment.id} className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-200/30 dark:border-amber-800/30">
-                                      <div className="flex items-start justify-between mb-2">
-                                        <span className="text-xs text-muted-foreground">
-                                          {new Date(comment.created_at).toLocaleDateString()}
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleEditComment(comment)}
-                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                                            title="Edit comment"
-                                          >
-                                            <Edit className="w-3 h-3" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDeleteComment(comment.id)}
-                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                                            title="Delete comment"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                      {editingCommentId === comment.id ? (
-                                        <div className="space-y-2">
-                                          <Textarea
-                                            value={editingCommentText}
-                                            onChange={(e) => setEditingCommentText(e.target.value)}
-                                            className="bg-white dark:bg-gray-800 border-amber-200 resize-none text-xs"
-                                            rows={2}
-                                          />
-                                          <div className="flex items-center gap-2">
-                                            <Button
-                                              size="sm"
-                                              onClick={() => handleUpdateComment(comment.id)}
-                                              className="h-6 px-2 bg-amber-600 hover:bg-amber-700 text-xs"
-                                            >
-                                              <Save className="w-3 h-3 mr-1" />
-                                              Save
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              onClick={() => {
-                                                setEditingCommentId(null)
-                                                setEditingCommentText("")
-                                              }}
-                                              className="h-6 px-2 hover:bg-gray-100 text-xs"
-                                            >
-                                              <X className="w-3 h-3 mr-1" />
-                                              Cancel
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                                          {comment.content}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEditNote(note)}
-                                  className="h-6 px-2 text-xs hover:bg-blue-100"
-                                  title="Add a comment"
-                                >
-                                  <MessageSquare className="w-3 h-3 mr-1" />
-                                  Add Comment
-                                </Button>
-                              </div>
-
-                              {editingNoteId === note.id ? (
-                                <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3 border-l-4 border-amber-400 space-y-3">
-                                  <Textarea
-                                    value={editingNoteText}
-                                    onChange={(e) => setEditingNoteText(e.target.value)}
-                                    placeholder="Add your thoughts, insights, or notes about this transcript segment..."
-                                    className="bg-white dark:bg-gray-800 border-amber-200 resize-none text-xs"
-                                    rows={2}
-                                  />
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleAddComment(note.id)}
-                                      className="h-6 px-2 bg-amber-600 hover:bg-amber-700 text-xs"
-                                    >
-                                      <Save className="w-3 h-3 mr-1" />
-                                      Add Comment
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={handleCancelEdit}
-                                      className="h-6 px-2 hover:bg-gray-100 text-xs"
-                                    >
-                                      <X className="w-3 h-3 mr-1" />
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : null}
-                            </div>
-
-                            <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
-                              <span className="text-xs">
-                                {new Date(note.created_at).toLocaleDateString()}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 px-1 text-xs hover:bg-red-100 hover:text-red-700"
-                                  title="Delete note"
-                                  onClick={() => handleDeleteNote(note.id)}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
+                          <NoteCard
+                            key={note.id}
+                            note={note}
+                            onJumpToTime={(time) => {
+                              const videoElement = document.querySelector('video') as HTMLVideoElement
+                              if (videoElement) {
+                                videoElement.currentTime = time
+                              }
+                            }}
+                            onDelete={handleDeleteNote}
+                          />
                         ))}
                       </div>
                     </CardContent>
@@ -966,35 +694,37 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
             {/* Admin Controls - Only visible to admin users */}
             {user?.user_type === 'admin' && (
-              <Card className="border-destructive/20 shadow-lg bg-gradient-to-br from-destructive/5 to-destructive/10">
-                <CardHeader className="pb-4">
-                  <h2 className="text-xl font-bold text-foreground flex items-center">
-                    <Sparkles className="w-5 h-5 mr-3 text-destructive" />
-                    Admin Controls
+              <Card className="border-red-200/60 dark:border-red-800/40 shadow-xl bg-gradient-to-br from-white via-red-50/50 to-orange-50/30 dark:from-slate-900 dark:via-red-950/50 dark:to-orange-950/30 backdrop-blur-sm">
+                <CardHeader className="pb-4 border-b border-red-100 dark:border-red-900/50">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                      <Sparkles className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <span>Admin Controls</span>
                   </h2>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-3">
+                <CardContent className="pt-4">
+                  <div className="flex flex-col gap-3">
                     <Button
                       onClick={handleTranscribeVideo}
                       disabled={actionLoading['transcribe'] || !videoQuery.data}
                       variant="outline"
-                      className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
+                      className="flex items-center justify-center gap-2 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all rounded-xl py-2.5"
                     >
-                      <Mic className="w-4 h-4" />
-                      {actionLoading['transcribe'] ? 'Transcribing...' : 'Transcribe Video'}
+                      <Mic className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <span className="font-semibold">{actionLoading['transcribe'] ? 'Transcribing...' : 'Transcribe Video'}</span>
                     </Button>
                     <Button
                       onClick={handleAIAnalysis}
                       disabled={actionLoading['ai-analysis'] || !videoQuery.data}
                       variant="outline"
-                      className="flex items-center gap-2 border-destructive/30 hover:bg-destructive/10"
+                      className="flex items-center justify-center gap-2 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all rounded-xl py-2.5"
                     >
-                      <Brain className="w-4 h-4" />
-                      {actionLoading['ai-analysis'] ? 'Analyzing...' : 'Generate AI Summary'}
+                      <Brain className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <span className="font-semibold">{actionLoading['ai-analysis'] ? 'Analyzing...' : 'Generate AI Summary'}</span>
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-3">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-4 leading-relaxed">
                     Use these controls to generate transcriptions and AI-powered summaries for this video.
                   </p>
                 </CardContent>
@@ -1003,15 +733,15 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
           </aside>
 
           {/* Mobile Hamburger Menu Button */}
-          <div className="lg:hidden flex justify-start mb-4">
+          <div className="lg:hidden flex justify-start mb-6">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-all rounded-xl px-4 py-2"
             >
-              <Menu className="w-4 h-4" />
-              {mobileSidebarOpen ? 'Hide Menu' : 'Show Menu'}
+              <Menu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{mobileSidebarOpen ? 'Hide Menu' : 'Content Guide'}</span>
             </Button>
           </div>
 
@@ -1020,8 +750,8 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
             {/* Video Player Section */}
             <section id="video-player" className="scroll-mt-20">
               {/* Video Player */}
-              <div className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-card to-card/80 backdrop-blur-sm rounded-lg mb-6">
-                <div className="bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
+              <div className="overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-slate-900 to-slate-800 backdrop-blur-sm rounded-2xl mb-8 ring-1 ring-slate-700/50">
+                <div className="bg-black relative overflow-hidden">
                   {video?.hls_master_url ? (
                     <CustomVideoPlayer
                       src={video?.hls_master_url}
@@ -1074,37 +804,77 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
               </div>
 
               {/* Title and Preacher Info */}
-              <div className="text-center lg:text-left mb-8">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground leading-tight tracking-tight mb-4">
+              <div className="text-center  lg:text-left mb-10">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
                   {video.title}
                 </h1>
 
-                <div className="flex flex-col lg:flex-row items-stretch gap-4">
-                  {/* Single container for both info cards */}
-                  <div className="flex flex-col lg:flex-row gap-4 flex-1">
+                {/* Combined Info & Actions Card */}
+                <div className="bg-white/80 dark:bg-slate-800/80 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 backdrop-blur-sm px-2 py-3 lg:px-5 lg:py-3">
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 lg:gap-4">
                     {/* Channel and Views Info */}
-                    <div className="flex items-center justify-center lg:justify-start gap-4 md:gap-6 py-1 px-2 bg-card/30 rounded-xl shadow-lg border border-border/50 backdrop-blur-sm flex-1">
-                      <div className="flex flex-col items-center gap-1">
-                        <Tv className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium text-foreground">{getChannelName(video) || "Unknown"}</span>
+                    <div className="flex items-center justify-center lg:justify-start gap-3 md:gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                          <Tv className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-none">Channel</span>
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">{getChannelName(video) || "Unknown"}</span>
+                        </div>
                       </div>
 
-                      <div className="flex flex-col items-center gap-1">
-                        <Eye className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-xs font-medium text-muted-foreground">{video.view_count?.toLocaleString() || 'N/A'} views</span>
+                      <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                          <Eye className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-none">Views</span>
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">{video.view_count?.toLocaleString() || 'N/A'}</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Quick Actions - YouTube-style horizontal buttons */}
-                    <div className="flex items-center justify-center gap-2 py-2 px-3 bg-card/30 rounded-xl shadow-lg border border-border/50 backdrop-blur-sm flex-1">
+                    {/* Quick Actions */}
+                    <div className="flex items-center justify-center lg:justify-end gap-2 flex-wrap">
+                      {user && (
+                        <Button
+                          onClick={() => {
+                            const videoElement = document.querySelector('video') as HTMLVideoElement
+                            if (videoElement && videoQuery.data?.transcript_segments) {
+                              const currentTime = videoElement.currentTime
+                              const segments = videoQuery.data.transcript_segments
+                              const segment = segments.find((seg: any) => 
+                                currentTime >= seg.start && currentTime <= seg.end
+                              )
+                              setQuickNoteData({
+                                videoTime: currentTime,
+                                transcriptText: segment?.text || '',
+                                startTime: segment?.start || currentTime,
+                                endTime: segment?.end || currentTime
+                              })
+                              setShowQuickNote(true)
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 rounded-lg group"
+                          title="Take note (Press N)"
+                        >
+                          <StickyNote className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">Note</span>
+                        </Button>
+                      )}
                       <Button
                         onClick={handleGenerateAI}
                         variant="ghost"
                         size="sm"
-                        className="flex flex-col items-center gap-1 h-auto py-2 px-3 hover:bg-primary/10 transition-colors"
+                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 rounded-lg group"
                       >
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium">AI Content</span>
+                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">AI</span>
                       </Button>
                       <ShareDialog
                         content={{
@@ -1117,21 +887,21 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex flex-col items-center gap-1 h-auto py-2 px-3 hover:bg-secondary/10 transition-colors"
+                          className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200 rounded-lg group"
                         >
-                          <Share2 className="w-4 h-4 text-secondary" />
-                          <span className="text-xs font-medium">Share</span>
+                          <Share2 className="w-4 h-4 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">Share</span>
                         </Button>
                       </ShareDialog>
                       <Button
                         onClick={toggleFavorite}
                         variant="ghost"
                         size="sm"
-                        className="flex flex-col items-center gap-1 h-auto py-2 px-3 hover:bg-accent/10 transition-colors"
+                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-200 rounded-lg group"
                         disabled={actionLoading['favorite']}
                       >
-                        <Heart className={`w-4 h-4 ${isFavorite ? 'text-red-500 fill-current' : 'text-muted-foreground'}`} />
-                        <span className="text-xs font-medium">{isFavorite ? 'Favorited' : 'Favorite'}</span>
+                        <Heart className={`w-4 h-4 transition-all duration-200 ${isFavorite ? 'text-red-500 fill-current scale-110' : 'text-slate-400 dark:text-slate-500 group-hover:scale-110'}`} />
+                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">{isFavorite ? 'Saved' : 'Save'}</span>
                       </Button>
                     </div>
                   </div>
@@ -1142,51 +912,58 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
               {/* Sermon Notes - Primary Focus */}
               {video.sermon_notes && video.sermon_notes.length > 0 && (
-                <section id="sermon-notes" className="scroll-mt-20 mb-8">
-                  <Card className="border-primary/20 shadow-lg bg-gradient-to-br from-primary/5 to-secondary/5">
-                    <CardHeader className="pb-4">
+                <section id="sermon-notes" className="scroll-mt-20 mb-10">
+                  <Card className="border-blue-200/60 dark:border-blue-800/40 shadow-xl bg-gradient-to-br from-white via-blue-50/50 to-indigo-50/30 dark:from-slate-900 dark:via-blue-950/50 dark:to-indigo-950/30 backdrop-blur-sm overflow-hidden">
+                    <CardHeader className="pb-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-b border-blue-100 dark:border-blue-900/50">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-foreground flex items-center">
-                          <BookOpen className="w-6 h-6 mr-3 text-primary" />
-                          Sermon Notes
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                          <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-xl shadow-sm">
+                            <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <span>Sermon Notes</span>
                         </h2>
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleSection('sermon-notes')}
-                            className="h-8 w-8 p-0 hover:bg-primary/10"
+                            className="h-10 w-10 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-all"
                           >
                             {expandedSections['sermon-notes'] ?
-                              <ChevronUp className="w-4 h-4" /> :
-                              <ChevronDown className="w-4 h-4" />
+                              <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400" /> :
+                              <ChevronDown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             }
                           </Button>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-4">
+                    <CardContent className="pt-6">
+                      <div className="space-y-5">
                         {(expandedSections['sermon-notes'] ? video.sermon_notes : []).map((note: string, index: number) => (
-                          <div key={index} className="bg-card/60 rounded-lg p-6 border border-primary/10 shadow-sm relative group">
-                            <div className="absolute top-3 right-3">
+                          <div key={index} className="bg-white/80 dark:bg-slate-800/80 rounded-2xl p-6 md:p-8 border border-blue-100 dark:border-blue-900/30 shadow-md hover:shadow-lg transition-all duration-200 relative group">
+                            <div className="absolute top-4 right-4">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => copyToClipboard(note, `sermon-note-${index}`)}
-                                className="h-6 w-6 p-0 hover:bg-primary/10 opacity-60 hover:opacity-100"
+                                className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30 opacity-0 group-hover:opacity-100 transition-all rounded-lg"
                                 title="Copy sermon note"
                               >
                                 {copiedItems.has(`sermon-note-${index}`) ? (
-                                  <Check className="w-3 h-3 text-green-600" />
+                                  <Check className="w-4 h-4 text-green-600" />
                                 ) : (
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 )}
                               </Button>
                             </div>
-                            <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap pr-8">
-                              {note}
-                            </p>
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+                                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{index + 1}</span>
+                              </div>
+                              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base md:text-lg whitespace-pre-wrap pr-8 flex-1">
+                                {note}
+                              </p>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1197,13 +974,15 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
               {/* Scripture References - Primary Focus */}
               {video.scripture_references && video.scripture_references.length > 0 && (
-                <section id="scripture-references" className="scroll-mt-20 mb-8">
-                  <Card className="border-secondary/20 shadow-lg bg-gradient-to-br from-secondary/5 to-primary/5">
-                    <CardHeader className="pb-4">
+                <section id="scripture-references" className="scroll-mt-20 mb-10">
+                  <Card className="border-purple-200/60 dark:border-purple-800/40 shadow-xl bg-gradient-to-br from-white via-purple-50/50 to-pink-50/30 dark:from-slate-900 dark:via-purple-950/50 dark:to-pink-950/30 backdrop-blur-sm overflow-hidden">
+                    <CardHeader className="pb-5 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border-b border-purple-100 dark:border-purple-900/50">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-foreground flex items-center">
-                          <Quote className="w-6 h-6 mr-3 text-secondary" />
-                          Scripture References
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                          <div className="p-3 bg-purple-100 dark:bg-purple-900/50 rounded-xl shadow-sm">
+                            <Quote className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <span>Scripture References</span>
                         </h2>
                         <div className="flex items-center gap-2">
                           {video.scripture_references.length > 1 && (
@@ -1211,11 +990,11 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleSection('scripture-references')}
-                              className="h-8 w-8 p-0 hover:bg-secondary/10"
+                              className="h-10 w-10 p-0 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-xl transition-all"
                             >
                               {expandedSections['scripture-references'] ?
-                                <ChevronUp className="w-4 h-4" /> :
-                                <ChevronDown className="w-4 h-4" />
+                                <ChevronUp className="w-5 h-5 text-purple-600 dark:text-purple-400" /> :
+                                <ChevronDown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                               }
                             </Button>
                           )}
@@ -1254,13 +1033,15 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
               {/* Key Points - Primary Focus */}
               {video.key_points && video.key_points.length > 0 && (
-                <section id="key-points" className="scroll-mt-20 mb-8">
-                  <Card className="border-secondary/20 shadow-lg bg-gradient-to-br from-secondary/5 to-primary/5">
-                    <CardHeader className="pb-4">
+                <section id="key-points" className="scroll-mt-20 mb-10">
+                  <Card className="border-amber-200/60 dark:border-amber-800/40 shadow-xl bg-gradient-to-br from-white via-amber-50/50 to-orange-50/30 dark:from-slate-900 dark:via-amber-950/50 dark:to-orange-950/30 backdrop-blur-sm overflow-hidden">
+                    <CardHeader className="pb-5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-b border-amber-100 dark:border-amber-900/50">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-foreground flex items-center">
-                          <FileText className="w-6 h-6 mr-3 text-secondary" />
-                          Key Points
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                          <div className="p-3 bg-amber-100 dark:bg-amber-900/50 rounded-xl shadow-sm">
+                            <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <span>Key Points</span>
                         </h2>
                         <div className="flex items-center gap-2">
                           {video.key_points.length > 1 && (
@@ -1268,37 +1049,37 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleSection('key-points')}
-                              className="h-8 w-8 p-0 hover:bg-secondary/10"
+                              className="h-10 w-10 p-0 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                             >
                               {expandedSections['key-points'] ?
-                                <ChevronUp className="w-4 h-4" /> :
-                                <ChevronDown className="w-4 h-4" />
+                                <ChevronUp className="w-5 h-5 text-amber-600 dark:text-amber-400" /> :
+                                <ChevronDown className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                               }
                             </Button>
                           )}
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="grid gap-4 md:grid-cols-1">
+                    <CardContent className="pt-6">
+                      <div className="grid gap-5 md:grid-cols-1">
                         {(expandedSections['key-points'] ? video.key_points : []).map((keyPoint: string, index: number) => (
-                          <div key={index} className="bg-card/60 rounded-lg p-5 border border-secondary/10 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="mb-3 flex items-center justify-between">
-                              <Badge variant="outline" className="bg-secondary/10 border-secondary/30 text-secondary font-semibold px-3 py-1">
+                          <div key={index} className="bg-white/80 dark:bg-slate-800/80 rounded-2xl p-6 md:p-8 border border-amber-100 dark:border-amber-900/30 shadow-md hover:shadow-lg transition-all duration-200 group">
+                            <div className="mb-4 flex items-center justify-between">
+                              <Badge variant="outline" className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 font-bold px-4 py-1.5 text-sm">
                                 Key Point {index + 1}
                               </Badge>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => copyToClipboard(keyPoint, `key-point-${index}`)}
-                                  className="h-6 w-6 p-0 hover:bg-secondary/10 opacity-60 hover:opacity-100"
+                                  className="h-8 w-8 p-0 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg"
                                   title="Copy key point"
                                 >
                                   {copiedItems.has(`key-point-${index}`) ? (
-                                    <Check className="w-3 h-3 text-green-600" />
+                                    <Check className="w-4 h-4 text-green-600" />
                                   ) : (
-                                    <Copy className="w-3 h-3" />
+                                    <Copy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                                   )}
                                 </Button>
                                 <ShareDialog
@@ -1312,15 +1093,15 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-6 w-6 p-0 hover:bg-secondary/10 opacity-60 hover:opacity-100"
+                                    className="h-8 w-8 p-0 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg"
                                     title="Share key point"
                                   >
-                                    <Share2 className="w-3 h-3" />
+                                    <Share2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                                   </Button>
                                 </ShareDialog>
                               </div>
                             </div>
-                            <p className="text-foreground leading-relaxed text-base whitespace-pre-wrap">
+                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base md:text-lg whitespace-pre-wrap">
                               {keyPoint}
                             </p>
                           </div>
@@ -1333,6 +1114,36 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
           </main>
         </div>
       </div>
+
+      {/* Quick Note Panel */}
+      {showQuickNote && quickNoteData && (
+        <div className="fixed bottom-6 right-6 left-6 md:left-auto md:w-[550px] z-50 animate-in slide-in-from-bottom-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-blue-200 dark:border-blue-800 overflow-hidden">
+            <NoteQuickAdd
+              videoTime={quickNoteData.videoTime}
+              transcriptText={quickNoteData.transcriptText}
+              startTime={quickNoteData.startTime}
+              endTime={quickNoteData.endTime}
+              onSave={async (note) => {
+                await handleNoteTaken({
+                  startTime: note.startTime,
+                  endTime: note.endTime,
+                  transcriptText: note.transcriptText,
+                  videoTime: note.videoTime,
+                  userNote: note.userNote,
+                  templateType: note.templateType
+                })
+                setShowQuickNote(false)
+                setQuickNoteData(null)
+              }}
+              onCancel={() => {
+                setShowQuickNote(false)
+                setQuickNoteData(null)
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* AI Generation Modal */}
       {video && (

@@ -879,6 +879,12 @@ const CustomVideoPlayerV2 = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!videoRef.current) return
       
+      // Don't trigger shortcuts when user is typing in input fields or textareas
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return
+      }
+      
       const video = videoRef.current
       
       switch (e.code) {
@@ -1186,9 +1192,6 @@ const CustomVideoPlayerV2 = ({
         currentChapter={getCurrentChapter()}
         onChapterChange={onChapterChange}
         availableQualities={getAvailableQualities()}
-        transcriptSegments={transcriptSegments}
-        onNoteTaken={takeNote}
-        isCapturingNote={state.isCapturingNote}
         formatTime={formatTime}
         showControls={showControls}
       />

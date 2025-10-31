@@ -229,11 +229,11 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
   // Show loading only if we don't have initial data and are fetching
   if (preacherQuery.isLoading && !initialPreacher) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20">
         {/* Header skeleton */}
-        <div className="h-16 bg-background/80 backdrop-blur-lg border-b border-border/50" />
+        <div className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800" />
 
-        <div className="container mx-auto px-4 max-w-6xl">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1600px]">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-8">
             {/* Main content skeleton */}
             <div className="lg:col-span-8 space-y-8">
@@ -307,16 +307,16 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
 
   if (preacherQuery.isError || !preacherQuery.data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10 flex items-center justify-center">
-        <Card className="max-w-md w-full text-center border-destructive/20 bg-gradient-to-br from-destructive/5 to-destructive/10 shadow-xl">
-          <CardContent className="pt-8 pb-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center border-red-200 dark:border-red-800 bg-gradient-to-br from-white via-red-50/50 to-orange-50/30 dark:from-slate-900 dark:via-red-950/50 dark:to-orange-950/30 shadow-2xl">
+          <CardContent className="pt-12 pb-10 px-8">
             <div className="text-7xl mb-6 animate-bounce">🙏</div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Preacher Not Found</h2>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Preacher Not Found</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed text-lg">
               The preacher you're looking for doesn't exist or has been removed.
             </p>
-            <Button onClick={() => router.push("/")} className="w-full">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button onClick={() => router.push("/")} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+              <ArrowLeft className="w-5 h-5 mr-2" />
               Back to Home
             </Button>
           </CardContent>
@@ -329,7 +329,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
   const stats = statsQuery.data
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/20">
       {/* App Header */}
       <AppHeader
         showActions={false}
@@ -340,7 +340,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
         }}
       />
 
-      <div className="container mx-auto px-4 max-w-6xl py-6">
+      <div className="container mx-auto px-4 lg:px-6 max-w-[1600px] py-8">
         {/* Banner */}
         {preacher.banner_url && (
           <div className="relative mb-8 rounded-xl overflow-hidden shadow-lg">
@@ -356,36 +356,36 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
         )}
 
         {/* Preacher Header - Full Width */}
-        <div className="bg-card/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-border/50 mb-8">
-          <div className="flex flex-col sm:flex-row gap-6">
-            <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-background shadow-lg">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 lg:p-8 shadow-xl border border-slate-200 dark:border-slate-700 mb-10">
+          <div className="flex flex-col sm:flex-row gap-6 lg:gap-8">
+            <Avatar className="w-28 h-28 sm:w-36 sm:h-36 border-4 border-white dark:border-slate-700 shadow-2xl ring-2 ring-blue-200 dark:ring-blue-800">
               <AvatarImage src={preacher.image_url || preacher.profile_image_url || undefined} alt={preacher.name} />
-              <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/20 to-secondary/20">
+              <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300">
                 {preacher.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-5">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-3 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
                   {preacher.name}
                 </h1>
                 {preacher.is_verified && (
-                  <Badge variant="secondary" className="mb-2">
-                    <Check className="w-3 h-3 mr-1" />
+                  <Badge variant="secondary" className="mb-3 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 px-3 py-1">
+                    <Check className="w-4 h-4 mr-1" />
                     Verified Preacher
                   </Badge>
                 )}
-                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                <div className="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-400">
                   {preacher.denomination && (
-                    <span className="flex items-center gap-1">
-                      <Building className="w-3 h-3" />
+                    <span className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg">
+                      <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       {preacher.denomination}
                     </span>
                   )}
                   {preacher.church_affiliation && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
+                    <span className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg">
+                      <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       {preacher.church_affiliation}
                     </span>
                   )}
@@ -393,40 +393,40 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
               </div>
 
               {preacher.bio && (
-                <p className="text-muted-foreground leading-relaxed max-w-2xl">
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl text-base">
                   {preacher.bio}
                 </p>
               )}
 
               {/* Preaches message */}
               {preacher.ministry_focus && preacher.ministry_focus.length > 0 && (
-                <div className="flex items-start gap-2 text-muted-foreground">
-                  <span className="text-sm">
-                    <strong>{preacher.name}</strong> preaches on topics like: {preacher.ministry_focus.slice(0, 3).join(', ')}
+                <div className="flex items-start gap-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    <strong className="text-blue-700 dark:text-blue-300">{preacher.name}</strong> preaches on topics like: <strong className="text-purple-700 dark:text-purple-300">{preacher.ministry_focus.slice(0, 3).join(', ')}</strong>
                     {preacher.ministry_focus.length > 3 && `, and ${preacher.ministry_focus.length - 3} more`}
                   </span>
                 </div>
               )}
 
               {/* Statistics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-t border-border/20">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-primary">{preacher.follower_count?.toLocaleString() || 0}</div>
-                  <div className="text-xs text-muted-foreground">Followers</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-5 border-t border-slate-200 dark:border-slate-700">
+                <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{preacher.follower_count?.toLocaleString() || 0}</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Followers</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-primary">{preacher.video_count?.toLocaleString() || 0}</div>
-                  <div className="text-xs text-muted-foreground">Sermons</div>
+                <div className="text-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 p-4 rounded-xl border border-purple-200 dark:border-purple-800">
+                  <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{preacher.video_count?.toLocaleString() || 0}</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Sermons</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-primary">{preacher.total_views?.toLocaleString() || 0}</div>
-                  <div className="text-xs text-muted-foreground">Total Views</div>
+                <div className="text-center bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 p-4 rounded-xl border border-green-200 dark:border-green-800">
+                  <div className="text-2xl font-bold text-green-700 dark:text-green-300">{preacher.total_views?.toLocaleString() || 0}</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Total Views</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-primary">
+                <div className="text-center bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/50 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
                     {statsQuery.isLoading ? '...' : (stats ? Math.round((stats.total_watch_time || 0) / 3600) : 0)}
                   </div>
-                  <div className="text-xs text-muted-foreground">Hours Watched</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Hours Watched</div>
                 </div>
               </div>
 
@@ -437,31 +437,31 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
                   variant="outline"
                   size="sm"
                   disabled={actionLoading.follow}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-white dark:bg-slate-800 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-300 dark:hover:border-red-700 transition-all rounded-xl px-5 py-2.5 shadow-md"
                 >
                   {actionLoading.follow ? (
                     <>
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      Loading...
+                      <span className="font-semibold">Loading...</span>
                     </>
                   ) : (
                     <>
-                      <Heart className="w-4 h-4" />
-                      Follow
+                      <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Follow</span>
                     </>
                   )}
                 </Button>
 
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Share2 className="w-4 h-4" />
-                  Share
+                <Button variant="outline" size="sm" className="flex items-center gap-2 bg-white dark:bg-slate-800 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-700 transition-all rounded-xl px-5 py-2.5 shadow-md">
+                  <Share2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Share</span>
                 </Button>
 
                 {preacher.website_url && (
                   <Button variant="outline" size="sm" asChild>
-                    <a href={preacher.website_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Website
+                    <a href={preacher.website_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all rounded-xl px-5 py-2.5 shadow-md">
+                      <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Website</span>
                     </a>
                   </Button>
                 )}
@@ -471,15 +471,15 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
         </div>
 
         {/* Mobile Hamburger Menu Button */}
-        <div className="lg:hidden flex justify-start mb-4">
+        <div className="lg:hidden flex justify-start mb-6">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-md hover:shadow-lg transition-all rounded-xl px-4 py-2"
           >
-            <Menu className="w-4 h-4" />
-            {mobileSidebarOpen ? 'Hide Menu' : 'Show Menu'}
+            <Menu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{mobileSidebarOpen ? 'Hide Menu' : 'Show Menu'}</span>
           </Button>
         </div>
 
@@ -497,18 +497,20 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
           <div className="lg:col-span-8 space-y-6">
             {/* Sermons/Videos Section */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  Sermons & Teachings
-                  <Badge variant="secondary">{preacher.video_count} videos</Badge>
+              <div className="flex items-center justify-between bg-white/80 dark:bg-slate-800/80 p-5 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                    <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span>Sermons & Teachings</span>
+                  <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 px-3 py-1">{preacher.video_count} videos</Badge>
                 </h2>
               </div>
 
               {/* Videos Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {allVideos.map((video) => (
-                  <Card key={video.id} className="group hover:shadow-lg transition-all duration-200 border-border/50 hover:border-primary/20">
+                  <Card key={video.id} className="group hover:shadow-xl transition-all duration-200 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden rounded-2xl">
                     <div className="relative">
                       <Link href={`/video/${video.id}`}>
                         <div className="aspect-video relative overflow-hidden rounded-t-lg bg-muted">
@@ -572,11 +574,11 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
                     variant="outline"
                     onClick={handleLoadMoreVideos}
                     disabled={videosQuery.isFetching}
-                    className="min-w-32"
+                    className="min-w-48 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 rounded-xl py-6 px-8 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
                   >
                     {videosQuery.isFetching ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                         Loading...
                       </>
                     ) : (
@@ -592,17 +594,19 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
           <aside className={cn("lg:col-span-4 space-y-6 z-50", mobileSidebarOpen ? "block" : "hidden lg:block")}>
             {/* Ministry Focus */}
             {preacher.ministry_focus && preacher.ministry_focus.length > 0 && (
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Award className="w-5 h-5 text-primary" />
-                    Ministry Focus
+              <Card className="border-amber-200/60 dark:border-amber-800/40 shadow-xl bg-gradient-to-br from-white via-amber-50/50 to-orange-50/30 dark:from-slate-900 dark:via-amber-950/50 dark:to-orange-950/30 backdrop-blur-sm">
+                <CardHeader className="pb-4 border-b border-amber-100 dark:border-amber-900/50">
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
+                      <Award className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <span>Ministry Focus</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   <div className="flex flex-wrap gap-2">
                     {preacher.ministry_focus.map((focus, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge key={index} variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 px-3 py-1">
                         {focus}
                       </Badge>
                     ))}
@@ -613,14 +617,16 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
 
             {/* Social Links */}
             {preacher.social_links && Object.keys(preacher.social_links).length > 0 && (
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-primary" />
-                    Connect
+              <Card className="border-blue-200/60 dark:border-blue-800/40 shadow-xl bg-gradient-to-br from-white via-blue-50/50 to-indigo-50/30 dark:from-slate-900 dark:via-blue-950/50 dark:to-indigo-950/30 backdrop-blur-sm">
+                <CardHeader className="pb-4 border-b border-blue-100 dark:border-blue-900/50">
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                      <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span>Connect</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 pt-4">
                   {Object.entries(preacher.social_links).map(([platform, url]) => {
                     const Icon = getSocialIcon(platform)
                     return (
@@ -628,7 +634,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
                         key={platform}
                         variant="outline"
                         size="sm"
-                        className="w-full justify-start"
+                        className="w-full justify-start bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all rounded-xl py-2.5 shadow-sm"
                         asChild
                       >
                         <a
@@ -636,8 +642,8 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Icon className="w-4 h-4 mr-2" />
-                          {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                          <Icon className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{platform.charAt(0).toUpperCase() + platform.slice(1)}</span>
                         </a>
                       </Button>
                     )
@@ -648,32 +654,34 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
 
             {/* Contact Information */}
             {(preacher.website_url || preacher.theological_position) && (
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Building className="w-5 h-5 text-primary" />
-                    About
+              <Card className="border-purple-200/60 dark:border-purple-800/40 shadow-xl bg-gradient-to-br from-white via-purple-50/50 to-pink-50/30 dark:from-slate-900 dark:via-purple-950/50 dark:to-pink-950/30 backdrop-blur-sm">
+                <CardHeader className="pb-4 border-b border-purple-100 dark:border-purple-900/50">
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                      <Building className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span>About</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4 pt-4">
                   {preacher.theological_position && (
-                    <div className="flex items-start gap-3">
-                      <Star className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3 bg-purple-50 dark:bg-purple-950/50 p-3 rounded-xl border border-purple-200 dark:border-purple-800">
+                      <Star className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <div className="text-sm font-medium">Theological Position</div>
-                        <div className="text-sm text-muted-foreground">{preacher.theological_position}</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">Theological Position</div>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{preacher.theological_position}</div>
                       </div>
                     </div>
                   )}
 
                   {preacher.website_url && (
-                    <div className="flex items-start gap-3">
-                      <Globe className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3 bg-purple-50 dark:bg-purple-950/50 p-3 rounded-xl border border-purple-200 dark:border-purple-800">
+                      <Globe className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <div className="text-sm font-medium">Website</div>
-                        <Button variant="link" size="sm" className="h-auto p-0 text-sm" asChild>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">Website</div>
+                        <Button variant="link" size="sm" className="h-auto p-0 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold" asChild>
                           <a href={preacher.website_url} target="_blank" rel="noopener noreferrer">
-                            Visit Website
+                            Visit Website →
                           </a>
                         </Button>
                       </div>

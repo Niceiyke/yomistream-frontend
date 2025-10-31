@@ -31,7 +31,7 @@ export function NotificationCenter() {
   const { showToast } = useToastNotifications()
 
   // Real-time notifications
-  useNotifications({
+  const { isConnected } = useNotifications({
     enabled: true,
     onNotification: (notification) => {
       // Show toast for new notifications
@@ -43,10 +43,11 @@ export function NotificationCenter() {
   })
 
   // Fetch notifications
+  // Only poll when WebSocket is disconnected as fallback
   const { data: notificationData, isLoading } = useQuery<NotificationListResponse>({
     queryKey: ['notifications'],
     queryFn: () => notificationApi.getNotifications({ unread_only: true, limit: 10 }),
-    refetchInterval: 30000 // Refetch every 30 seconds as backup
+    refetchInterval: isConnected ? false : 30000 // Only poll if WebSocket disconnected
   })
 
   // Fetch preferences
@@ -115,7 +116,13 @@ export function NotificationCenter() {
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
+              {/* WebSocket connection status indicator */}
+              <div className="flex items-center" title={isConnected ? 'Real-time connected' : 'Polling mode'}>
+                <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+              </div>
+            </div>
             <div className="flex items-center space-x-2">
               {unreadCount > 0 && (
                 <button
