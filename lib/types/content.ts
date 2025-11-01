@@ -113,6 +113,7 @@ export interface Video {
   // Engagement metrics (denormalized for performance)
   view_count: number
   like_count: number
+  dislike_count: number
   comment_count: number
   share_count: number
   favorite_count: number
@@ -224,7 +225,9 @@ export interface Channel {
   owner_id: string
   owner?: any // User
   video_count: number
-  view_count: number
+  subscriber_count: number
+  total_views: number
+  total_watch_time: number
   created_at: string
   updated_at: string | null
   videos?: Video[]

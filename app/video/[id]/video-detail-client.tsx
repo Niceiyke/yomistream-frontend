@@ -42,7 +42,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { debugLog } from "@/lib/utils/debug"
 import { Video } from "@/lib/types"
-import { formatDuration, getPreacherName, getChannelName } from "@/lib/utils/video-helpers"
+import { formatDuration, getPreacherName, getChannelName, getPreacherImageUrl } from "@/lib/utils/video-helpers"
 import { AIGenerationModal } from "@/components/ai-generation-modal"
 import { ScriptureVerseCard } from "@/components/scripture-verse-card"
 import { ShareDialog } from "@/components/share-dialog"
@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { CustomVideoPlayerV2 as CustomVideoPlayer } from '@/components/custom-video-player-v2'
 import { NoteQuickAdd, NoteCard } from '@/components/notes'
+import { VideoLikeDislike } from '@/components/video-like-dislike'
 
 interface VideoDetailClientProps {
   initialVideo: Video | null
@@ -131,8 +132,6 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
     refetchOnWindowFocus: true, // Refetch when window regains focus to show updated view counts
     enabled: !!videoId,
   })
-
-  console.log('Video query data:', videoQuery.data)
   // Fetch video comments first
   const commentsQuery = useQuery({
     queryKey: ["video-comments", videoId],
@@ -805,28 +804,65 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
 
               {/* Title and Preacher Info */}
               <div className="text-center  lg:text-left mb-10">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
                   {video.title}
                 </h1>
 
                 {/* Combined Info & Actions Card */}
-                <div className="bg-white/80 dark:bg-slate-800/80 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 backdrop-blur-sm px-2 py-3 lg:px-5 lg:py-3">
-                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 lg:gap-4">
-                    {/* Channel and Views Info */}
-                    <div className="flex items-center justify-center lg:justify-start gap-3 md:gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                <div className="bg-white/80 dark:bg-slate-800/80 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 backdrop-blur-sm px-4 py-3">
+                  {/* Info Row - Always horizontal */}
+                  <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 overflow-x-auto lg:overflow-visible">
+                      {/* Channel Info */}
+                      <button
+                        onClick={() => video.channel?.id && router.push(`/channel/${video.channel.id}`)}
+                        className="flex items-center gap-2 flex-shrink-0 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1 transition-all duration-200 group"
+                      >
+                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/70 transition-colors">
                           <Tv className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-none">Channel</span>
-                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5">{getChannelName(video) || "Unknown"}</span>
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{getChannelName(video) || "Unknown"}</span>
                         </div>
-                      </div>
+                      </button>
 
-                      <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+                      {video.preacher && (
+                        <>
+                          <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0"></div>
+                          <button
+                            onClick={() => router.push(`/preacher/${video.preacher.id}`)}
+                            className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1 transition-all duration-200 group flex-shrink-0"
+                          >
+                            <div className="p-1.5 bg-amber-100 dark:bg-amber-900/50 rounded-lg group-hover:bg-amber-200 dark:group-hover:bg-amber-900/70 transition-colors">
+                              <div className="w-4 h-4 rounded-full bg-amber-600 dark:bg-amber-400 flex items-center justify-center">
+                                {getPreacherImageUrl(video.preacher) ? (
+                                  <img 
+                                    src={getPreacherImageUrl(video.preacher)!} 
+                                    alt={video.preacher.name}
+                                    className="w-full h-full rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-[8px] text-white font-bold">
+                                    {video.preacher.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="hidden lg:flex flex-col">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-none">Preacher</span>
+                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-0.5 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                                {video.preacher.name}
+                              </span>
+                            </div>
+                          </button>
+                        </>
+                      )}
 
-                      <div className="flex items-center gap-2">
+                      <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0"></div>
+
+                      {/* Views Info */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <div className="p-1.5 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
                           <Eye className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         </div>
@@ -837,8 +873,28 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                       </div>
                     </div>
 
-                    {/* Quick Actions */}
-                    <div className="flex items-center justify-center lg:justify-end gap-2 flex-wrap">
+                    {/* Action Buttons Row */}
+                    <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible pt-3 border-t border-slate-200 dark:border-slate-700 lg:pt-0 lg:border-0">
+                      {/* Like/Dislike */}
+                      <VideoLikeDislike
+                        videoId={videoId}
+                        likeCount={video?.like_count ?? 0}
+                        dislikeCount={video?.dislike_count ?? 0}
+                        variant="compact"
+                        onCountsUpdate={(newLikeCount, newDislikeCount) => {
+                          queryClient.setQueryData(['video', videoId], (oldData: any) => {
+                            if (!oldData) return oldData
+                            return {
+                              ...oldData,
+                              like_count: newLikeCount,
+                              dislike_count: newDislikeCount
+                            }
+                          })
+                        }}
+                      />
+
+                      <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0"></div>
+
                       {user && (
                         <Button
                           onClick={() => {
@@ -860,22 +916,24 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                           }}
                           variant="ghost"
                           size="sm"
-                          className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 rounded-lg group"
+                          className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 rounded-lg group flex-shrink-0"
                           title="Take note (Press N)"
                         >
                           <StickyNote className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
                           <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">Note</span>
                         </Button>
                       )}
+
                       <Button
                         onClick={handleGenerateAI}
                         variant="ghost"
                         size="sm"
-                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 rounded-lg group"
+                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 rounded-lg group flex-shrink-0"
                       >
                         <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">AI</span>
                       </Button>
+
                       <ShareDialog
                         content={{
                           title: video.title,
@@ -887,20 +945,21 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200 rounded-lg group"
+                          className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200 rounded-lg group flex-shrink-0"
                         >
                           <Share2 className="w-4 h-4 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform" />
                           <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">Share</span>
                         </Button>
                       </ShareDialog>
+
                       <Button
                         onClick={toggleFavorite}
                         variant="ghost"
                         size="sm"
-                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-200 rounded-lg group"
+                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-all duration-200 rounded-lg group flex-shrink-0"
                         disabled={actionLoading['favorite']}
                       >
-                        <Heart className={`w-4 h-4 transition-all duration-200 ${isFavorite ? 'text-red-500 fill-current scale-110' : 'text-slate-400 dark:text-slate-500 group-hover:scale-110'}`} />
+                        <Heart className={`w-4 h-4 transition-all duration-200 ${isFavorite ? 'text-pink-600 dark:text-pink-400 fill-current scale-110' : 'text-pink-600 dark:text-pink-400 group-hover:scale-110'}`} />
                         <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">{isFavorite ? 'Saved' : 'Save'}</span>
                       </Button>
                     </div>

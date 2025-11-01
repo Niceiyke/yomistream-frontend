@@ -72,10 +72,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
   // Fetch preacher details - use initial data if available
   const preacherQuery = useQuery({
     queryKey: ["preacher", preacherId],
-    queryFn: () => {
-      console.log(`🌐 CLIENT: Fetching preacher ${preacherId} from client-side`)
-      return preacherApi.getPreacher(preacherId)
-    },
+    queryFn: () => preacherApi.getPreacher(preacherId),
     initialData: initialPreacher,
     staleTime: 10 * 60 * 1000, // 10 minutes - matches server revalidation
     gcTime: 30 * 60 * 1000, // 30 minutes
@@ -105,14 +102,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
     queryKey: ["follow-status", preacherId, user?.id],
     queryFn: async () => {
       if (!user?.id) return false
-      try {
-        // Try to get follower count - if it succeeds, user follows
-        await preacherApi.getFollowerCount(preacherId)
-        return true
-      } catch (error) {
-        // If it fails, user doesn't follow
-        return false
-      }
+      return preacherApi.checkFollowStatus(preacherId)
     },
     enabled: !!user?.id && !!preacherId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -141,55 +131,92 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
     if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to follow preachers."
+      })
       router.push("/auth/login")
       return
     }
     if (!preacherQuery.data) return
 
     const actionKey = 'follow'
+    const isFollowing = followStatusQuery.data
     setActionLoadingState(actionKey, true)
 
     try {
-      // For now, we'll attempt to follow and handle the response
-      // In a real implementation, you'd check current follow status first
-      await preacherApi.followPreacher(preacherId, { notify_on_upload: true })
-
-      toast({
-        title: "Following!",
-        description: `You are now following ${preacher.name}.`,
-      })
-
-      // Refresh preacher data to update follower count
-      queryClient.invalidateQueries({ queryKey: ["preacher", preacherId] })
-    } catch (error: any) {
-      // If already following, try to unfollow
-      if (error.message?.includes("Already following")) {
-        try {
-          await preacherApi.unfollowPreacher(preacherId)
-
-          toast({
-            title: "Unfollowed",
-            description: `You are no longer following ${preacher.name}.`,
-          })
-
-          // Refresh preacher data to update follower count
-          queryClient.invalidateQueries({ queryKey: ["preacher", preacherId] })
-        } catch (unfollowError) {
-          console.error("Error unfollowing:", unfollowError)
-          toast({
-            title: "Error",
-            description: "Failed to unfollow. Please try again.",
-          })
-        }
-      } else {
-        console.error("Error following:", error)
+      if (isFollowing) {
+        // Unfollow
+        await preacherApi.unfollowPreacher(preacherId)
         toast({
-          title: "Error",
-          description: "Failed to follow. Please try again.",
+          title: "Unfollowed",
+          description: `You are no longer following ${preacherQuery.data.name}.`,
+        })
+      } else {
+        // Follow
+        await preacherApi.followPreacher(preacherId, { notify_on_upload: true })
+        toast({
+          title: "Following!",
+          description: `You are now following ${preacherQuery.data.name}. You'll be notified of new uploads.`,
         })
       }
+
+      // Refresh queries
+      queryClient.invalidateQueries({ queryKey: ["preacher", preacherId] })
+      queryClient.invalidateQueries({ queryKey: ["follow-status", preacherId, user?.id] })
+    } catch (error: any) {
+      console.error("Error toggling follow:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update follow status. Please try again."
+      })
     } finally {
       setActionLoadingState(actionKey, false)
+    }
+  }
+
+  // Handle share
+  const handleShare = async () => {
+    if (!preacherQuery.data) return
+    
+    const shareUrl = window.location.href
+    const shareText = `Check out ${preacherQuery.data.name} on Wordlyte`
+
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: preacherQuery.data.name,
+          text: shareText,
+          url: shareUrl
+        })
+        // Only show success if share actually completed
+        toast({
+          title: "Shared!",
+          description: "Thanks for sharing!"
+        })
+        return
+      } catch (error: any) {
+        // Check if user cancelled (AbortError) - don't show error or fallback
+        if (error.name === 'AbortError') {
+          return // User cancelled, do nothing
+        }
+        // For other errors, fall through to clipboard
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      toast({
+        title: "Link Copied!",
+        description: "Profile link copied to clipboard."
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy link. Please try again."
+      })
     }
   }
 
@@ -222,9 +249,6 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
       default: return url
     }
   }
-
-  console.log('Preacher query data:', preacherQuery.data)
-  console.log('Videos query data:', videosQuery.data)
 
   // Show loading only if we don't have initial data and are fetching
   if (preacherQuery.isLoading && !initialPreacher) {
@@ -335,7 +359,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
         showActions={false}
         backButton={{
           label: "← Back",
-          href: "/",
+          onClick: () => router.back(),
           scroll: false
         }}
       />
@@ -411,20 +435,20 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
               {/* Statistics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-5 border-t border-slate-200 dark:border-slate-700">
                 <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{preacher.follower_count?.toLocaleString() || 0}</div>
+                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{(preacher.follower_count ?? 0).toLocaleString()}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Followers</div>
                 </div>
                 <div className="text-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 p-4 rounded-xl border border-purple-200 dark:border-purple-800">
-                  <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{preacher.video_count?.toLocaleString() || 0}</div>
+                  <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{(preacher.video_count ?? 0).toLocaleString()}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Sermons</div>
                 </div>
                 <div className="text-center bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 p-4 rounded-xl border border-green-200 dark:border-green-800">
-                  <div className="text-2xl font-bold text-green-700 dark:text-green-300">{preacher.total_views?.toLocaleString() || 0}</div>
+                  <div className="text-2xl font-bold text-green-700 dark:text-green-300">{(preacher.total_views ?? 0).toLocaleString()}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Total Views</div>
                 </div>
                 <div className="text-center bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/50 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
                   <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                    {statsQuery.isLoading ? '...' : (stats ? Math.round((stats.total_watch_time || 0) / 3600) : 0)}
+                    {statsQuery.isLoading ? '...' : Math.round(((stats?.total_watch_time ?? 0) / 3600))}
                   </div>
                   <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Hours Watched</div>
                 </div>
@@ -434,25 +458,40 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
               <div className="flex flex-wrap gap-3">
                 <Button
                   onClick={handleFollowToggle}
-                  variant="outline"
+                  variant={followStatusQuery.data ? "default" : "outline"}
                   size="sm"
-                  disabled={actionLoading.follow}
-                  className="flex items-center gap-2 bg-white dark:bg-slate-800 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-300 dark:hover:border-red-700 transition-all rounded-xl px-5 py-2.5 shadow-md"
+                  disabled={actionLoading.follow || followStatusQuery.isLoading}
+                  className={cn(
+                    "flex items-center gap-2 transition-all rounded-xl px-5 py-2.5 shadow-md",
+                    followStatusQuery.data
+                      ? "bg-pink-600 hover:bg-pink-700 text-white border-pink-600"
+                      : "bg-white dark:bg-slate-800 border-pink-200 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900/30 hover:border-pink-300 dark:hover:border-pink-700"
+                  )}
                 >
-                  {actionLoading.follow ? (
+                  {actionLoading.follow || followStatusQuery.isLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       <span className="font-semibold">Loading...</span>
                     </>
+                  ) : followStatusQuery.data ? (
+                    <>
+                      <Heart className="w-5 h-5 fill-current" />
+                      <span className="font-semibold">Following</span>
+                    </>
                   ) : (
                     <>
-                      <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      <Heart className="w-5 h-5 text-pink-600 dark:text-pink-400" />
                       <span className="font-semibold text-slate-700 dark:text-slate-300">Follow</span>
                     </>
                   )}
                 </Button>
 
-                <Button variant="outline" size="sm" className="flex items-center gap-2 bg-white dark:bg-slate-800 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-700 transition-all rounded-xl px-5 py-2.5 shadow-md">
+                <Button 
+                  onClick={handleShare}
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2 bg-white dark:bg-slate-800 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-700 transition-all rounded-xl px-5 py-2.5 shadow-md"
+                >
                   <Share2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Share</span>
                 </Button>
@@ -503,7 +542,7 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
                     <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <span>Sermons & Teachings</span>
-                  <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 px-3 py-1">{preacher.video_count} videos</Badge>
+                  <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 px-3 py-1">{preacher.video_count ?? 0} videos</Badge>
                 </h2>
               </div>
 

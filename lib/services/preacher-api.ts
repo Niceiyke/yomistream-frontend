@@ -45,5 +45,16 @@ export const preacherApi = {
   // Get follower count
   getFollowerCount: async (preacherId: string): Promise<number> => {
     return apiGet(`/api/v1/preachers/${preacherId}/followers`)
+  },
+
+  // Check if current user follows this preacher
+  checkFollowStatus: async (preacherId: string): Promise<boolean> => {
+    try {
+      // Get list of preachers user follows and check if this one is in it
+      const response = await apiGet(`/api/v1/preachers/me/following?limit=100`)
+      return response.some((p: Preacher) => p.id === preacherId)
+    } catch (error) {
+      return false
+    }
   }
 }
