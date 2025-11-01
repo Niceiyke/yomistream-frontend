@@ -45,6 +45,7 @@ import { preacherApi } from "@/lib/services/preacher-api"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
+import { ShareDialog } from "@/components/share-dialog"
 
 interface PreacherDetailClientProps {
   initialPreacher: Preacher | null
@@ -172,51 +173,6 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
       })
     } finally {
       setActionLoadingState(actionKey, false)
-    }
-  }
-
-  // Handle share
-  const handleShare = async () => {
-    if (!preacherQuery.data) return
-    
-    const shareUrl = window.location.href
-    const shareText = `Check out ${preacherQuery.data.name} on Wordlyte`
-
-    // Try native share API first (mobile)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: preacherQuery.data.name,
-          text: shareText,
-          url: shareUrl
-        })
-        // Only show success if share actually completed
-        toast({
-          title: "Shared!",
-          description: "Thanks for sharing!"
-        })
-        return
-      } catch (error: any) {
-        // Check if user cancelled (AbortError) - don't show error or fallback
-        if (error.name === 'AbortError') {
-          return // User cancelled, do nothing
-        }
-        // For other errors, fall through to clipboard
-      }
-    }
-
-    // Fallback to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      toast({
-        title: "Link Copied!",
-        description: "Profile link copied to clipboard."
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy link. Please try again."
-      })
     }
   }
 
@@ -486,15 +442,23 @@ export default function PreacherDetailClient({ initialPreacher }: PreacherDetail
                   )}
                 </Button>
 
-                <Button 
-                  onClick={handleShare}
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-2 bg-white dark:bg-slate-800 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-700 transition-all rounded-xl px-5 py-2.5 shadow-md"
+                <ShareDialog
+                  content={{
+                    title: preacher.name,
+                    text: `Check out ${preacher.name} on Wordlyte`,
+                    url: typeof window !== "undefined" ? window.location.href : "",
+                    type: "custom"
+                  }}
                 >
-                  <Share2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">Share</span>
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-800 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-700 transition-all rounded-xl px-5 py-2.5 shadow-md"
+                  >
+                    <Share2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Share</span>
+                  </Button>
+                </ShareDialog>
 
                 {preacher.website_url && (
                   <Button variant="outline" size="sm" asChild>
