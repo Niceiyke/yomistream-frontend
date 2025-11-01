@@ -3,9 +3,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { API_BASE_URL } from '@/lib/api'
 import { invalidateAuthCache, getAccessTokenCached } from '@/lib/auth-cache'
+import { User } from '@/lib/types/user'
 
 interface AuthContextType {
-  user: any | null
+  user: User | null
   loading: boolean
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -18,7 +19,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<any | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   const refreshAccessToken = async (): Promise<string | null> => {

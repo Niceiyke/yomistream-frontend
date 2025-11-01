@@ -36,7 +36,7 @@ export function AppHeader({
   backButton 
 }: AppHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, signOut: authSignOut } = useAuth()
+  const { user, signOut: authSignOut, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -80,8 +80,8 @@ export function AppHeader({
       await onSignOut()
     }
     
-    // Redirect to home page
-    router.push("/")
+    // Redirect to login page
+    router.push("/auth/login")
   }
 
   const handleNavClick = () => {
@@ -129,7 +129,7 @@ export function AppHeader({
           {/* Desktop Navigation */}
           {showActions && (
             <nav className="hidden md:flex items-center space-x-3">
-              {user.user_type === "admin" && (
+              {user?.user_type === "admin" && (
                 <Button
                   asChild
                   variant="outline"
@@ -158,11 +158,11 @@ export function AppHeader({
                         <Avatar className="w-6 h-6">
                           <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || user.email} />
                           <AvatarFallback className="text-xs">
-                            {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                            {(user.full_name || user.name || user.email)?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <span className="hidden lg:inline text-sm font-medium">
-                          {user.full_name || user.email.split('@')[0]}
+                          {user.full_name || user.name || user.email?.split('@')[0] || 'User'}
                         </span>
                         <ChevronDown className="w-3 h-3" />
                       </Button>
@@ -171,7 +171,7 @@ export function AppHeader({
                       <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-medium leading-none">
-                            {user.full_name || 'User'}
+                            {user.full_name || user.name || 'User'}
                           </p>
                           <p className="text-xs leading-none text-muted-foreground">
                             {user.email}
@@ -255,7 +255,7 @@ export function AppHeader({
             aria-label="Mobile navigation"
           >
             <div className="flex flex-col space-y-2">
-              {user.user_type === "admin" && (
+              {user?.user_type === "admin" && (
                 <Button
                   asChild
                   variant="outline"
@@ -275,12 +275,12 @@ export function AppHeader({
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || user.email} />
                       <AvatarFallback>
-                        {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                        {(user.full_name || user.name || user.email)?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {user.full_name || 'User'}
+                        {user.full_name || user.name || 'User'}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {user.email}

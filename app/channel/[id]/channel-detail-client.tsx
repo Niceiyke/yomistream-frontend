@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context"
 import { apiPost, apiDelete } from "@/lib/api"
 import { toast } from "sonner"
 import { ShareDialog } from "@/components/share-dialog"
+import { AppHeader } from "@/components/app-header"
 
 interface ChannelDetailClientProps {
   channel: Channel
@@ -107,6 +108,16 @@ export default function ChannelDetailClient({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950">
+      {/* App Header */}
+      <AppHeader
+        showActions={true}
+        backButton={{
+          label: "← Back",
+          onClick: () => router.back(),
+          scroll: false
+        }}
+      />
+
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Channel Header */}
         <Card className="mb-8 border-slate-200 dark:border-slate-800 shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">

@@ -33,8 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AppHeader } from "@/components/app-header"
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { getAccessTokenCached } from "@/lib/auth-cache"
@@ -565,7 +564,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
       {/* App Header */}
       <AppHeader
         favorites={favorites}
-        showActions={false}
+        showActions={true}
         backButton={{
           label: "← Back",
           href: "#",
@@ -924,15 +923,7 @@ export default function VideoDetailPage({ initialVideo }: VideoDetailClientProps
                         </Button>
                       )}
 
-                      <Button
-                        onClick={handleGenerateAI}
-                        variant="ghost"
-                        size="sm"
-                        className="flex flex-col items-center gap-0.5 h-auto py-1.5 px-2.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 rounded-lg group flex-shrink-0"
-                      >
-                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">AI</span>
-                      </Button>
+
 
                       <ShareDialog
                         content={{

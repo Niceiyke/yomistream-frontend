@@ -91,8 +91,6 @@ export default function GospelPlatform({ initialVideos, initialPreachers }: Home
     }
   }, [videosQuery.data, preachersQuery.data, videosQuery.isError, preachersQuery.isError])
 
-
-  console.log("videos", videos)
   
   // React Query: favorites (dependent on user)
   const favoritesQuery = useQuery({
